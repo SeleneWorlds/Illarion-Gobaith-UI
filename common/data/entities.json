@@ -1,0 +1,24 @@
+{
+  "entries": {
+    "illarion:tile_cursor": {
+      "components": {
+        "illarion:visual": {
+          "type": "visual",
+          "visual": "illarion:tile_cursor"
+        }
+      }
+    },
+    "illarion:tile_cursor_shadow": {
+      "components": {
+        "illarion:visual": {
+          "type": "visual",
+          "visual": "illarion:tile_cursor"
+        },
+        "illarion:script": {
+          "type": "client_script",
+          "script": "illarion-gobaith-ui.client.lua.cursor_shadow"
+        }
+      }
+    }
+  }
+}
