@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<stack id="Illarion" layoutEnabled="false">
+    <image id="BottomFrame" style="gui_bottom"/>
+    <image id="TopFrame" x="768" y="512" style="gui_top" />
+    <image id="ChatBackground" x="0" y="142" style="gui_chat" />
+</stack>
