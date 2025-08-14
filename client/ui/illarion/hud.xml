@@ -1,6 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<stack id="Illarion" layoutEnabled="false">
-    <image id="BottomFrame" style="gui_bottom"/>
-    <image id="TopFrame" x="768" y="512" style="gui_top" />
-    <image id="ChatBackground" x="0" y="142" style="gui_chat" />
-</stack>
+<canvas id="Illarion">
+    <image id="BottomFrame" style="gui_bottom" />
+    <image id="TopFrame" x="768" y="512" style="gui_top"/>
+    <container x="0" y="140" width="784" height="228" background="gui_chat" clip="true">
+        <verticalGroup id="Chat" align="bottom" columnAlign="left" fillParent="true" />
+    </container>
+    <canvas x="385" y="0" width="71" height="120">
+        <image id="Counter" style="gui_counter"/>
+        <textField id="CounterValue" style="gui_counter_value" x="8" y="55" width="53" height="30" text="250"
+                   maxLength="3" alignment="center"/>
+        <label id="CounterTime" style="gui_counter_time" labelAlign="center" lineAlign="center" x="35" y="14" />
+    </canvas>
+    <canvas x="848" y="454" width="177" height="139">
+        <image id="Status" style="gui_status"/>
+    </canvas>
+    <imageButton id="ChatButton" x="799" y="146" width="30" height="30" style="speak_normal" onclick="toggleChatMode"/>
+</canvas>
