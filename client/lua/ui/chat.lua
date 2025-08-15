@@ -29,7 +29,7 @@ function m.Initialize(bindings, skin)
 end
 
 function m.cycleChatMode(widget)
-    m.CurrentChatMode = m.ChatModes[(table.find(ChatModes, m.CurrentChatMode) % #m.ChatModes) + 1]
+    m.CurrentChatMode = m.ChatModes[(table.find(m.ChatModes, m.CurrentChatMode) % #m.ChatModes) + 1]
     widget:SetStyle(m.Skin, "speak_" .. m.CurrentChatMode)
 end
 
