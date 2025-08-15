@@ -1,19 +1,24 @@
 local Input = require("selene.input")
 local GridMovement = require("selene.movement.grid")
-local IllarionGrid = require("illarion-gobaith-ui.client.lua.lib.grid")
+local Grid = require("selene.grid")
+
+local North = Grid.GetDirectionByName("north")
+local South = Grid.GetDirectionByName("south")
+local East = Grid.GetDirectionByName("east")
+local West = Grid.GetDirectionByName("west")
 
 Input.BindContinuousAction("keyboard", "Up", function()
-    GridMovement.SetMotion(IllarionGrid.North)
+    GridMovement.SetMotion(North)
 end)
 
 Input.BindContinuousAction("keyboard", "Down", function()
-    GridMovement.SetMotion(IllarionGrid.South)
+    GridMovement.SetMotion(South)
 end)
 
 Input.BindContinuousAction("keyboard", "Left", function()
-    GridMovement.SetMotion(IllarionGrid.West)
+    GridMovement.SetMotion(West)
 end)
 
 Input.BindContinuousAction("keyboard", "Right", function()
-    GridMovement.SetMotion(IllarionGrid.East)
+    GridMovement.SetMotion(East)
 end)
