@@ -42,6 +42,7 @@ skin:AddTexture("speak_ooc", "client/textures/illarion/ui/speak_ooc.png")
 skin:AddTexture("speak_shout", "client/textures/illarion/ui/speak_shout.png")
 skin:AddTexture("speak_whisper", "client/textures/illarion/ui/speak_whisper.png")
 skin:AddTexture("inv_slot", "client/textures/illarion/ui/inv_slot-0.png")
+skin:AddTexture("inv_slot_anim", "client/textures/illarion/ui/inv_slot-7.png")
 skin:AddTexture("status_food", "client/textures/illarion/ui/status_food.png")
 skin:AddTexture("status_health", "client/textures/illarion/ui/status_health.png")
 skin:AddTexture("status_mana", "client/textures/illarion/ui/status_mana.png")
@@ -58,6 +59,10 @@ skin:AddImageButtonStyle("speak_shout", {
 })
 skin:AddImageButtonStyle("speak_whisper", {
     up = "speak_whisper"
+})
+skin:AddImageButtonStyle("inv_slot", {
+    up = "inv_slot",
+    over = "inv_slot_anim"
 })
 skin:AddLabelStyle("gui_counter_time", {
     font = "default",
