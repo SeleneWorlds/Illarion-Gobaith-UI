@@ -2,8 +2,9 @@
 <canvas id="Illarion">
     <image id="BottomFrame" style="gui_bottom" />
     <image id="TopFrame" x="768" y="512" style="gui_top"/>
+    <image id="Minimap" style="minimap" x="864" y="609" />
     <container x="0" y="140" width="784" height="228" background="gui_chat" clip="true">
-        <verticalGroup id="Chat" align="bottom" columnAlign="left" fillParent="true" />
+        <verticalGroup id="Chat" align="bottom" columnAlign="left" fillParent="true" padLeft="12" padTop="8" padBottom="8" />
     </container>
     <canvas x="385" y="0" width="71" height="120">
         <image id="Counter" style="gui_counter"/>
@@ -13,6 +14,31 @@
     </canvas>
     <canvas x="848" y="454" width="177" height="139">
         <image id="Status" style="gui_status"/>
+        <progressBar id="Health" style="status_health" x="53" y="31" vertical="true" value="0" width="12" height="80" animateDuration="0.5" />
+        <progressBar id="Food" style="status_food" x="81" y="31" vertical="true" value="0" width="12" height="80" animateDuration="0.5" />
+        <progressBar id="Mana" style="status_mana" x="109" y="31" vertical="true" value="0" width="12" height="80" animateDuration="0.5" />
+    </canvas>
+    <canvas>
+        <image id="Belt1" style="inv_slot" x="905" y="78" />
+        <image id="Belt2" style="inv_slot" x="863" y="55" />
+        <image id="Belt3" style="inv_slot" x="947" y="55" />
+        <image id="Belt4" style="inv_slot" x="905" y="32" />
+        <image id="Belt5" style="inv_slot" x="863" y="9" />
+        <image id="Belt6" style="inv_slot" x="947" y="9" />
+    </canvas>
+    <canvas>
+        <image id="Feet" style="inv_slot" x="863" y="119" />
+        <image id="Legs" style="inv_slot" x="905" y="142" />
+        <image id="Gloves" style="inv_slot" x="905" y="234" />
+        <image id="Chest" style="inv_slot" x="905" y="326" />
+        <image id="Coat" style="inv_slot" x="863" y="303" />
+        <image id="RingRight" style="inv_slot" x="863" y="211" />
+        <image id="RingLeft" style="inv_slot" x="947" y="211" />
+        <image id="HandRight" style="inv_slot" x="863" y="257" />
+        <image id="HandLeft" style="inv_slot" x="947" y="257" />
+        <image id="Bag" style="inv_slot" x="863" y="349" />
+        <image id="Neck" style="inv_slot" x="947" y="349" />
+        <image id="Head" style="inv_slot" x="947" y="395" />
     </canvas>
     <imageButton id="ChatButton" x="799" y="146" width="30" height="30" style="speak_normal" onclick="toggleChatMode"/>
 </canvas>
