@@ -83,5 +83,5 @@
             <imageButton id="Head" style="inv_slot"/>
         </inputMask>
     </canvas>
-    <imageButton id="ChatButton" x="799" y="146" width="30" height="30" style="speak_normal" onclick="toggleChatMode"/>
+    <imageButton id="ChatButton" x="799" y="146" width="30" height="30" style="speak_normal" onclick="cycleChatMode"/>
 </canvas>

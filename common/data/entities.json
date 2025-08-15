@@ -16,7 +16,7 @@
         },
         "illarion:script": {
           "type": "client_script",
-          "script": "illarion-gobaith-ui.client.lua.cursor_shadow"
+          "script": "illarion-gobaith-ui.client.lua.entities.cursor_shadow"
         }
       }
     }

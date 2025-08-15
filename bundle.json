@@ -2,7 +2,7 @@
     "name": "illarion-gobaith-ui",
     "description": "Illarion UI based on Gobaith era.",
     "entrypoints": [
-        "client/lua/init.lua",
+        "client/lua/viewport.lua",
         "client/lua/cursor.lua",
         "client/lua/input.lua",
         "client/lua/ui.lua"

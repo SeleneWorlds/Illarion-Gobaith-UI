@@ -1,6 +1,6 @@
 local Input = require("selene.input")
 local GridMovement = require("selene.movement.grid")
-local IllarionGrid = require("illarion-gobaith-ui.client.lua.grid")
+local IllarionGrid = require("illarion-gobaith-ui.client.lua.lib.grid")
 
 Input.BindContinuousAction("keyboard", "Up", function()
     GridMovement.SetMotion(IllarionGrid.North)
