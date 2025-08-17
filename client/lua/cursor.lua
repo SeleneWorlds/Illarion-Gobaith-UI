@@ -3,11 +3,13 @@ local Camera = require("selene.camera")
 local Grid = require("selene.grid")
 local Game = require("selene.game")
 local Entities = require("selene.entities")
+local Network = require("selene.network")
 
 local Cursor = Entities.Create("illarion:tile_cursor")
 Cursor:Spawn()
 
 local wasChar = false
+local useCursor = nil
 
 Game.PreTick:Connect(function()
     local mouseX, mouseY = Input.GetMousePosition()
@@ -43,3 +45,34 @@ Game.PreTick:Connect(function()
         wasChar = isChar
     end
 end)
+
+Input.BindAction(Input.MOUSE, "left", function(screenX, screenY)
+    local isShiftPressed = Input.IsKeyPressed("L-Shift") or Input.IsKeyPressed("R-Shift")
+    if isShiftPressed then
+        local worldX, worldY = Camera.ScreenToWorld(screenX, screenY)
+        local coordinate = Grid.ScreenToCoordinate(worldX, worldY)
+        if not useCursor then
+            useCursor = Entities.Create("illarion:use_cursor")
+            useCursor:SetCoordinate(coordinate)
+            useCursor:Spawn()
+        else
+            useCursor:SetCoordinate(coordinate)
+        end
+    end
+end)
+
+function OnShiftReleased()
+    if useCursor then
+        local coordinate = useCursor.Coordinate
+        Network.SendToServer("illarion:use_at", {
+            x = coordinate.x,
+            y = coordinate.y,
+            z = coordinate.z
+        })
+
+        useCursor:Despawn()
+        useCursor = nil
+    end
+end
+Input.BindUpAction(Input.KEYBOARD, "L-Shift", OnShiftReleased)
+Input.BindUpAction(Input.KEYBOARD, "R-Shift", OnShiftReleased)

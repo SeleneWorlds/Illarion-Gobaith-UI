@@ -13,6 +13,23 @@
       "offsetX": 0,
       "offsetY": -22,
       "sortLayerOffset": 300
+    },
+    "illarion:use_cursor": {
+      "type": "animated",
+      "textures": [
+        "client/textures/illarion/ui/mark_use-0.png",
+        "client/textures/illarion/ui/mark_use-1.png",
+        "client/textures/illarion/ui/mark_use-2.png",
+        "client/textures/illarion/ui/mark_use-3.png",
+        "client/textures/illarion/ui/mark_use-4.png",
+        "client/textures/illarion/ui/mark_use-5.png",
+        "client/textures/illarion/ui/mark_use-6.png",
+        "client/textures/illarion/ui/mark_use-7.png",
+        "client/textures/illarion/ui/mark_use-8.png"
+      ],
+      "offsetX": 0,
+      "offsetY": -34,
+      "sortLayerOffset": 300
     }
   }
 }
