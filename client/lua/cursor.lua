@@ -74,5 +74,5 @@ function OnShiftReleased()
         useCursor = nil
     end
 end
-Input.BindUpAction(Input.KEYBOARD, "L-Shift", OnShiftReleased)
-Input.BindUpAction(Input.KEYBOARD, "R-Shift", OnShiftReleased)
+Input.BindReleaseAction(Input.KEYBOARD, "L-Shift", OnShiftReleased)
+Input.BindReleaseAction(Input.KEYBOARD, "R-Shift", OnShiftReleased)
