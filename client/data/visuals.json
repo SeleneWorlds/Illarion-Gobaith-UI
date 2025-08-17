@@ -6,6 +6,13 @@
       "offsetX": 0,
       "offsetY": -22,
       "sortLayerOffset": 300
+    },
+    "illarion:char_cursor": {
+      "type": "simple",
+      "texture": "client/textures/illarion/ui/select_char.png",
+      "offsetX": 0,
+      "offsetY": -22,
+      "sortLayerOffset": 300
     }
   }
 }

@@ -5,8 +5,9 @@ local Game = require("selene.game")
 local Entities = require("selene.entities")
 
 local Cursor = Entities.Create("illarion:tile_cursor")
-Cursor:SetCoordinate(-97, -109, 0)
 Cursor:Spawn()
+
+local wasChar = false
 
 Game.PreTick:Connect(function()
     local mouseX, mouseY = Input.GetMousePosition()
@@ -14,8 +15,31 @@ Game.PreTick:Connect(function()
     local coordinate = Grid.ScreenToCoordinate(worldX, worldY)
     if (Cursor.Coordinate ~= coordinate) then
         local cursorShadow = Entities.Create("illarion:tile_cursor_shadow")
+        if wasChar then
+            cursorShadow:AddComponent("illarion:visual", {
+                type = "visual",
+                visual = "illarion:char_cursor"
+            })
+        end
         cursorShadow:SetCoordinate(Cursor.Coordinate)
         cursorShadow:Spawn()
+
         Cursor:SetCoordinate(coordinate)
+
+        local isChar = #Entities.GetEntitiesAt(coordinate) > 0
+        if isChar and not wasChar then
+            Cursor:AddComponent("illarion:visual", {
+                type = "visual",
+                visual = "illarion:char_cursor"
+            })
+            Cursor:UpdateVisual()
+        elseif not isChar and wasChar then
+            Cursor:AddComponent("illarion:visual", {
+                type = "visual",
+                visual = "illarion:tile_cursor"
+            })
+            Cursor:UpdateVisual()
+        end
+        wasChar = isChar
     end
 end)
