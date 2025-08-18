@@ -28,7 +28,9 @@ Game.PreTick:Connect(function()
 
         Cursor:SetCoordinate(coordinate)
 
-        local isChar = #Entities.GetEntitiesAt(coordinate) > 0
+        local isChar = #Entities.FindEntitiesAt(coordinate, {
+            tag = "illarion:character"
+        }) > 0
         if isChar and not wasChar then
             Cursor:AddComponent("illarion:visual", {
                 type = "visual",
