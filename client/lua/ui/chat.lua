@@ -16,7 +16,7 @@ function m.Initialize(bindings, skin)
     m.Chat = bindings["Chat"]
     m.Skin = skin
 
-    Network.HandlePayload("moonlight:inform", function(Payload)
+    Network.HandlePayload("illarion:inform", function(Payload)
         m.Chat:AddChild(UI.CreateContainer(m.Skin, {
             width = m.Chat.Parent.Width,
             child = UI.CreateLabel(m.Skin, {
