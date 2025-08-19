@@ -5,6 +5,9 @@ function m.TickEntity(Entity, Data, Delta)
     local visual = Entity:GetComponent("illarion:visual")
     if visual then
         visual.Alpha = 1 - (Data.TimePassed / 0.1)
+        if Data.TimePassed > 0.1 then
+            Entity:Despawn()
+        end
     end
 end
 
