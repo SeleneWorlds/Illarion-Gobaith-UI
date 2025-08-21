@@ -28,33 +28,15 @@ function m.AddToSkin(skin)
     skin:AddTexture("worldmap", m.worldmapTexture)
 end
 
-local TileColors = {
-    ["illarion:stones"] = "#9b785a",
-    ["illarion:farmland"] = "#9b785a",
-    ["illarion:dirt"] = "#9b785a",
-    ["illarion:forestGround"] = "#8ca064",
-    ["illarion:sand1"] = "#ffff00",
-    ["illarion:dungeonFloor"] = "#9b785a",
-    ["illarion:street1"] = "#afb7a5",
-    ["illarion:roof"] = "#cd6565",
-    ["illarion:roof2"] = "#cd6565",
-    ["illarion:roof3"] = "#cd6565",
-    ["illarion:wall"] = "#afb7a5",
-    ["illarion:carpet1"] = "#ffffcc",
-    ["illarion:carpet2"] = "#ffffcc",
-    ["illarion:carpet3"] = "#ffffcc",
-    ["illarion:carpet4"] = "#ffffcc",
-    ["illarion:carpet5"] = "#ffffcc",
-    ["illarion:carpet6"] = "#ffffcc",
-    ["illarion:carpet7"] = "#ffffcc",
-    ["illarion:carpet8"] = "#ffffcc",
-    ["illarion:carpet9"] = "#ffffcc",
-    ["illarion:parquet1"] = "#cd6565",
-    ["illarion:marble"] = "#ffffcc",
-    ["illarion:lava"] = "#cd6565",
-    ["illarion:snow"] = "#ffffff",
-    ["illarion:grass"] = "#b6d69e",
-    ["illarion:water"] = "#7ec1ee"
+local MapColors = {
+    [1] = "#b6d69e",
+    [2] = "#9b785a",
+    [3] = "#afb7a5",
+    [4] = "#7ec1ee",
+    [5] = "#ffff00",
+    [6] = "#cd6565",
+    [7] = "#ffffff",
+    [8] = "#8ca064"
 }
 
 function m.refreshWorldmapTexture(worldMinX, worldMinY, worldMaxX, worldMaxY, worldZ)
@@ -72,7 +54,10 @@ function m.refreshWorldmapTexture(worldMinX, worldMinY, worldMaxX, worldMaxY, wo
                 local color = "black"
                 if tiles and #tiles > 0 then
                     local groundTile = tiles[1]
-                    color = TileColors[groundTile.Name] or "black"
+                    local visual = groundTile.Visual
+                    if visual then
+                        color = MapColors[visual:GetMetadata("mapColorIndex")] or "black"
+                    end
                 end
                 
                 m.worldmapTexture:SetPixel(textureX, textureY, color)
