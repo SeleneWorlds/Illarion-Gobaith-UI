@@ -37,7 +37,6 @@
         <inputMask mask="inv_slot" x="59" y="32" width="78" height="39">
             <imageButton id="Belt4" style="inv_slot"/>
         </inputMask>
-        =
         <inputMask mask="inv_slot" x="17" y="9" width="78" height="39">
             <imageButton id="Belt5" style="inv_slot"/>
         </inputMask>
