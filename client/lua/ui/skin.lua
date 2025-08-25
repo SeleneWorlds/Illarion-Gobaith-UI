@@ -28,7 +28,7 @@ skin:AddImageButtonStyle("speak_shout", {
 skin:AddImageButtonStyle("speak_whisper", {
     up = "speak_whisper"
 })
-skin:AddImageButtonStyle("inv_slot", {
+skin:AddButtonStyle("inv_slot", {
     up = "inv_slot",
     over = "inv_slot_anim"
 })
