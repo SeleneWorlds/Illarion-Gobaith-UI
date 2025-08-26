@@ -5,6 +5,7 @@ local minimap = require("illarion-gobaith-ui.client.lua.ui.minimap")
 local chat = require("illarion-gobaith-ui.client.lua.ui.chat")
 local inventory = require("illarion-gobaith-ui.client.lua.ui.inventory")
 local clock = require("illarion-gobaith-ui.client.lua.ui.clock")
+local stats = require("illarion-gobaith-ui.client.lua.ui.stats")
 
 minimap.AddToSkin(skin)
 local hud, bindings = UI.LoadUI("client/ui/illarion/hud.xml", {
@@ -19,11 +20,6 @@ chat.Initialize(bindings, skin)
 minimap.Initialize()
 clock.Initialize(bindings)
 inventory.Initialize(bindings, skin)
-
-local Health = bindings["Health"]
-local Mana = bindings["Mana"]
-local Food = bindings["Food"]
-Health.Value = 1.0
-Food.Value = 1.0
+stats.Initialize(bindings)
 
 return {}
