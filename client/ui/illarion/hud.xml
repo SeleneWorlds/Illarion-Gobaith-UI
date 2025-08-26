@@ -28,7 +28,7 @@
         <inputMask mask="inv_slot" x="{x}" y="{y}" width="78" height="39">
             <stack>
                 <button style="inv_slot">
-                    <imageButton id="{id}" style="hidden" width="78" height="39">
+                    <imageButton id="{id}" style="hidden" width="78" height="39" onclick="slotClick">
                         <draggable blockInput="false" />
                     </imageButton>
                 </button>

@@ -5,11 +5,14 @@ local Game = require("selene.game")
 local Entities = require("selene.entities")
 local Network = require("selene.network")
 
+local UseManager = require("illarion-gobaith-ui.client.lua.lib.useManager")
+
 local Cursor = Entities.Create("illarion:tile_cursor")
 Cursor:Spawn()
 
 local wasChar = false
 local useCursor = nil
+local useTarget = nil
 
 Game.PreTick:Connect(function()
     local mouseX, mouseY = Input.GetMousePosition()
@@ -57,24 +60,22 @@ Input.BindAction(Input.MOUSE, "left", function(screenX, screenY)
             useCursor = Entities.Create("illarion:use_cursor")
             useCursor:SetCoordinate(coordinate)
             useCursor:Spawn()
+            useTarget = {
+                type = "coordinate",
+                coordinate = coordinate,
+                reset = function()
+                    if useCursor then
+                        useCursor:Despawn()
+                    end
+                    useCursor = nil
+                    useTarget = nil
+                end
+            }
+            table.insert(UseManager.useTargets, useTarget)
         else
+            useTarget.coordinate = coordinate
             useCursor:SetCoordinate(coordinate)
         end
     end
 end)
 
-function OnShiftReleased()
-    if useCursor then
-        local coordinate = useCursor.Coordinate
-        Network.SendToServer("illarion:use_at", {
-            x = coordinate.x,
-            y = coordinate.y,
-            z = coordinate.z
-        })
-
-        useCursor:Despawn()
-        useCursor = nil
-    end
-end
-Input.BindReleaseAction(Input.KEYBOARD, "L-Shift", OnShiftReleased)
-Input.BindReleaseAction(Input.KEYBOARD, "R-Shift", OnShiftReleased)

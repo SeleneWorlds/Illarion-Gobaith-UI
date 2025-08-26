@@ -1,5 +1,8 @@
+local Input = require("selene.input")
 local UI = require("selene.ui.lml")
 local Network = require("selene.network")
+
+local UseManager = require("illarion-gobaith-ui.client.lua.lib.useManager")
 
 local m = {}
 
@@ -17,8 +20,22 @@ function m.Initialize(bindings, skin)
     end)
 end
 
+local useTarget = nil
+
 function m.slotClick(widget)
-    print("test")
+    local isShiftPressed = Input.IsKeyPressed("L-Shift") or Input.IsKeyPressed("R-Shift")
+    if isShiftPressed then
+        local slotId = tonumber(stringx.substringAfter(widget.Name, "inventory:"))
+        useTarget = {
+            type = "inventory",
+            viewId = 1,
+            slotId = slotId,
+            reset = function()
+                useTarget = nil
+            end
+        }
+        table.insert(UseManager.useTargets, useTarget)
+    end
 end
 
 return m
