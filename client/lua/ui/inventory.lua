@@ -11,11 +11,17 @@ function m.Initialize(bindings, skin)
     m.Skin = skin
 
     Network.HandlePayload("illarion:update_slot", function(payload)
-        if payload.viewId == 1 then
+        if payload.viewId ~= 1 then
+            return
+        end
+
+        if payload.item then
             local style = UI.CreateImageButtonStyle({
                 imageUp = "client/textures/illarion/items/apple.png"
             }, skin)
             m.Bindings["inventory:" .. math.floor(payload.slotId)]:SetStyle(style)
+        else
+            m.Bindings["inventory:" .. math.floor(payload.slotId)]:SetStyle(m.Skin, "hidden")
         end
     end)
 end
