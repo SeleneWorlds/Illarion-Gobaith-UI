@@ -25,7 +25,7 @@ local function OnShiftReleased()
 
     m.useTargets = {}
 
-    if useCoordinate and false then
+    if useCoordinate then
         local coordinate = useCoordinate
         Network.SendToServer("illarion:use_at", {
             x = coordinate.x,
