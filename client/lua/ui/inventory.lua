@@ -11,7 +11,7 @@ function m.Initialize(bindings, skin)
     m.Skin = skin
 
     Network.HandlePayload("illarion:update_slot", function(payload)
-        if payload.viewId ~= 1 then
+        if payload.viewId ~= "belt" and payload.viewId ~= "equipment" then
             return
         end
 
@@ -19,9 +19,9 @@ function m.Initialize(bindings, skin)
             local style = UI.CreateImageButtonStyle({
                 imageUp = "client/textures/illarion/items/apple.png"
             }, skin)
-            m.Bindings["inventory:" .. math.floor(payload.slotId)]:SetStyle(style)
+            m.Bindings[payload.slotId]:SetStyle(style)
         else
-            m.Bindings["inventory:" .. math.floor(payload.slotId)]:SetStyle(m.Skin, "hidden")
+            m.Bindings[payload.slotId]:SetStyle(m.Skin, "hidden")
         end
     end)
 end
@@ -31,11 +31,10 @@ local useTarget = nil
 function m.slotClick(widget)
     local isShiftPressed = Input.IsKeyPressed("L-Shift") or Input.IsKeyPressed("R-Shift")
     if isShiftPressed then
-        local slotId = tonumber(stringx.substringAfter(widget.Name, "inventory:"))
         useTarget = {
             type = "inventory",
-            viewId = 1,
-            slotId = slotId,
+            viewId = "belt",
+            slotId = widget.Name,
             reset = function()
                 useTarget = nil
             end
