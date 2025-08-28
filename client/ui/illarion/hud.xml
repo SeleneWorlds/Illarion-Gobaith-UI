@@ -7,7 +7,11 @@
     </container>
     <container x="0" y="140" width="784" height="228" background="gui_chat" clip="true">
         <verticalGroup id="Chat" align="bottom" columnAlign="left" fillParent="true" padLeft="12" padTop="8"
-                       padBottom="8"/>
+                       padBottom="8">
+            <container id="ChatInputContainer" width="784" height="5">
+                <textField id="ChatInput" keyTyped="chatKeyTyped" />
+            </container>
+        </verticalGroup>
     </container>
     <canvas x="385" y="0" width="71" height="120">
         <image id="Counter" style="gui_counter"/>

@@ -12,7 +12,8 @@ local hud, bindings = UI.LoadUI("client/ui/illarion/hud.xml", {
     skin = skin,
     actions = {
         cycleChatMode = chat.cycleChatMode,
-        slotClick = inventory.slotClick,
+        chatKeyTyped = chat.keyTyped,
+        slotClick = inventory.slotClick
     }
 })
 UI.AddToRoot(hud)

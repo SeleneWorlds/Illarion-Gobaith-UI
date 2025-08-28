@@ -72,5 +72,8 @@ skin:AddProgressBarStyle("status_food", {
 skin:AddProgressBarStyle("status_mana", {
     knobBefore = "status_mana"
 })
+skin:AddTextFieldStyle("default", {
+    font = "default"
+})
 
 return skin
