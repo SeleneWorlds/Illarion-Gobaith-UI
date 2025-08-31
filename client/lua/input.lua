@@ -10,19 +10,39 @@ local East = Grid.GetDirectionByName("east")
 local West = Grid.GetDirectionByName("west")
 
 Input.BindContinuousAction("keyboard", "Up", function()
-    GridMovement.SetMotion(North)
+    local isShiftPressed = Input.IsKeyPressed("L-Shift") or Input.IsKeyPressed("R-Shift")
+    if isShiftPressed then
+        GridMovement.SetFacing(North)
+    else
+        GridMovement.SetMotion(North)
+    end
 end)
 
 Input.BindContinuousAction("keyboard", "Down", function()
-    GridMovement.SetMotion(South)
+    local isShiftPressed = Input.IsKeyPressed("L-Shift") or Input.IsKeyPressed("R-Shift")
+    if isShiftPressed then
+        GridMovement.SetFacing(South)
+    else
+        GridMovement.SetMotion(South)
+    end
 end)
 
 Input.BindContinuousAction("keyboard", "Left", function()
-    GridMovement.SetMotion(West)
+    local isShiftPressed = Input.IsKeyPressed("L-Shift") or Input.IsKeyPressed("R-Shift")
+    if isShiftPressed then
+        GridMovement.SetFacing(West)
+    else
+        GridMovement.SetMotion(West)
+    end
 end)
 
 Input.BindContinuousAction("keyboard", "Right", function()
-    GridMovement.SetMotion(East)
+    local isShiftPressed = Input.IsKeyPressed("L-Shift") or Input.IsKeyPressed("R-Shift")
+    if isShiftPressed then
+        GridMovement.SetFacing(East)
+    else
+        GridMovement.SetMotion(East)
+    end
 end)
 
 UseManager.RegisterInput()
