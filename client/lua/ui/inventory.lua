@@ -1,6 +1,7 @@
 local Input = require("selene.input")
 local UI = require("selene.ui.lml")
 local Network = require("selene.network")
+local Visuals = require("selene.visuals")
 
 local UseManager = require("illarion-gobaith-ui.client.lua.lib.useManager")
 
@@ -17,7 +18,7 @@ function m.Initialize(bindings, skin)
 
         if payload.item then
             local style = UI.CreateImageButtonStyle({
-                imageUp = "client/textures/illarion/items/apple.png"
+                imageUp = Visuals.Create(payload.item.visual).Drawable:WithoutOffset()
             }, skin)
             m.Bindings["inventory:" .. payload.slotId]:SetStyle(style)
         else
