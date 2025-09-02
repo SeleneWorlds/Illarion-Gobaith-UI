@@ -39,13 +39,11 @@ Game.PreTick:Connect(function()
                 type = "visual",
                 visual = "illarion:char_cursor"
             })
-            Cursor:UpdateVisual()
         elseif not isChar and wasChar then
             Cursor:AddComponent("illarion:visual", {
                 type = "visual",
                 visual = "illarion:tile_cursor"
             })
-            Cursor:UpdateVisual()
         end
         wasChar = isChar
     end

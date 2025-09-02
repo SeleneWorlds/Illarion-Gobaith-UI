@@ -54,9 +54,9 @@ function m.refreshWorldmapTexture(worldMinX, worldMinY, worldMaxX, worldMaxY, wo
                 local color = "black"
                 if tiles and #tiles > 0 then
                     local groundTile = tiles[1]
-                    local visual = groundTile.Visual
-                    if visual then
-                        color = MapColors[visual:GetMetadata("mapColorIndex")] or "black"
+                    local visualDef = groundTile.Visual and groundTile.Visual.Definition
+                    if visualDef then
+                        color = MapColors[visualDef:GetMetadata("mapColorIndex")] or "black"
                     end
                 end
                 
