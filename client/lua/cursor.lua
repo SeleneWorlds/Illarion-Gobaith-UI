@@ -17,7 +17,8 @@ local useTarget = nil
 Game.PreTick:Connect(function()
     local mouseX, mouseY = Input.GetMousePosition()
     local worldX, worldY = Camera.ScreenToWorld(mouseX, mouseY)
-    local coordinate = Grid.ScreenToCoordinate(worldX, worldY)
+    local cameraCoordinate = Camera.GetCoordinate()
+    local coordinate = Grid.ScreenToCoordinate(worldX, worldY, cameraCoordinate.Z)
     if (Cursor.Coordinate ~= coordinate) then
         local cursorShadow = Entities.Create("illarion:tile_cursor_shadow")
         if wasChar then
@@ -53,7 +54,8 @@ Input.BindAction(Input.MOUSE, "left", function(screenX, screenY)
     local isShiftPressed = Input.IsKeyPressed("L-Shift") or Input.IsKeyPressed("R-Shift")
     if isShiftPressed then
         local worldX, worldY = Camera.ScreenToWorld(screenX, screenY)
-        local coordinate = Grid.ScreenToCoordinate(worldX, worldY)
+        local cameraCoordinate = Camera.GetCoordinate()
+        local coordinate = Grid.ScreenToCoordinate(worldX, worldY, cameraCoordinate.Z)
         if not useCursor then
             useCursor = Entities.Create("illarion:use_cursor")
             useCursor:SetCoordinate(coordinate)
