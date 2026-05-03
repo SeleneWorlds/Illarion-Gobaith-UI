@@ -33,7 +33,7 @@
             <stack>
                 <button style="inv_slot">
                     <imageButton id="{id}" style="hidden" width="78" height="39" onclick="slotClick">
-                        <draggable blockInput="false" />
+                        <draggable blockInput="false" listener="slotDragListener" />
                     </imageButton>
                 </button>
             </stack>

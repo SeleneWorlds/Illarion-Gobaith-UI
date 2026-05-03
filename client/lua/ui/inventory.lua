@@ -44,4 +44,17 @@ function m.slotClick(widget)
     end
 end
 
+function m.slotDragListener(widget)
+    return UI.CreateDragListener({
+        onEnd = function(draggable, actor, stageX, stageY)
+            local actor = actor.Stage:Hit(stageX, stageY)
+            if stringx.startsWith(actor.Name, "inventory:") then
+                local slotId = tonumber(stringx.removePrefix(actor.Name, "inventory:"))
+                print(slotId)
+            end
+            return true
+        end
+    })
+end
+
 return m
