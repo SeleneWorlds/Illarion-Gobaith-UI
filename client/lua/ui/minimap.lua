@@ -1,32 +1,26 @@
 local Textures = require("selene.textures")
 local Map = require("selene.map")
 local Camera = require("selene.camera")
+local Game = require("selene.game")
 
 local m = {}
 
 local WORLD_MIN_X = -500
 local WORLD_MIN_Y = -500
-local WORLD_WIDTH = 957
-local WORLD_HEIGHT = 775
+local WORLD_WIDTH = 2048
+local WORLD_HEIGHT = 2048
 local WORLD_MAX_X = WORLD_MIN_X + WORLD_WIDTH - 1
 local WORLD_MAX_Y = WORLD_MIN_Y + WORLD_HEIGHT - 1
 local MINIMAP_SIZE = 160
+local WORLDMAP_PAINT_BUDGET = 256
 
--- We store a large texture holding the minimap data for the whole world (TODO: per floor).
--- That way, we can simply copy pixels from here instead of drawing tiles pixel by pixel on every move.
+-- We keep a CPU-side world texture and only upload the visible minimap texture.
 m.worldmapTexture = Textures.Create(WORLD_WIDTH, WORLD_HEIGHT)
 m.worldmapTexture:Fill("black")
-m.worldmapTexture:Update()
 
--- This is the texture that is actually rendered inside the UI.
 m.minimapTexture = Textures.Create(MINIMAP_SIZE, MINIMAP_SIZE)
 m.minimapTexture:Fill("black")
 m.minimapTexture:Update()
-
-function m.AddToSkin(skin)
-    skin:AddTexture("minimap", m.minimapTexture)
-    skin:AddTexture("worldmap", m.worldmapTexture)
-end
 
 local MapColors = {
     [1] = "#b6d69e",
@@ -39,102 +33,233 @@ local MapColors = {
     [8] = "#8ca064"
 }
 
-function m.refreshWorldmapTexture(worldMinX, worldMinY, worldMaxX, worldMaxY, worldZ)
-    for worldX = worldMinX, worldMaxX do
-        for worldY = worldMinY, worldMaxY do
-            -- Only if inside world bounds
-            if worldX >= WORLD_MIN_X and worldX <= WORLD_MAX_X and 
-               worldY >= WORLD_MIN_Y and worldY <= WORLD_MAX_Y then
-                -- Convert world coordinates to texture coordinates
-                local textureX = worldX - WORLD_MIN_X
-                local textureY = worldY - WORLD_MIN_Y
-                
-                -- TODO Map.GetTileAt with index since we only care about the ground?
-                local tiles = Map.GetTilesAt(worldX, worldY, worldZ)
-                local color = "black"
-                if tiles and #tiles > 0 then
-                    local groundTile = tiles[1]
-                    local visualDef = groundTile.Visual and groundTile.Visual.Definition
-                    if visualDef then
-                        color = MapColors[visualDef:GetMetadata("mapColorIndex")] or "black"
-                    end
-                end
-                
-                m.worldmapTexture:SetPixel(textureX, textureY, color)
+local dirtyRegions = {}
+local minimapDirty = true
+local lastMinimapCenter = nil
+
+function m.AddToSkin(skin)
+    skin:AddTexture("minimap", m.minimapTexture)
+end
+
+local function isWithinWorldBounds(worldX, worldY)
+    return worldX >= WORLD_MIN_X and worldX <= WORLD_MAX_X
+        and worldY >= WORLD_MIN_Y and worldY <= WORLD_MAX_Y
+end
+
+local function getVisibleBounds(centerPos)
+    local minimapRadius = MINIMAP_SIZE / 2
+    return {
+        minX = centerPos.x - minimapRadius,
+        maxX = centerPos.x + minimapRadius - 1,
+        minY = centerPos.y - minimapRadius,
+        maxY = centerPos.y + minimapRadius - 1
+    }
+end
+
+local function regionsOverlap(a, b)
+    return a.maxX >= b.minX and a.minX <= b.maxX
+        and a.maxY >= b.minY and a.minY <= b.maxY
+end
+
+local function mergeDirtyRegion(region)
+    for index = #dirtyRegions, 1, -1 do
+        local existing = dirtyRegions[index]
+        if existing.z == region.z then
+            local expandedExisting = {
+                minX = existing.minX - 1,
+                maxX = existing.maxX + 1,
+                minY = existing.minY - 1,
+                maxY = existing.maxY + 1
+            }
+            if regionsOverlap(expandedExisting, region) then
+                existing.minX = math.min(existing.minX, region.minX)
+                existing.maxX = math.max(existing.maxX, region.maxX)
+                existing.minY = math.min(existing.minY, region.minY)
+                existing.maxY = math.max(existing.maxY, region.maxY)
+                existing.nextX = existing.minX
+                existing.nextY = existing.minY
+                return
             end
         end
     end
-    
-    -- Updating the texture is required after any changes
-    m.worldmapTexture:Update()
+
+    region.nextX = region.minX
+    region.nextY = region.minY
+    dirtyRegions[#dirtyRegions + 1] = region
 end
 
-function m.updateMinimapDisplay(centerPos)
+local function getGroundColor(worldX, worldY, worldZ)
+    local tiles = Map.GetTilesAt(worldX, worldY, worldZ)
+    if tiles and #tiles > 0 then
+        local groundTile = tiles[1]
+        local visual = groundTile.Visual
+        if visual then
+            return MapColors[visual:GetMetadata("mapColorIndex")] or "black"
+        end
+    end
+
+    return "black"
+end
+
+local function paintWorldTile(worldX, worldY, worldZ)
+    if not isWithinWorldBounds(worldX, worldY) then
+        return
+    end
+
+    local textureX = worldX - WORLD_MIN_X
+    local textureY = worldY - WORLD_MIN_Y
+    m.worldmapTexture:SetPixel(textureX, textureY, getGroundColor(worldX, worldY, worldZ))
+end
+
+local function repaintVisibleMinimap(centerPos)
     local minimapRadius = MINIMAP_SIZE / 2
-    
-    -- Calculate the source region in world coordinates
     local worldSourceX = centerPos.x - minimapRadius
     local worldSourceY = centerPos.y - minimapRadius
-    
-    -- Convert to texture coordinates
     local textureSourceX = worldSourceX - WORLD_MIN_X
     local textureSourceY = worldSourceY - WORLD_MIN_Y
-    
-    -- Clear the minimap first
+
     m.minimapTexture:Fill("black")
-    
-    -- Check if the source area is within the texture bounds
-    if textureSourceX >= 0 and textureSourceY >= 0 and 
-       textureSourceX + MINIMAP_SIZE <= WORLD_WIDTH and textureSourceY + MINIMAP_SIZE <= WORLD_HEIGHT then
-        m.minimapTexture:CopyFrom(m.worldmapTexture, textureSourceX, textureSourceY, MINIMAP_SIZE, MINIMAP_SIZE, 0, 0)
+
+    if textureSourceX >= 0 and textureSourceY >= 0
+        and textureSourceX + MINIMAP_SIZE <= WORLD_WIDTH
+        and textureSourceY + MINIMAP_SIZE <= WORLD_HEIGHT then
+        m.minimapTexture:CopyFrom(
+            m.worldmapTexture,
+            textureSourceX,
+            textureSourceY,
+            MINIMAP_SIZE,
+            MINIMAP_SIZE,
+            0,
+            0
+        )
     else
-        -- Handle partial copying when source area extends beyond world bounds
         local copyStartX = math.max(0, textureSourceX)
         local copyStartY = math.max(0, textureSourceY)
         local copyEndX = math.min(WORLD_WIDTH, textureSourceX + MINIMAP_SIZE)
         local copyEndY = math.min(WORLD_HEIGHT, textureSourceY + MINIMAP_SIZE)
-        
+
         if copyStartX < copyEndX and copyStartY < copyEndY then
             local copyWidth = copyEndX - copyStartX
             local copyHeight = copyEndY - copyStartY
             local destX = copyStartX - textureSourceX
             local destY = copyStartY - textureSourceY
-            
-            m.minimapTexture:CopyFrom(m.worldmapTexture, copyStartX, copyStartY, copyWidth, copyHeight, destX, destY)
+
+            m.minimapTexture:CopyFrom(
+                m.worldmapTexture,
+                copyStartX,
+                copyStartY,
+                copyWidth,
+                copyHeight,
+                destX,
+                destY
+            )
         end
     end
-    
+
     m.minimapTexture:Update()
+    lastMinimapCenter = { x = centerPos.x, y = centerPos.y, z = centerPos.z }
+    minimapDirty = false
+end
+
+local function regionIntersectsVisibleWindow(region, centerPos)
+    if region.z ~= centerPos.z then
+        return false
+    end
+
+    return regionsOverlap(region, getVisibleBounds(centerPos))
+end
+
+local function processDirtyRegions(centerPos)
+    local budget = WORLDMAP_PAINT_BUDGET
+    local visibleAreaUpdated = false
+
+    while budget > 0 and #dirtyRegions > 0 do
+        local region = dirtyRegions[1]
+
+        if region.z ~= centerPos.z then
+            table.remove(dirtyRegions, 1)
+        else
+            local visibleBounds = getVisibleBounds(centerPos)
+
+            while budget > 0 and region.nextY <= region.maxY do
+                paintWorldTile(region.nextX, region.nextY, region.z)
+                if region.nextX >= visibleBounds.minX and region.nextX <= visibleBounds.maxX
+                    and region.nextY >= visibleBounds.minY and region.nextY <= visibleBounds.maxY then
+                    visibleAreaUpdated = true
+                end
+
+                budget = budget - 1
+                region.nextX = region.nextX + 1
+                if region.nextX > region.maxX then
+                    region.nextX = region.minX
+                    region.nextY = region.nextY + 1
+                end
+            end
+
+            if region.nextY > region.maxY then
+                table.remove(dirtyRegions, 1)
+            else
+                break
+            end
+        end
+    end
+
+    return visibleAreaUpdated
+end
+
+local function cameraCenterChanged(centerPos)
+    return lastMinimapCenter == nil
+        or lastMinimapCenter.x ~= centerPos.x
+        or lastMinimapCenter.y ~= centerPos.y
+        or lastMinimapCenter.z ~= centerPos.z
 end
 
 function m.Initialize()
-    Camera.OnCoordinateChanged:Connect(function(pos)
-        m.updateMinimapDisplay(pos)
+    Camera.OnCoordinateChanged:Connect(function()
+        minimapDirty = true
     end)
 
     Map.OnChunkChanged:Connect(function(pos, width, height)
         local center = Camera.GetCoordinate()
-        
-        -- Check if the changed chunk overlaps with the world bounds
+        if pos.z ~= center.z then
+            return
+        end
+
         local chunkMinX = pos.x
         local chunkMaxX = pos.x + width - 1
         local chunkMinY = pos.y
         local chunkMaxY = pos.y + height - 1
-        local chunkZ = pos.z
 
-        -- Check if chunk overlaps with actual world bounds and is on the same Z level
-        if chunkZ == center.z and
-        chunkMaxX >= WORLD_MIN_X and chunkMinX <= WORLD_MAX_X and
-        chunkMaxY >= WORLD_MIN_Y and chunkMinY <= WORLD_MAX_Y then
-            
-            -- Calculate the intersection area to refresh (clamp to world bounds)
-            local refreshMinX = math.max(chunkMinX, WORLD_MIN_X)
-            local refreshMaxX = math.min(chunkMaxX, WORLD_MAX_X)
-            local refreshMinY = math.max(chunkMinY, WORLD_MIN_Y)
-            local refreshMaxY = math.min(chunkMaxY, WORLD_MAX_Y)
-            
-            m.refreshWorldmapTexture(refreshMinX, refreshMinY, refreshMaxX, refreshMaxY, center.z)
-            m.updateMinimapDisplay(center)
+        if chunkMaxX < WORLD_MIN_X or chunkMinX > WORLD_MAX_X
+            or chunkMaxY < WORLD_MIN_Y or chunkMinY > WORLD_MAX_Y then
+            return
+        end
+
+        local refreshRegion = {
+            minX = math.max(chunkMinX, WORLD_MIN_X),
+            maxX = math.min(chunkMaxX, WORLD_MAX_X),
+            minY = math.max(chunkMinY, WORLD_MIN_Y),
+            maxY = math.min(chunkMaxY, WORLD_MAX_Y),
+            z = pos.z
+        }
+
+        mergeDirtyRegion(refreshRegion)
+        if regionIntersectsVisibleWindow(refreshRegion, center) then
+            minimapDirty = true
+        end
+    end)
+
+    Game.PreTick:Connect(function()
+        local center = Camera.GetCoordinate()
+        local centerChanged = cameraCenterChanged(center)
+        local visibleAreaUpdated = processDirtyRegions(center)
+
+        if centerChanged then
+            minimapDirty = true
+        end
+
+        if minimapDirty and (centerChanged or visibleAreaUpdated or #dirtyRegions == 0) then
+            repaintVisibleMinimap(center)
         end
     end)
 end
