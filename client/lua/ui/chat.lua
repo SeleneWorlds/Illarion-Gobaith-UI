@@ -14,10 +14,10 @@ m.ChatModes = {
 
 m.CurrentChatMode = "normal"
 
-function m.Initialize(bindings, skin)
-    m.Chat = bindings["Chat"]
-    m.ChatInputContainer = bindings["ChatInputContainer"]
-    m.ChatInput = bindings["ChatInput"]
+function m.Initialize(hud, skin)
+    m.Chat = hud:GetActor("Chat")
+    m.ChatInputContainer = hud:GetActor("ChatInputContainer")
+    m.ChatInput = hud:GetActor("ChatInput")
     m.Skin = skin
 
     Game.PreTick:Connect(function()

@@ -2,10 +2,10 @@ local Network = require("selene.network")
 
 local m = {}
 
-function m.Initialize(bindings)
-    m.Health = bindings["Health"]
-    m.Mana = bindings["Mana"]
-    m.Food = bindings["Food"]
+function m.Initialize(hud)
+    m.Health = hud:GetActor("Health")
+    m.Mana = hud:GetActor("Mana")
+    m.Food = hud:GetActor("Food")
 
     Network.HandlePayload("illarion:health", function(payload)
         m.Health.Value = payload.value

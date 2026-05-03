@@ -2,8 +2,8 @@ local Game = require("selene.game")
 
 local m = {}
 
-function m.Initialize(bindings)
-    m.CounterTime = bindings["CounterTime"]
+function m.Initialize(hud)
+    m.CounterTime = hud:GetActor("CounterTime")
 
     -- TODO selene.timer could provide a Minute event that fires every full minute instead
     Game.PreTick:Connect(function()

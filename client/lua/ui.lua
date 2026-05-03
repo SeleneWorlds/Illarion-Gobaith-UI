@@ -1,4 +1,5 @@
 local UI = require("selene.ui.lml")
+local Loaders = require("selene.ui.coroutine")
 
 local skin = require("illarion-gobaith-ui.client.lua.ui.skin")
 local minimap = require("illarion-gobaith-ui.client.lua.ui.minimap")
@@ -7,20 +8,25 @@ local inventory = require("illarion-gobaith-ui.client.lua.ui.inventory")
 local clock = require("illarion-gobaith-ui.client.lua.ui.clock")
 local stats = require("illarion-gobaith-ui.client.lua.ui.stats")
 
-minimap.AddToSkin(skin)
-local hud, bindings = UI.LoadUI("client/ui/illarion/hud.xml", {
-    skin = skin,
-    actions = {
-        cycleChatMode = chat.cycleChatMode,
-        chatKeyTyped = chat.keyTyped,
-        slotClick = inventory.slotClick
-    }
-})
-UI.AddToRoot(hud)
-chat.Initialize(bindings, skin)
-minimap.Initialize()
-clock.Initialize(bindings)
-inventory.Initialize(bindings, skin)
-stats.Initialize(bindings)
+UI.Setup:Connect(function()
+    local theme = skin.LoadThemeRoutine()
+    minimap.AddToSkin(theme)
+
+    local hud = Loaders.LoadUI("client/ui/illarion/hud.xml", {
+        theme = theme,
+        actions = {
+            cycleChatMode = chat.cycleChatMode,
+            chatKeyTyped = chat.keyTyped,
+            slotClick = inventory.slotClick,
+            slotDragListener = inventory.slotDragListener
+        }
+    })
+    UI.AddToRoot(hud)
+    chat.Initialize(hud, theme)
+    minimap.Initialize()
+    clock.Initialize(hud)
+    inventory.Initialize(hud, theme)
+    stats.Initialize(hud)
+end)
 
 return {}

@@ -7,8 +7,8 @@ local UseManager = require("illarion-gobaith-ui.client.lua.lib.useManager")
 
 local m = {}
 
-function m.Initialize(bindings, skin)
-    m.Bindings = bindings
+function m.Initialize(hud, skin)
+    m.Hud = hud
     m.Skin = skin
 
     Network.HandlePayload("illarion:update_slot", function(payload)
@@ -20,9 +20,9 @@ function m.Initialize(bindings, skin)
             local style = UI.CreateImageButtonStyle({
                 imageUp = Visuals.Create(payload.item.visual).Drawable:WithoutOffset()
             }, skin)
-            m.Bindings["inventory:" .. payload.slotId]:SetStyle(style)
+            m.Hud:GetActor("inventory:" .. payload.slotId):SetStyle(style)
         else
-            m.Bindings["inventory:" .. payload.slotId]:SetStyle(m.Skin, "hidden")
+            m.Hud:GetActor("inventory:" .. payload.slotId):SetStyle(m.Skin, "hidden")
         end
     end)
 end
