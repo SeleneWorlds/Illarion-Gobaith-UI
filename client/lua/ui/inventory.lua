@@ -8,12 +8,44 @@ local UseManager = require("illarion-gobaith-ui.client.lua.lib.useManager")
 
 local m = {}
 
+local function CreateSlotReferenceName(viewId, slotId)
+    return "slot:" .. viewId .. ":" .. slotId
+end
+
+local function ParseSlotReference(name)
+    if not name then
+        return nil
+    end
+
+    if not stringx.startsWith(name, "slot:") then
+        return nil
+    end
+
+    local slotReference = stringx.removePrefix(name, "slot:")
+    local separator = slotReference:match("^.*():")
+    if not separator then
+        return nil
+    end
+
+    local viewId = string.sub(slotReference, 1, separator - 1)
+    local slotId = tonumber(string.sub(slotReference, separator + 1))
+    if not viewId or not slotId then
+        return nil
+    end
+
+    return {
+        viewId = viewId,
+        slotId = slotId
+    }
+end
+
 function m.Initialize(hud, skin)
     m.Hud = hud
     m.Skin = skin
 
     Network.HandlePayload("illarion:update_slot", function(payload)
-        if payload.viewId ~= "inventory" then
+        local actor = m.Hud:GetActor(CreateSlotReferenceName(payload.viewId, payload.slotId))
+        if not actor then
             return
         end
 
@@ -23,10 +55,10 @@ function m.Initialize(hud, skin)
                 local style = UI.CreateImageButtonStyle({
                     imageUp = visual.Drawable:WithoutOffset()
                 }, skin)
-                m.Hud:GetActor("inventory:" .. payload.slotId):SetStyle(style)
+                actor:SetStyle(style)
             end)
         else
-            m.Hud:GetActor("inventory:" .. payload.slotId):SetStyle(m.Skin, "hidden")
+            actor:SetStyle(m.Skin, "hidden")
         end
     end)
 end
@@ -36,10 +68,15 @@ local useTarget = nil
 function m.slotClick(widget)
     local isShiftPressed = Input.IsKeyPressed("L-Shift") or Input.IsKeyPressed("R-Shift")
     if isShiftPressed then
+        local slotRef = ParseSlotReference(widget.Name)
+        if not slotRef then
+            return
+        end
+
         useTarget = {
             type = "inventory",
-            viewId = "belt",
-            slotId = widget.Name,
+            viewId = slotRef.viewId,
+            slotId = slotRef.slotId,
             reset = function()
                 useTarget = nil
             end
@@ -51,11 +88,22 @@ end
 function m.slotDragListener(widget)
     return UI.CreateDragListener({
         onEnd = function(draggable, actor, stageX, stageY)
-            local actor = actor.Stage:Hit(stageX, stageY)
-            local actorName = actor.Name
-            if actorName and stringx.startsWith(actorName, "inventory:") then
-                local slotId = tonumber(stringx.removePrefix(actorName, "inventory:"))
-                print(slotId)
+            local hitActor = actor.Stage:Hit(stageX, stageY)
+            if not hitActor then
+                return true
+            end
+
+            local sourceSlotRef = ParseSlotReference(actor.Name)
+            local targetSlotRef = ParseSlotReference(hitActor.Name)
+            if sourceSlotRef and targetSlotRef and (
+                sourceSlotRef.viewId ~= targetSlotRef.viewId or sourceSlotRef.slotId ~= targetSlotRef.slotId
+            ) then
+                Network.SendToServer("illarion:move_slot_to_slot", {
+                    fromViewId = sourceSlotRef.viewId,
+                    fromSlotId = sourceSlotRef.slotId,
+                    toViewId = targetSlotRef.viewId,
+                    toSlotId = targetSlotRef.slotId
+                })
             end
             return true
         end

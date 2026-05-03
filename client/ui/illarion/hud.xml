@@ -40,26 +40,26 @@
         </inputMask>
     </:macro>
     <canvas x="846">
-        <:inventorySlot id="inventory:12" x="59" y="78" />
-        <:inventorySlot id="inventory:13" x="17" y="55" />
-        <:inventorySlot id="inventory:14" x="101" y="55" />
-        <:inventorySlot id="inventory:15" x="59" y="32" />
-        <:inventorySlot id="inventory:16" x="17" y="9" />
-        <:inventorySlot id="inventory:17" x="101" y="9" />
+        <:inventorySlot id="slot:inventory:12" x="59" y="78" />
+        <:inventorySlot id="slot:inventory:13" x="17" y="55" />
+        <:inventorySlot id="slot:inventory:14" x="101" y="55" />
+        <:inventorySlot id="slot:inventory:15" x="59" y="32" />
+        <:inventorySlot id="slot:inventory:16" x="17" y="9" />
+        <:inventorySlot id="slot:inventory:17" x="101" y="9" />
     </canvas>
     <canvas x="846">
-        <:inventorySlot id="inventory:0" x="17" y="349" />
-        <:inventorySlot id="inventory:1" x="101" y="395" />
-        <:inventorySlot id="inventory:2" x="101" y="349" />
-        <:inventorySlot id="inventory:3" x="59" y="326" />
-        <:inventorySlot id="inventory:4" x="59" y="234" />
-        <:inventorySlot id="inventory:5" x="101" y="257" />
-        <:inventorySlot id="inventory:6" x="17" y="257" />
-        <:inventorySlot id="inventory:7" x="101" y="211" />
-        <:inventorySlot id="inventory:8" x="17" y="211" />
-        <:inventorySlot id="inventory:9" x="59" y="142" />
-        <:inventorySlot id="inventory:10" x="17" y="119" />
-        <:inventorySlot id="inventory:11" x="17" y="303" />
+        <:inventorySlot id="slot:inventory:0" x="17" y="349" />
+        <:inventorySlot id="slot:inventory:1" x="101" y="395" />
+        <:inventorySlot id="slot:inventory:2" x="101" y="349" />
+        <:inventorySlot id="slot:inventory:3" x="59" y="326" />
+        <:inventorySlot id="slot:inventory:4" x="59" y="234" />
+        <:inventorySlot id="slot:inventory:5" x="101" y="257" />
+        <:inventorySlot id="slot:inventory:6" x="17" y="257" />
+        <:inventorySlot id="slot:inventory:7" x="101" y="211" />
+        <:inventorySlot id="slot:inventory:8" x="17" y="211" />
+        <:inventorySlot id="slot:inventory:9" x="59" y="142" />
+        <:inventorySlot id="slot:inventory:10" x="17" y="119" />
+        <:inventorySlot id="slot:inventory:11" x="17" y="303" />
     </canvas>
     <imageButton id="ChatButton" x="799" y="146" width="30" height="30" style="speak_normal" onclick="cycleChatMode"/>
 </canvas>
