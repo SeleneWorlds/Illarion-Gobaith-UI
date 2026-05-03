@@ -3,6 +3,8 @@ local Input = require("selene.input")
 local UI = require("selene.ui.lml")
 local Network = require("selene.network")
 local Visuals = require("selene.visuals")
+local Camera = require("selene.camera")
+local Grid = require("selene.grid")
 
 local UseManager = require("illarion-gobaith-ui.client.lua.lib.useManager")
 
@@ -88,12 +90,25 @@ end
 function m.slotDragListener(widget)
     return UI.CreateDragListener({
         onEnd = function(draggable, actor, stageX, stageY)
+            local sourceSlotRef = ParseSlotReference(actor.Name)
             local hitActor = actor.Stage:Hit(stageX, stageY)
             if not hitActor then
+                if sourceSlotRef then
+                    local mouseX, mouseY = Input.GetMousePosition()
+                    local worldX, worldY = Camera.ScreenToWorld(mouseX, mouseY)
+                    local cameraCoordinate = Camera.GetCoordinate()
+                    local coordinate = Grid.ScreenToCoordinate(worldX, worldY, cameraCoordinate.Z)
+                    Network.SendToServer("illarion:move_slot_to_coordinate", {
+                        fromViewId = sourceSlotRef.viewId,
+                        fromSlotId = sourceSlotRef.slotId,
+                        x = coordinate.x,
+                        y = coordinate.y,
+                        z = coordinate.z
+                    })
+                end
                 return true
             end
 
-            local sourceSlotRef = ParseSlotReference(actor.Name)
             local targetSlotRef = ParseSlotReference(hitActor.Name)
             if sourceSlotRef and targetSlotRef and (
                 sourceSlotRef.viewId ~= targetSlotRef.viewId or sourceSlotRef.slotId ~= targetSlotRef.slotId
