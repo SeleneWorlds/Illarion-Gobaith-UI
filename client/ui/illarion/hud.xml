@@ -1,7 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <canvas id="Illarion">
-    <image id="BottomFrame" style="gui_bottom"/>
-    <image id="TopFrame" x="768" y="512" style="gui_top"/>
+    <inputMask mask="gui_bottom" x="0" y="0" width="1024" height="512">
+        <image id="BottomFrame" style="gui_bottom"/>
+    </inputMask>
+    <inputMask mask="gui_top" x="768" y="512" width="256" height="256">
+        <image id="TopFrame"  style="gui_top"/>
+    </inputMask>
     <container x="864" y="609" width="160" height="160" clip="true">
         <image id="Minimap" style="minimap" originX="80" originY="80" scaleX="2" scaleY="2"/>
     </container>
