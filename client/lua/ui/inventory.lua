@@ -1,3 +1,4 @@
+local Task = require("selene.task")
 local Input = require("selene.input")
 local UI = require("selene.ui.lml")
 local Network = require("selene.network")
@@ -17,10 +18,13 @@ function m.Initialize(hud, skin)
         end
 
         if payload.item then
-            local style = UI.CreateImageButtonStyle({
-                imageUp = Visuals.Create(payload.item.visual).Drawable:WithoutOffset()
-            }, skin)
-            m.Hud:GetActor("inventory:" .. payload.slotId):SetStyle(style)
+            Task.Launch(function()
+                local visual = Visuals.Create(payload.item.visual)
+                local style = UI.CreateImageButtonStyle({
+                    imageUp = visual.Drawable:WithoutOffset()
+                }, skin)
+                m.Hud:GetActor("inventory:" .. payload.slotId):SetStyle(style)
+            end)
         else
             m.Hud:GetActor("inventory:" .. payload.slotId):SetStyle(m.Skin, "hidden")
         end
