@@ -1,0 +1,12 @@
+{
+  "components": {
+    "illarion:visual": {
+      "type": "visual",
+      "visual": "illarion:tile_cursor"
+    },
+    "illarion:script": {
+      "type": "client_script",
+      "script": "illarion-gobaith-ui.client.lua.entities.cursor_shadow"
+    }
+  }
+}
