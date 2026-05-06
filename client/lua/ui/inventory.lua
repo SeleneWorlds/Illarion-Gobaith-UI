@@ -5,10 +5,12 @@ local Network = require("selene.network")
 local Visuals = require("selene.visuals")
 local Camera = require("selene.camera")
 local Grid = require("selene.grid")
+local Entities = require("selene.entities")
 
 local UseManager = require("illarion-gobaith-ui.client.lua.lib.useManager")
 
 local m = {}
+local worldDragState = nil
 
 local function CreateSlotReferenceName(viewId, slotId)
     return "slot:" .. viewId .. ":" .. slotId
@@ -41,9 +43,84 @@ local function ParseSlotReference(name)
     }
 end
 
+local function GetCoordinateAtScreenPosition(screenX, screenY)
+    local worldX, worldY = Camera.ScreenToWorld(screenX, screenY)
+    local cameraCoordinate = Camera.GetCoordinate()
+    return Grid.ScreenToCoordinate(worldX, worldY, cameraCoordinate.Z)
+end
+
+local function GetSlotReferenceAtStagePosition(stageX, stageY)
+    local hitActor = UI.Root.Stage:Hit(stageX, stageY)
+    if not hitActor then
+        return nil
+    end
+
+    return ParseSlotReference(hitActor.Name)
+end
+
+local function ResetWorldDragState()
+    worldDragState = nil
+end
+
+local function RegisterWorldDragInput()
+    if m.WorldDragRegistered then
+        return
+    end
+
+    Input.BindPressAction(Input.MOUSE, "left", function(screenX, screenY)
+        local isShiftPressed = Input.IsKeyPressed("L-Shift") or Input.IsKeyPressed("R-Shift")
+        if isShiftPressed then
+            return
+        end
+
+        local stageX, stageY = UI.Root.Stage:ScreenToStage(screenX, screenY)
+        if UI.Root.Stage:Hit(stageX, stageY) then
+            return
+        end
+
+        local coordinate = GetCoordinateAtScreenPosition(screenX, screenY)
+        local itemEntities = Entities.FindEntitiesAt(coordinate, {
+            tag = "illarion:item"
+        })
+
+        if #itemEntities == 0 then
+            return
+        end
+
+        worldDragState = {
+            sourceCoordinate = coordinate,
+            startScreenX = screenX,
+            startScreenY = screenY
+        }
+    end)
+
+    Input.BindReleaseAction(Input.MOUSE, "left", function(screenX, screenY)
+        if not worldDragState then
+            return
+        end
+
+        local stageX, stageY = UI.Root.Stage:ScreenToStage(screenX, screenY)
+        local targetSlotRef = GetSlotReferenceAtStagePosition(stageX, stageY)
+        if targetSlotRef then
+            Network.SendToServer("illarion:move_coordinate_to_slot", {
+                fromX = worldDragState.sourceCoordinate.x,
+                fromY = worldDragState.sourceCoordinate.y,
+                fromZ = worldDragState.sourceCoordinate.z,
+                toViewId = targetSlotRef.viewId,
+                toSlotId = targetSlotRef.slotId
+            })
+        end
+
+        ResetWorldDragState()
+    end)
+
+    m.WorldDragRegistered = true
+end
+
 function m.Initialize(hud, skin)
     m.Hud = hud
     m.Skin = skin
+    RegisterWorldDragInput()
 
     Network.HandlePayload("illarion:update_slot", function(payload)
         local actor = m.Hud:GetActor(CreateSlotReferenceName(payload.viewId, payload.slotId))
@@ -91,13 +168,11 @@ function m.slotDragListener(widget)
     return UI.CreateDragListener({
         onEnd = function(draggable, actor, stageX, stageY)
             local sourceSlotRef = ParseSlotReference(actor.Name)
-            local hitActor = actor.Stage:Hit(stageX, stageY)
-            if not hitActor then
+            local targetSlotRef = GetSlotReferenceAtStagePosition(stageX, stageY)
+            if not targetSlotRef then
                 if sourceSlotRef then
                     local mouseX, mouseY = Input.GetMousePosition()
-                    local worldX, worldY = Camera.ScreenToWorld(mouseX, mouseY)
-                    local cameraCoordinate = Camera.GetCoordinate()
-                    local coordinate = Grid.ScreenToCoordinate(worldX, worldY, cameraCoordinate.Z)
+                    local coordinate = GetCoordinateAtScreenPosition(mouseX, mouseY)
                     Network.SendToServer("illarion:move_slot_to_coordinate", {
                         fromViewId = sourceSlotRef.viewId,
                         fromSlotId = sourceSlotRef.slotId,
@@ -109,7 +184,6 @@ function m.slotDragListener(widget)
                 return true
             end
 
-            local targetSlotRef = ParseSlotReference(hitActor.Name)
             if sourceSlotRef and targetSlotRef and (
                 sourceSlotRef.viewId ~= targetSlotRef.viewId or sourceSlotRef.slotId ~= targetSlotRef.slotId
             ) then
