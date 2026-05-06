@@ -8,11 +8,11 @@ local inventory = require("illarion-gobaith-ui.client.lua.ui.inventory")
 local clock = require("illarion-gobaith-ui.client.lua.ui.clock")
 local stats = require("illarion-gobaith-ui.client.lua.ui.stats")
 
-UI.Setup:Connect(function()
+UI.setup:connect(function()
     local theme = skin.LoadThemeRoutine()
     minimap.AddToSkin(theme)
 
-    local hud = Loaders.LoadUI("client/ui/illarion/hud.xml", {
+    local hud = Loaders.loadUI("client/ui/illarion/hud.xml", {
         theme = theme,
         actions = {
             cycleChatMode = chat.cycleChatMode,
@@ -21,7 +21,7 @@ UI.Setup:Connect(function()
             slotDragListener = inventory.slotDragListener
         }
     })
-    UI.AddToRoot(hud)
+    UI.addToRoot(hud)
     chat.Initialize(hud, theme)
     minimap.Initialize()
     clock.Initialize(hud)

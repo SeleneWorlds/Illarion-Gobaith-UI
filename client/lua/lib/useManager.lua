@@ -27,13 +27,13 @@ local function OnShiftReleased()
 
     if useCoordinate then
         local coordinate = useCoordinate
-        Network.SendToServer("illarion:use_at", {
+        Network.sendToServer("illarion:use_at", {
             x = coordinate.x,
             y = coordinate.y,
             z = coordinate.z
         })
     elseif useSlot then
-        Network.SendToServer("illarion:use_slot", {
+        Network.sendToServer("illarion:use_slot", {
             viewId = useSlot.viewId,
             slotId = useSlot.slotId
         })
@@ -41,8 +41,8 @@ local function OnShiftReleased()
 end
 
 function m.RegisterInput()
-    Input.BindReleaseAction(Input.KEYBOARD, "L-Shift", OnShiftReleased)
-    Input.BindReleaseAction(Input.KEYBOARD, "R-Shift", OnShiftReleased)
+    Input.bindReleaseAction(Input.KEYBOARD, "L-Shift", OnShiftReleased)
+    Input.bindReleaseAction(Input.KEYBOARD, "R-Shift", OnShiftReleased)
 end
 
 return m

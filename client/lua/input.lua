@@ -4,44 +4,44 @@ local Grid = require("selene.grid")
 
 local UseManager = require("illarion-gobaith-ui.client.lua.lib.useManager")
 
-local North = Grid.GetDirectionByName("north")
-local South = Grid.GetDirectionByName("south")
-local East = Grid.GetDirectionByName("east")
-local West = Grid.GetDirectionByName("west")
+local North = Grid.getDirectionByName("north")
+local South = Grid.getDirectionByName("south")
+local East = Grid.getDirectionByName("east")
+local West = Grid.getDirectionByName("west")
 
-Input.BindContinuousAction("keyboard", "Up", function()
-    local isShiftPressed = Input.IsKeyPressed("L-Shift") or Input.IsKeyPressed("R-Shift")
+Input.bindContinuousAction("keyboard", "Up", function()
+    local isShiftPressed = Input.isKeyPressed("L-Shift") or Input.isKeyPressed("R-Shift")
     if isShiftPressed then
-        GridMovement.SetFacing(North)
+        GridMovement.setFacing(North)
     else
-        GridMovement.SetMotion(North)
+        GridMovement.setMotion(North)
     end
 end)
 
-Input.BindContinuousAction("keyboard", "Down", function()
-    local isShiftPressed = Input.IsKeyPressed("L-Shift") or Input.IsKeyPressed("R-Shift")
+Input.bindContinuousAction("keyboard", "Down", function()
+    local isShiftPressed = Input.isKeyPressed("L-Shift") or Input.isKeyPressed("R-Shift")
     if isShiftPressed then
-        GridMovement.SetFacing(South)
+        GridMovement.setFacing(South)
     else
-        GridMovement.SetMotion(South)
+        GridMovement.setMotion(South)
     end
 end)
 
-Input.BindContinuousAction("keyboard", "Left", function()
-    local isShiftPressed = Input.IsKeyPressed("L-Shift") or Input.IsKeyPressed("R-Shift")
+Input.bindContinuousAction("keyboard", "Left", function()
+    local isShiftPressed = Input.isKeyPressed("L-Shift") or Input.isKeyPressed("R-Shift")
     if isShiftPressed then
-        GridMovement.SetFacing(West)
+        GridMovement.setFacing(West)
     else
-        GridMovement.SetMotion(West)
+        GridMovement.setMotion(West)
     end
 end)
 
-Input.BindContinuousAction("keyboard", "Right", function()
-    local isShiftPressed = Input.IsKeyPressed("L-Shift") or Input.IsKeyPressed("R-Shift")
+Input.bindContinuousAction("keyboard", "Right", function()
+    local isShiftPressed = Input.isKeyPressed("L-Shift") or Input.isKeyPressed("R-Shift")
     if isShiftPressed then
-        GridMovement.SetFacing(East)
+        GridMovement.setFacing(East)
     else
-        GridMovement.SetMotion(East)
+        GridMovement.setMotion(East)
     end
 end)
 

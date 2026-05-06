@@ -15,12 +15,12 @@ local MINIMAP_SIZE = 160
 local WORLDMAP_PAINT_BUDGET = 256
 
 -- We keep a CPU-side world texture and only upload the visible minimap texture.
-m.worldmapTexture = Textures.Create(WORLD_WIDTH, WORLD_HEIGHT)
-m.worldmapTexture:Fill("black")
+m.worldmapTexture = Textures.create(WORLD_WIDTH, WORLD_HEIGHT)
+m.worldmapTexture:fill("black")
 
-m.minimapTexture = Textures.Create(MINIMAP_SIZE, MINIMAP_SIZE)
-m.minimapTexture:Fill("black")
-m.minimapTexture:Update()
+m.minimapTexture = Textures.create(MINIMAP_SIZE, MINIMAP_SIZE)
+m.minimapTexture:fill("black")
+m.minimapTexture:update()
 
 local MapColors = {
     [1] = "#b6d69e",
@@ -38,7 +38,7 @@ local minimapDirty = true
 local lastMinimapCenter = nil
 
 function m.AddToSkin(skin)
-    skin:AddTexture("minimap", m.minimapTexture)
+    skin:addTexture("minimap", m.minimapTexture)
 end
 
 local function isWithinWorldBounds(worldX, worldY)
@@ -89,12 +89,12 @@ local function mergeDirtyRegion(region)
 end
 
 local function getGroundColor(worldX, worldY, worldZ)
-    local tiles = Map.GetTilesAt(worldX, worldY, worldZ)
+    local tiles = Map.getTilesAt(worldX, worldY, worldZ)
     if tiles and #tiles > 0 then
         local groundTile = tiles[1]
-        local visual = groundTile.Visual
+        local visual = groundTile:getVisual()
         if visual then
-            return MapColors[visual:GetMetadata("mapColorIndex")] or "black"
+            return MapColors[visual:getMetadata("mapColorIndex")] or "black"
         end
     end
 
@@ -108,7 +108,7 @@ local function paintWorldTile(worldX, worldY, worldZ)
 
     local textureX = worldX - WORLD_MIN_X
     local textureY = worldY - WORLD_MIN_Y
-    m.worldmapTexture:SetPixel(textureX, textureY, getGroundColor(worldX, worldY, worldZ))
+    m.worldmapTexture:setPixel(textureX, textureY, getGroundColor(worldX, worldY, worldZ))
 end
 
 local function repaintVisibleMinimap(centerPos)
@@ -118,12 +118,12 @@ local function repaintVisibleMinimap(centerPos)
     local textureSourceX = worldSourceX - WORLD_MIN_X
     local textureSourceY = worldSourceY - WORLD_MIN_Y
 
-    m.minimapTexture:Fill("black")
+    m.minimapTexture:fill("black")
 
     if textureSourceX >= 0 and textureSourceY >= 0
         and textureSourceX + MINIMAP_SIZE <= WORLD_WIDTH
         and textureSourceY + MINIMAP_SIZE <= WORLD_HEIGHT then
-        m.minimapTexture:CopyFrom(
+        m.minimapTexture:copyFrom(
             m.worldmapTexture,
             textureSourceX,
             textureSourceY,
@@ -144,7 +144,7 @@ local function repaintVisibleMinimap(centerPos)
             local destX = copyStartX - textureSourceX
             local destY = copyStartY - textureSourceY
 
-            m.minimapTexture:CopyFrom(
+            m.minimapTexture:copyFrom(
                 m.worldmapTexture,
                 copyStartX,
                 copyStartY,
@@ -156,7 +156,7 @@ local function repaintVisibleMinimap(centerPos)
         end
     end
 
-    m.minimapTexture:Update()
+    m.minimapTexture:update()
     lastMinimapCenter = { x = centerPos.x, y = centerPos.y, z = centerPos.z }
     minimapDirty = false
 end
@@ -215,12 +215,12 @@ local function cameraCenterChanged(centerPos)
 end
 
 function m.Initialize()
-    Camera.OnCoordinateChanged:Connect(function()
+    Camera.onCoordinateChanged:connect(function()
         minimapDirty = true
     end)
 
-    Map.OnChunkChanged:Connect(function(pos, width, height)
-        local center = Camera.GetCoordinate()
+    Map.onChunkChanged:connect(function(pos, width, height)
+        local center = Camera.getCoordinate()
         if pos.z ~= center.z then
             return
         end
@@ -249,8 +249,8 @@ function m.Initialize()
         end
     end)
 
-    Game.PreTick:Connect(function()
-        local center = Camera.GetCoordinate()
+    Game.preTick:connect(function()
+        local center = Camera.getCoordinate()
         local centerChanged = cameraCenterChanged(center)
         local visibleAreaUpdated = processDirtyRegions(center)
 

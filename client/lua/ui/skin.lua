@@ -3,7 +3,7 @@ local Loaders = require("selene.ui.coroutine")
 
 return {
     LoadThemeRoutine = function()
-        local atlas = Loaders.CreateAtlas({
+        local atlas = Loaders.createAtlas({
             gui_bottom = "client/textures/illarion/ui/gui_bottom.png",
             gui_top = "client/textures/illarion/ui/gui_top.png",
             gui_chat = "client/textures/illarion/ui/gui_chat.png",
@@ -19,7 +19,7 @@ return {
             status_health = "client/textures/illarion/ui/status_health.png",
             status_mana = "client/textures/illarion/ui/status_mana.png"
         })
-        return Loaders.LoadTheme({
+        return Loaders.loadTheme({
             ImageButton = {
                 speak_normal = {
                     up = "speak_normal"

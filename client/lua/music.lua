@@ -14,18 +14,18 @@ local function SetSoundTrack(sound)
     end
 
     if sound ~= nil then
-        Sounds.PlayLocalSound(sound)
+        Sounds.playLocalSound(sound)
     else
-        Sounds.StopSound(CurrentTrack)
+        Sounds.stopSound(CurrentTrack)
     end
     CurrentTrack = sound
 end
 
-Network.HandlePayload("illarion:music", function(payload)
+Network.handlePayload("illarion:music", function(payload)
     if payload.musicId == 0 then
         OverrideTrack = nil
     else
-        local sound = Registries.FindByMetadata("sounds", "musicId", payload.musicId)
+        local sound = Registries.findByMetadata("sounds", "musicId", payload.musicId)
         if sound then
             OverrideTrack = sound
         else
@@ -35,11 +35,11 @@ Network.HandlePayload("illarion:music", function(payload)
     end
 end)
 
-Game.PreTick:Connect(function()
+Game.preTick:connect(function()
     local isInCombat = false
     if isInCombat then
         if CombatTrack == nil then
-            CombatTrack = Registries.FindByMetadata("sounds", "musicId", 1)
+            CombatTrack = Registries.findByMetadata("sounds", "musicId", 1)
         end
         SetSoundTrack(CombatTrack)
     elseif OverrideTrack ~= nil then
