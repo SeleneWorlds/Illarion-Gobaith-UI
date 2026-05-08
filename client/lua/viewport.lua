@@ -3,4 +3,4 @@ local Game = require("selene.game")
 Camera.setViewport(0, 0, 839, 419)
 
 Game.setWindowAspectRatio(4, 3)
-Game.setWindowScaling("UNIFORM", 1024, 768)
+Game.setOffscreenRendering(1024, 768)
