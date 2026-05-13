@@ -9,6 +9,8 @@ return {
             gui_chat = "client/textures/illarion/ui/gui_chat.png",
             gui_counter = "client/textures/illarion/ui/gui_counter.png",
             gui_status = "client/textures/illarion/ui/gui_status.png",
+            menu_select = "client/textures/illarion/ui/menu_select.png",
+            menu_short = "client/textures/illarion/ui/menu_short.png",
             speak_normal = "client/textures/illarion/ui/speak_normal.png",
             speak_ooc = "client/textures/illarion/ui/speak_ooc.png",
             speak_shout = "client/textures/illarion/ui/speak_shout.png",

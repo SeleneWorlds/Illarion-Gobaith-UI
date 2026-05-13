@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<canvas id="MenuStruct" x="315" y="239" width="395" height="290">
+    <image id="MenuStructBackground" style="menu_short"/>
+    <:macro alias="menuSlot" replace="" id="" x="" y="">
+        <imageButton id="{id}" x="{x}" y="{y}" width="64" height="48" style="hidden" onclick="menuClick"/>
+    </:macro>
+    <:menuSlot id="menu_slot:1" x="38" y="190"/>
+    <:menuSlot id="menu_slot:2" x="102" y="190"/>
+    <:menuSlot id="menu_slot:3" x="166" y="190"/>
+    <:menuSlot id="menu_slot:4" x="230" y="190"/>
+    <:menuSlot id="menu_slot:5" x="294" y="190"/>
+    <:menuSlot id="menu_slot:6" x="38" y="142"/>
+    <:menuSlot id="menu_slot:7" x="102" y="142"/>
+    <:menuSlot id="menu_slot:8" x="166" y="142"/>
+    <:menuSlot id="menu_slot:9" x="230" y="142"/>
+    <:menuSlot id="menu_slot:10" x="294" y="142"/>
+    <:menuSlot id="menu_slot:11" x="38" y="94"/>
+    <:menuSlot id="menu_slot:12" x="102" y="94"/>
+    <:menuSlot id="menu_slot:13" x="166" y="94"/>
+    <:menuSlot id="menu_slot:14" x="230" y="94"/>
+    <:menuSlot id="menu_slot:15" x="294" y="94"/>
+    <:menuSlot id="menu_slot:16" x="38" y="46"/>
+    <:menuSlot id="menu_slot:17" x="102" y="46"/>
+    <:menuSlot id="menu_slot:18" x="166" y="46"/>
+    <:menuSlot id="menu_slot:19" x="230" y="46"/>
+    <:menuSlot id="menu_slot:20" x="294" y="46"/>
+</canvas>
