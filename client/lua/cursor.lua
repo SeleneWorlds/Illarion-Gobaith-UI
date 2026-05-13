@@ -4,6 +4,7 @@ local Grid = require("selene.grid")
 local Game = require("selene.game")
 local Entities = require("selene.entities")
 local Network = require("selene.network")
+local Map = require("selene.map")
 
 local UseManager = require("illarion-gobaith-ui.client.lua.lib.useManager")
 
@@ -51,11 +52,20 @@ Game.preTick:connect(function()
 end)
 
 Input.bindAction(Input.MOUSE, "left", function(screenX, screenY)
+    local worldX, worldY = Camera.screenToWorld(screenX, screenY)
+    local cameraCoordinate = Camera.getCoordinate()
+    local coordinate = Grid.screenToCoordinate(worldX, worldY, cameraCoordinate:getZ())
+    local tiles = Map.getTilesAt(coordinate)
+    for _, tile in ipairs(tiles) do
+        print("[Tile] " .. tile:getDefinition():getName())
+    end
+    local entities = Entities.getEntitiesAt(coordinate)
+    for _, entity in ipairs(entities) do
+        print("[Entity] " .. entity:getDefinition():getName())
+    end
+
     local isShiftPressed = Input.isKeyPressed("L-Shift") or Input.isKeyPressed("R-Shift")
     if isShiftPressed then
-        local worldX, worldY = Camera.screenToWorld(screenX, screenY)
-        local cameraCoordinate = Camera.getCoordinate()
-        local coordinate = Grid.screenToCoordinate(worldX, worldY, cameraCoordinate:getZ())
         if not useCursor then
             useCursor = Entities.create("illarion:use_cursor")
             useCursor:setCoordinate(coordinate)
