@@ -4,12 +4,8 @@ local Grid = require("selene.grid")
 
 local UseManager = require("illarion-gobaith-ui.client.lua.lib.useManager")
 
-local North = Grid.getDirectionByName("north")
-local South = Grid.getDirectionByName("south")
-local East = Grid.getDirectionByName("east")
-local West = Grid.getDirectionByName("west")
-
 Input.bindContinuousAction("keyboard", "Up", function()
+    local North = Grid.getDirectionByName("north")
     local isShiftPressed = Input.isKeyPressed("L-Shift") or Input.isKeyPressed("R-Shift")
     if isShiftPressed then
         GridMovement.setFacing(North)
@@ -19,6 +15,7 @@ Input.bindContinuousAction("keyboard", "Up", function()
 end)
 
 Input.bindContinuousAction("keyboard", "Down", function()
+    local South = Grid.getDirectionByName("south")
     local isShiftPressed = Input.isKeyPressed("L-Shift") or Input.isKeyPressed("R-Shift")
     if isShiftPressed then
         GridMovement.setFacing(South)
@@ -28,6 +25,7 @@ Input.bindContinuousAction("keyboard", "Down", function()
 end)
 
 Input.bindContinuousAction("keyboard", "Left", function()
+    local West = Grid.getDirectionByName("west")
     local isShiftPressed = Input.isKeyPressed("L-Shift") or Input.isKeyPressed("R-Shift")
     if isShiftPressed then
         GridMovement.setFacing(West)
@@ -37,6 +35,7 @@ Input.bindContinuousAction("keyboard", "Left", function()
 end)
 
 Input.bindContinuousAction("keyboard", "Right", function()
+    local East = Grid.getDirectionByName("east")
     local isShiftPressed = Input.isKeyPressed("L-Shift") or Input.isKeyPressed("R-Shift")
     if isShiftPressed then
         GridMovement.setFacing(East)
