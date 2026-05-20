@@ -49,8 +49,12 @@ local function GetCoordinateAtScreenPosition(screenX, screenY)
     return Grid.screenToCoordinate(worldX, worldY, cameraCoordinate.Z)
 end
 
+local function GetUiActorAtStagePosition(stageX, stageY)
+    return UI.root:getStage():hit(stageX, stageY)
+end
+
 local function GetSlotReferenceAtStagePosition(stageX, stageY)
-    local hitActor = UI.root:getStage():hit(stageX, stageY)
+    local hitActor = GetUiActorAtStagePosition(stageX, stageY)
     if not hitActor then
         return nil
     end
@@ -74,7 +78,7 @@ local function RegisterWorldDragInput()
         end
 
         local stageX, stageY = UI.root:getStage():screenToStage(screenX, screenY)
-        if UI.root:getStage():hit(stageX, stageY) then
+        if GetUiActorAtStagePosition(stageX, stageY) then
             return
         end
 
@@ -170,6 +174,10 @@ function m.slotDragListener(widget)
             local sourceSlotRef = ParseSlotReference(actor:getName())
             local targetSlotRef = GetSlotReferenceAtStagePosition(stageX, stageY)
             if not targetSlotRef then
+                if GetUiActorAtStagePosition(stageX, stageY) then
+                    return true
+                end
+
                 if sourceSlotRef then
                     local mouseX, mouseY = Input.getMousePosition()
                     local coordinate = GetCoordinateAtScreenPosition(mouseX, mouseY)
