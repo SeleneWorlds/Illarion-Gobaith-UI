@@ -51,6 +51,14 @@ function m.Initialize(hud, skin)
         }))
     end)
 
+    Network.handlePayload("illarion:look_at", function(payload)
+        print(payload.tooltip.name or tostring(payload.tooltip))
+    end)
+
+    Network.handlePayload("illarion:look_at_entity", function(payload)
+        print(payload.tooltip.name or tostring(payload.tooltip))
+    end)
+
     UI.addInputProcessor({
         KeyDown = function(event, key)
             local focus = UI.getFocus()
