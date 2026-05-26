@@ -78,7 +78,9 @@ Input.bindAction(Input.MOUSE, "left", function(screenX, screenY)
             useCursor:setCoordinate(coordinate)
         end
     else
-        local entities = Entities.getEntitiesAt(coordinate)
+        local entities = Entities.findEntitiesAt(coordinate, {
+            tag = "illarion:supports_look_at"
+        })
         local entity = entities[#entities]
         if entity then
             Network.sendToServer("illarion:look_at_entity", {
