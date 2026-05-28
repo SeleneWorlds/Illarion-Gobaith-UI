@@ -55,6 +55,14 @@ function m.Initialize(hud, skin)
         print(payload.tooltip.name or tostring(payload.tooltip))
     end)
 
+    Network.handlePayload("illarion:look_at_coordinate", function(payload)
+        print(payload.tooltip.name or tostring(payload.tooltip))
+    end)
+
+    Network.handlePayload("illarion:look_at_slot", function(payload)
+        print(payload.tooltip.name or tostring(payload.tooltip))
+    end)
+
     Network.handlePayload("illarion:look_at_entity", function(payload)
         print(payload.tooltip.name or tostring(payload.tooltip))
     end)
