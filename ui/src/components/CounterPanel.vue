@@ -1,0 +1,37 @@
+<script setup lang="ts">
+import type { SeleneUiApi } from '../selene';
+import ClockDisplay from './ClockDisplay.vue';
+import ItemCounter from './ItemCounter.vue';
+
+defineProps<{ selene: SeleneUiApi }>();
+</script>
+
+<template>
+  <section class="counter" aria-label="Counter and clock">
+    <img :src="selene.resolveAsset('./assets/gui_counter.png')" alt="">
+    <ItemCounter />
+    <ClockDisplay />
+  </section>
+</template>
+
+<style scoped>
+.counter {
+  position: absolute;
+  bottom: 0;
+  left: 385px;
+  width: 71px;
+  height: 120px;
+  color: #d8e4ff;
+  text-align: center;
+  text-shadow: 1px 1px 2px #000;
+}
+
+.counter > img {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 71px;
+  height: 120px;
+  user-select: none;
+}
+</style>

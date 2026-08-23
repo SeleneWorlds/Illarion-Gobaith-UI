@@ -4,7 +4,12 @@
     "entrypoints": [
         "client/lua/viewport.lua",
         "client/lua/cursor.lua",
-        "client/lua/input.lua",
-        "client/lua/ui.lua"
+        "client/lua/input.lua"
+    ],
+    "ui": [
+        {
+            "id": "hud",
+            "entrypoint": "client/ui/dist/index.html"
+        }
     ]
 }
