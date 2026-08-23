@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import BloodFog from './components/BloodFog.vue';
 import ChatPanel from './components/ChatPanel.vue';
 import CounterPanel from './components/CounterPanel.vue';
 import InventoryPanel from './components/InventoryPanel.vue';
@@ -11,6 +12,7 @@ defineProps<{ selene: SeleneUiApi }>();
 
 <template>
   <main class="hud" aria-label="Illarion game interface">
+    <BloodFog :selene="selene" />
     <img class="hud__bottom-frame" :src="selene.resolveAsset('./assets/gui_bottom.png')" alt="">
     <img class="hud__top-frame" :src="selene.resolveAsset('./assets/gui_top.png')" alt="">
     <MinimapPanel :selene="selene" />
@@ -34,7 +36,6 @@ defineProps<{ selene: SeleneUiApi }>();
   overflow: hidden;
   transform: translateX(-50%) scale(var(--hud-scale));
   transform-origin: bottom center;
-  filter: drop-shadow(0 0 5px rgb(0 0 0 / 55%));
 }
 
 .hud__bottom-frame,
