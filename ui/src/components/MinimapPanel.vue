@@ -11,6 +11,9 @@ const MAX_ZOOM = 2;
 const ZOOM_STEP = 0.1;
 const ZOOM_STORAGE_KEY = 'zoomMinimap';
 const ROTATION_STORAGE_KEY = 'rotateMinimap';
+const WORLD_SIZE = 1024;
+const WORLD_OFFSET_X = 500;
+const WORLD_OFFSET_Y = 524;
 const COLORS = [
   [0, 0, 0],
   [182, 214, 158],
@@ -24,14 +27,22 @@ const COLORS = [
 ] as const;
 
 const canvas = ref<HTMLCanvasElement>();
+const worldCanvas = ref<HTMLCanvasElement>();
 const zoom = ref(MIN_ZOOM);
 const rotated = ref(false);
+const menuOpen = ref(false);
+const worldMapOpen = ref(false);
+const cameraCoordinate = ref(props.selene.world.getCameraCoordinate());
 const player = createPlayerStore(props.selene.storage);
 const unsubscribers: Array<() => void> = [];
 let mounted = false;
 const tileKey = (tile: Pick<MapTile, 'x' | 'y' | 'z'>) => `${tile.x}:${tile.y}:${tile.z}`;
 const surfaceStyle = computed(() => ({
   transform: `translate(-50%, -50%) scale(${zoom.value}) rotate(${rotated.value ? -45 : 0}deg)`,
+}));
+const worldCrosshairStyle = computed(() => ({
+  left: `${(WORLD_OFFSET_X + cameraCoordinate.value.x) / 2}px`,
+  top: `${(WORLD_SIZE - (WORLD_OFFSET_Y - cameraCoordinate.value.y)) / 2}px`,
 }));
 
 const saveZoom = () => props.selene.storage.save(ZOOM_STORAGE_KEY, String(Math.round((zoom.value - 1) * 1000)));
@@ -50,6 +61,46 @@ const adjustZoom = (event: WheelEvent) => {
   zoom.value = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Math.round((zoom.value + direction * ZOOM_STEP) * 10) / 10));
   void saveZoom();
 };
+const zoomBy = (amount: number) => {
+  zoom.value = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Math.round((zoom.value + amount) * 10) / 10));
+  menuOpen.value = false;
+  void saveZoom();
+};
+const showWorldMap = () => {
+  worldMapOpen.value = true;
+  menuOpen.value = false;
+  requestAnimationFrame(drawWorldMap);
+};
+const hideWorldMap = () => {
+  worldMapOpen.value = false;
+  menuOpen.value = false;
+};
+const openMenu = () => {
+  menuOpen.value = true;
+};
+
+function drawWorldMap() {
+  const context = worldCanvas.value?.getContext('2d');
+  if (!context) return;
+  const image = context.createImageData(WORLD_SIZE, WORLD_SIZE);
+  for (let offset = 3; offset < image.data.length; offset += 4) image.data[offset] = 255;
+  const level = Math.round(cameraCoordinate.value.z);
+  for (const [key, colorIndex] of player.minimapTiles) {
+    const [x, y, z] = key.split(':').map(Number);
+    if (z !== level) continue;
+    const worldX = WORLD_OFFSET_X + x;
+    const legacyWorldY = WORLD_OFFSET_Y - y;
+    if (worldX < 0 || worldX >= WORLD_SIZE || legacyWorldY < 0 || legacyWorldY >= WORLD_SIZE) continue;
+    // OpenGL treats the first texture row as the bottom; canvas treats it as the top.
+    const canvasY = WORLD_SIZE - 1 - legacyWorldY;
+    const color = COLORS[colorIndex] ?? COLORS[0];
+    const offset = (canvasY * WORLD_SIZE + worldX) * 4;
+    image.data[offset] = color[0];
+    image.data[offset + 1] = color[1];
+    image.data[offset + 2] = color[2];
+  }
+  context.putImageData(image, 0, 0);
+}
 
 const draw = () => {
   const context = canvas.value?.getContext('2d');
@@ -84,6 +135,19 @@ const refreshTiles = () => {
     }
   }
   draw();
+  if (worldMapOpen.value) drawWorldMap();
+};
+const updateCamera = () => {
+  const previousLevel = Math.round(cameraCoordinate.value.z);
+  cameraCoordinate.value = props.selene.world.getCameraCoordinate();
+  draw();
+  if (worldMapOpen.value && Math.round(cameraCoordinate.value.z) !== previousLevel) drawWorldMap();
+};
+const closeMenu = () => { menuOpen.value = false; };
+const closeOnEscape = (event: KeyboardEvent) => {
+  if (event.key !== 'Escape') return;
+  if (menuOpen.value) closeMenu();
+  else if (worldMapOpen.value) hideWorldMap();
 };
 
 onMounted(async () => {
@@ -101,30 +165,58 @@ onMounted(async () => {
   rotated.value = storedRotation === '1' || storedRotation === 'true';
   refreshTiles();
   unsubscribers.push(props.selene.world.onMapChanged(refreshTiles));
-  unsubscribers.push(props.selene.world.onCameraCoordinateChanged(draw));
+  unsubscribers.push(props.selene.world.onCameraCoordinateChanged(updateCamera));
+  window.addEventListener('click', closeMenu);
+  window.addEventListener('keydown', closeOnEscape);
 });
 onUnmounted(() => {
   mounted = false;
   unsubscribers.forEach(unsubscribe => unsubscribe());
+  window.removeEventListener('click', closeMenu);
+  window.removeEventListener('keydown', closeOnEscape);
   void player.flush().catch((error: unknown) => console.warn('Could not persist player data.', error));
 });
 </script>
 
 <template>
   <section
-    class="minimap"
-    aria-label="Minimap"
-    data-selene-interactive
-    tabindex="0"
-    title="Click to toggle zoom; wheel to zoom; Shift-click to rotate"
-    @click="toggleZoom"
-    @keydown.enter.prevent="toggleZoom()"
-    @keydown.space.prevent="toggleZoom()"
-    @wheel.prevent.stop="adjustZoom"
-  >
-    <canvas ref="canvas" class="minimap__surface" :style="surfaceStyle" :width="SIZE" :height="SIZE" />
-    <span class="minimap__crosshair" aria-hidden="true" />
-  </section>
+      class="minimap"
+      aria-label="Minimap"
+      data-selene-interactive
+      tabindex="0"
+      title="Click to toggle zoom; wheel to zoom; Shift-click to rotate; right-click for menu"
+      @click="toggleZoom"
+      @contextmenu.prevent.stop="openMenu"
+      @keydown.enter.prevent="toggleZoom()"
+      @keydown.space.prevent="toggleZoom()"
+      @wheel.prevent.stop="adjustZoom"
+    >
+      <canvas ref="canvas" class="minimap__surface" :style="surfaceStyle" :width="SIZE" :height="SIZE" />
+      <span class="minimap__crosshair" aria-hidden="true" />
+    </section>
+
+    <menu v-if="menuOpen" class="minimap-menu" data-selene-interactive @click.stop>
+      <img class="minimap-menu__frame" :src="selene.resolveAsset('./assets/menu_short.png')" alt="">
+      <li v-if="!worldMapOpen">
+        <button type="button" @click="showWorldMap">Open world map</button>
+      </li>
+      <li v-else>
+        <button type="button" @click="hideWorldMap">Close world map</button>
+      </li>
+      <li><button type="button" :disabled="zoom >= MAX_ZOOM" @click="zoomBy(0.3)">Zoom in</button></li>
+      <li><button type="button" :disabled="zoom <= MIN_ZOOM" @click="zoomBy(-0.3)">Zoom out</button></li>
+    </menu>
+
+    <section v-if="worldMapOpen" class="world-map" aria-label="World map" data-selene-interactive>
+      <img class="world-map__frame" :src="selene.resolveAsset('./assets/menu_short.png')" alt="">
+      <div class="world-map__viewport">
+        <canvas ref="worldCanvas" class="world-map__surface" :width="WORLD_SIZE" :height="WORLD_SIZE" />
+        <span class="world-map__crosshair minimap__crosshair" :style="worldCrosshairStyle" aria-hidden="true" />
+      </div>
+      <button class="world-map__close" type="button" aria-label="Close world map" @click="hideWorldMap">
+        <img :src="selene.resolveAsset('./assets/menu_close.png')" alt="">
+      </button>
+    </section>
 </template>
 
 <style scoped>
@@ -166,5 +258,103 @@ onUnmounted(() => {
 
 .minimap__crosshair::after {
   transform: translate(-50%, -50%) rotate(90deg);
+}
+
+.minimap-menu {
+  position: absolute;
+  z-index: 20;
+  top: 154px;
+  right: 4px;
+  width: 198px;
+  height: 145px;
+  margin: 0;
+  padding: 25px 22px 20px;
+  list-style: none;
+  pointer-events: auto;
+}
+
+.minimap-menu__frame {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.minimap-menu button {
+  position: relative;
+  width: 100%;
+  height: 32px;
+  padding: 4px 12px;
+  border: 0;
+  background: transparent;
+  color: #342515;
+  font: 14px Georgia, serif;
+  text-align: left;
+  cursor: pointer;
+}
+
+.minimap-menu button:hover:not(:disabled),
+.minimap-menu button:focus-visible { color: #8d1e18; }
+.minimap-menu button:disabled { color: #8b7c68; cursor: default; }
+
+.world-map {
+  position: absolute;
+  z-index: 15;
+  left: 212px;
+  bottom: 134px;
+  width: 600px;
+  height: 500px;
+  pointer-events: auto;
+}
+
+.world-map__frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 4px 9px #000);
+  pointer-events: none;
+}
+
+.world-map__viewport {
+  position: absolute;
+  top: 50px;
+  left: 50px;
+  width: 500px;
+  height: 400px;
+  overflow: hidden;
+  background: #000;
+}
+
+.world-map__surface {
+  display: block;
+  width: 512px;
+  height: 512px;
+  image-rendering: pixelated;
+}
+
+.world-map__crosshair {
+  top: 0;
+  left: 0;
+}
+
+.world-map__close {
+  position: absolute;
+  left: 400px;
+  bottom: 40px;
+  width: 40px;
+  height: 95px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.world-map__close img {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 </style>
