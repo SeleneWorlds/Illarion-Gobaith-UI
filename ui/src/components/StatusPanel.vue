@@ -3,43 +3,112 @@ import { computed, onUnmounted, ref } from 'vue';
 import type { SeleneUiApi } from '../selene';
 
 const props = defineProps<{ selene: SeleneUiApi }>();
-const backgroundImage = (path: string) => ({
-  backgroundImage: `url("${props.selene.resolveAsset(path)}")`,
-});
-const statusBar = (payloadId: string, asset: string) => {
-  const value = ref(0);
-  const unsubscribe = props.selene.network.onPayload(payloadId, (payload) => {
-    if (typeof payload.value === 'number' && Number.isFinite(payload.value)) {
-      value.value = Math.min(1, Math.max(0, payload.value));
-    }
-  });
-  onUnmounted(unsubscribe);
+const mode = ref<0 | 1>(0);
+const tooltips = [
+  'These gauges show your health, when you need to eat and your mana. Click to show the clock.',
+  'This clock shows the day and month, the time of day and the temperature. Click to show your status.',
+] as const;
+const backgroundImage = (path: string) => ({ backgroundImage: `url("${props.selene.resolveAsset(path)}")` });
 
+/** Reproduce Animation.approach at the legacy client's default 25 FPS. */
+const statusBar = (payloadId: string, asset: string, maxValue: number) => {
+  const value = ref(0);
+  let target = 0;
+  let frame: number | undefined;
+  let previousTime: number | undefined;
+  let elapsed = 0;
+
+  const approach = () => {
+    const difference = target - value.value;
+    if (difference === 0) return;
+    const step = Math.abs(difference) > 4 ? Math.trunc(difference / 4) : Math.sign(difference);
+    value.value = Math.min(maxValue, Math.max(0, value.value + step));
+  };
+  const animate = (time: number) => {
+    if (previousTime !== undefined) elapsed += Math.min(time - previousTime, 200);
+    previousTime = time;
+    while (elapsed >= 40) {
+      approach();
+      elapsed -= 40;
+    }
+    if (value.value !== target) frame = requestAnimationFrame(animate);
+    else {
+      frame = undefined;
+      previousTime = undefined;
+      elapsed = 0;
+    }
+  };
+  const unsubscribe = props.selene.network.onPayload(payloadId, (payload) => {
+    if (typeof payload.value !== 'number' || !Number.isFinite(payload.value)) return;
+    target = Math.round(Math.min(1, Math.max(0, payload.value)) * maxValue);
+    if (frame === undefined && value.value !== target) frame = requestAnimationFrame(animate);
+  });
+  onUnmounted(() => {
+    unsubscribe();
+    if (frame !== undefined) cancelAnimationFrame(frame);
+  });
   return computed(() => ({
     ...backgroundImage(asset),
-    height: `${value.value * 100}%`,
+    height: `${(value.value / maxValue) * 100}%`,
   }));
 };
-const healthStyle = statusBar('illarion:health', './assets/status_health.png');
-const foodStyle = statusBar('illarion:food', './assets/status_food.png');
-const manaStyle = statusBar('illarion:mana', './assets/status_mana.png');
+
+const healthStyle = statusBar('illarion:health', './assets/status_health.png', 10_000);
+const foodStyle = statusBar('illarion:food', './assets/status_food.png', 60_000);
+const manaStyle = statusBar('illarion:mana', './assets/status_mana.png', 10_000);
+
+// Fixed until game date, time, and weather payloads are available.
+const clock = { day: '1.', month: 'Elos', year: '1', hour: 12, minute: 0, temperature: 15 };
+const timeOffset = ((clock.hour * 60 + clock.minute) * 329) / 1440;
+const temperatureOffset = ((clock.temperature + 15) * 280) / 60;
 </script>
 
 <template>
-  <section class="status" aria-label="Character status">
-    <img class="status__frame" :src="selene.resolveAsset('./assets/gui_status.png')" alt="">
-    <div class="status__bar status__bar--health"><span :style="healthStyle" /></div>
-    <div class="status__bar status__bar--food"><span :style="foodStyle" /></div>
-    <div class="status__bar status__bar--mana"><span :style="manaStyle" /></div>
-  </section>
+  <button
+    class="status"
+    type="button"
+    data-selene-interactive
+    :aria-label="mode === 0 ? 'Character status; show clock' : 'Game clock; show character status'"
+    :title="tooltips[mode]"
+    @click.stop="mode = mode === 0 ? 1 : 0"
+  >
+    <template v-if="mode === 0">
+      <img class="status__frame" :src="selene.resolveAsset('./assets/gui_status.png')" alt="">
+      <span class="status__bar status__bar--health"><span :style="healthStyle" /></span>
+      <span class="status__bar status__bar--food"><span :style="foodStyle" /></span>
+      <span class="status__bar status__bar--mana"><span :style="manaStyle" /></span>
+    </template>
+    <span v-else class="clock" aria-hidden="true">
+      <span class="clock__time-strip">
+        <img :src="selene.resolveAsset('./assets/clock_time.png')" alt="" :style="{ left: `${32 - timeOffset}px` }">
+      </span>
+      <span class="clock__temperature-strip">
+        <img :src="selene.resolveAsset('./assets/clock_temp.png')" alt="" :style="{ left: `${67 - temperatureOffset}px` }">
+      </span>
+      <img class="clock__dragon" :src="selene.resolveAsset('./assets/clock_dragon.png')" alt="">
+      <span class="clock__day">{{ clock.day }}</span>
+      <span class="clock__month">{{ clock.month }}</span>
+      <span class="clock__year">{{ clock.year }}</span>
+    </span>
+  </button>
 </template>
 
 <style scoped>
-.status { position: absolute; right: -1px; bottom: 454px; width: 177px; height: 139px; }
+.status { position: absolute; right: -1px; bottom: 454px; width: 177px; height: 139px; padding: 0; border: 0; outline: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; pointer-events: auto; }
 .status__frame { position: absolute; inset: 0; display: block; width: 177px; height: 139px; user-select: none; }
 .status__bar { position: absolute; bottom: 28px; width: 12px; height: 80px; overflow: hidden; background: rgb(7 8 8 / 78%); }
-.status__bar span { position: absolute; right: 0; bottom: 0; left: 0; background-position: bottom; background-repeat: repeat-y; transition: height 0.5s linear; }
+.status__bar > span { position: absolute; right: 0; bottom: 0; left: 0; background-position: bottom; background-repeat: repeat-y; }
 .status__bar--health { left: 53px; }
 .status__bar--food { left: 81px; }
 .status__bar--mana { left: 109px; }
+.clock { position: absolute; inset: 0; display: block; }
+.clock__dragon { position: absolute; left: -8px; bottom: -4px; width: 185px; height: 141px; user-select: none; }
+.clock__time-strip { position: absolute; left: 42px; bottom: 58px; width: 90px; height: 65px; overflow: hidden; }
+.clock__time-strip img { position: absolute; bottom: -2px; width: 453px; height: 64px; max-width: none; }
+.clock__temperature-strip { position: absolute; left: 67px; bottom: 11px; width: 65px; height: 50px; overflow: hidden; }
+.clock__temperature-strip img { position: absolute; bottom: 0; width: 343px; height: 54px; max-width: none; }
+.clock__day, .clock__month, .clock__year { position: absolute; z-index: 1; color: #dfd09d; font-size: 13px; line-height: 16px; text-shadow: 1px 1px #26180e; }
+.clock__day { left: 8px; bottom: 33px; }
+.clock__month { left: 8px; bottom: 13px; }
+.clock__year { left: 138px; bottom: 13px; color: #b8a276; }
 </style>
