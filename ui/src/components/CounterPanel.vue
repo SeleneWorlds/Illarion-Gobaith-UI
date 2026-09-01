@@ -10,7 +10,13 @@ const counter = defineModel<number>({ required: true });
 <template>
   <section class="counter" aria-label="Counter and clock">
     <img :src="selene.resolveAsset('./assets/gui_counter.png')" alt="">
-    <ItemCounter v-model="counter" :menu-frame-src="selene.resolveAsset('./assets/menu_long.png')" />
+    <ItemCounter
+      v-model="counter"
+      :menu-frame-src="selene.resolveAsset('./assets/menu_long.png')"
+      :editor-frame-src="selene.resolveAsset('./assets/menu_short.png')"
+      :confirm-src="selene.resolveAsset('./assets/spellbook_store.png')"
+      :cancel-src="selene.resolveAsset('./assets/menu_close.png')"
+    />
     <ClockDisplay />
   </section>
 </template>
