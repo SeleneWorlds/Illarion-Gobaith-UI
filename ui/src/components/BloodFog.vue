@@ -17,10 +17,16 @@ const opacity = computed(() => (
     ? (0.3 - health.value) / 0.4
     : 0
 ));
+
+const fogMask = `url("${props.selene.resolveAsset('./assets/fog_overlay.png')}")`;
 </script>
 
 <template>
-  <div class="blood-fog" :style="{ opacity }" aria-hidden="true" />
+  <div
+    class="blood-fog"
+    :style="{ opacity, maskImage: fogMask, WebkitMaskImage: fogMask }"
+    aria-hidden="true"
+  />
 </template>
 
 <style scoped>
@@ -30,13 +36,13 @@ const opacity = computed(() => (
   left: 0;
   width: 846px;
   height: 419px;
-  background: radial-gradient(
-    ellipse 43% 33% at 50% 50%,
-    rgb(163 16 16 / 54%) 0%,
-    rgb(179 18 18 / 70%) 44%,
-    rgb(195 20 20 / 89%) 82%,
-    rgb(196 20 20 / 94%) 100%
-  );
+  background: rgb(238 24 24);
+  mask-position: 0 0;
+  mask-size: 100% 100%;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: 0 0;
+  -webkit-mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
   pointer-events: none;
   transition: opacity 0.5s linear;
 }
