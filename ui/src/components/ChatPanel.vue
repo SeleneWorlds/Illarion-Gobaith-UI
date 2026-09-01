@@ -9,6 +9,8 @@ const INFORM_PAYLOAD = 'illarion:inform';
 const MAX_INPUT_LENGTH = 200;
 const MAX_RENDERED_HISTORY_HEIGHT = 550;
 const LOG_STORAGE_KEY = 'illarion.log';
+const DESCRIPTION_MACRO_KEYS = ['F2', 'F3', 'F4', 'F5', 'F6'] as const;
+const DESCRIPTION_MACRO_STORAGE_PREFIX = 'illarion.descriptionMacro.';
 const GAME_PASSTHROUGH_KEYS = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
 const modes = [
   { id: 'normal', name: 'Normal', icon: 'speak_normal.png', payloadMode: 'normal' },
@@ -30,6 +32,7 @@ const expanded = ref(false);
 const messages = ref<ChatMessage[]>([]);
 let nextMessageId = 0;
 let logWrite = Promise.resolve();
+let macroAction = Promise.resolve();
 const unsubscribers: Array<() => void> = [];
 
 const mode = () => modes[modeIndex.value];
@@ -100,7 +103,32 @@ const selectLanguage = (language: string) => {
   closeMenu();
   input.value?.focus();
 };
+const descriptionMacroSlot = (event: KeyboardEvent) => {
+  const index = DESCRIPTION_MACRO_KEYS.indexOf(event.key as (typeof DESCRIPTION_MACRO_KEYS)[number]);
+  return index < 0 ? undefined : index + (event.shiftKey ? 10 : 0);
+};
+const descriptionMacroStorageKey = (slot: number) => `${DESCRIPTION_MACRO_STORAGE_PREFIX}${slot}`;
+const useDescriptionMacro = (event: KeyboardEvent) => {
+  const slot = descriptionMacroSlot(event);
+  if (slot === undefined || event.repeat) return false;
+  event.preventDefault();
+  event.stopPropagation();
+  macroAction = macroAction.then(async () => {
+    if (event.ctrlKey) {
+      if (!message.value) return;
+      await props.selene.storage.save(descriptionMacroStorageKey(slot), message.value);
+      message.value = '';
+    } else {
+      const stored = await props.selene.storage.load(descriptionMacroStorageKey(slot));
+      if (stored === null) return;
+      message.value = stored.slice(0, MAX_INPUT_LENGTH);
+    }
+    await resizeInput();
+  }).catch(error => console.warn(`Could not access description macro ${slot}.`, error));
+  return true;
+};
 const onInputKeydown = (event: KeyboardEvent) => {
+  if (useDescriptionMacro(event)) return;
   if (GAME_PASSTHROUGH_KEYS.has(event.key)) return event.preventDefault();
   event.stopPropagation();
   if (event.key === 'Enter' && !event.shiftKey) {
@@ -120,6 +148,7 @@ const isEditable = (element: Element | null): boolean => (
   || (element instanceof HTMLElement && element.isContentEditable)
 );
 const onWindowKeydown = (event: KeyboardEvent) => {
+  if (useDescriptionMacro(event)) return;
   const root = input.value?.getRootNode();
   const activeElement = root instanceof Document || root instanceof ShadowRoot ? root.activeElement : null;
   if (event.defaultPrevented || isEditable(activeElement) || isEditable(event.target as Element | null)) return;
@@ -139,7 +168,7 @@ const stringValue = (payload: ClientNetworkPayload, key: string) => typeof paylo
 
 onMounted(() => {
   window.addEventListener('keydown', onWindowKeydown, true);
-  unsubscribers.push(props.selene.input.captureKeys('Enter', 'Backspace'));
+  unsubscribers.push(props.selene.input.captureKeys('Enter', 'Backspace', ...DESCRIPTION_MACRO_KEYS));
   unsubscribers.push(props.selene.input.captureText());
   unsubscribers.push(props.selene.input.passThroughKeys(...GAME_PASSTHROUGH_KEYS));
   unsubscribers.push(props.selene.network.onPayload(INFORM_PAYLOAD, payload => void addMessage(payload.Message, 'notice')));
