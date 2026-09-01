@@ -6,7 +6,7 @@ import SeleneVisual from './SeleneVisual.vue';
 type ViewId = 'equipment' | 'belt';
 interface Slot { viewId: ViewId; slotId: number }
 interface HitBand { top: number; left: number; width: number; height: number }
-const props = defineProps<{ selene: SeleneUiApi }>();
+const props = defineProps<{ selene: SeleneUiApi; counter: number }>();
 const equipmentSlots: Slot[] = Array.from({ length: 12 }, (_, slotId) => ({ viewId: 'equipment', slotId }));
 const beltSlots: Slot[] = Array.from({ length: 6 }, (_, index) => ({ viewId: 'belt', slotId: index + 12 }));
 const slots = [...equipmentSlots, ...beltSlots];
@@ -104,6 +104,7 @@ const endGameDrag = ({ clientX, clientY, coordinate }: SelenePointerEvent) => {
       fromSlotId: draggedSlot.slotId,
       toViewId: target.viewId,
       toSlotId: target.slotId,
+      count: props.counter,
     });
   } else if (draggedSlot && !target && isInWorldViewport(clientX, clientY)) {
     props.selene.network.sendToServer('illarion:move_slot_to_coordinate', {
@@ -112,6 +113,7 @@ const endGameDrag = ({ clientX, clientY, coordinate }: SelenePointerEvent) => {
       x: coordinate.x,
       y: coordinate.y,
       z: coordinate.z,
+      count: props.counter,
     });
   } else if (draggedCoordinate && target) {
     props.selene.network.sendToServer('illarion:move_coordinate_to_slot', {
@@ -120,6 +122,7 @@ const endGameDrag = ({ clientX, clientY, coordinate }: SelenePointerEvent) => {
       fromZ: draggedCoordinate.z,
       toViewId: target.viewId,
       toSlotId: target.slotId,
+      count: props.counter,
     });
   }
   draggedSlot = undefined;

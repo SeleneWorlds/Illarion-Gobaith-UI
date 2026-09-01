@@ -4,12 +4,13 @@ import ClockDisplay from './ClockDisplay.vue';
 import ItemCounter from './ItemCounter.vue';
 
 defineProps<{ selene: SeleneUiApi }>();
+const counter = defineModel<number>({ required: true });
 </script>
 
 <template>
   <section class="counter" aria-label="Counter and clock">
     <img :src="selene.resolveAsset('./assets/gui_counter.png')" alt="">
-    <ItemCounter />
+    <ItemCounter v-model="counter" :menu-frame-src="selene.resolveAsset('./assets/menu_long.png')" />
     <ClockDisplay />
   </section>
 </template>

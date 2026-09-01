@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref } from 'vue';
 import BloodFog from './components/BloodFog.vue';
 import ChatPanel from './components/ChatPanel.vue';
 import CounterPanel from './components/CounterPanel.vue';
@@ -8,6 +9,7 @@ import StatusPanel from './components/StatusPanel.vue';
 import type { SeleneUiApi } from './selene';
 
 defineProps<{ selene: SeleneUiApi }>();
+const counter = ref(1);
 </script>
 
 <template>
@@ -17,9 +19,9 @@ defineProps<{ selene: SeleneUiApi }>();
     <img class="hud__top-frame" :src="selene.resolveAsset('./assets/gui_top.png')" alt="">
     <MinimapPanel :selene="selene" />
     <ChatPanel :selene="selene" />
-    <CounterPanel :selene="selene" />
+    <CounterPanel v-model="counter" :selene="selene" />
     <StatusPanel :selene="selene" />
-    <InventoryPanel :selene="selene" />
+    <InventoryPanel :selene="selene" :counter="counter" />
   </main>
 </template>
 
