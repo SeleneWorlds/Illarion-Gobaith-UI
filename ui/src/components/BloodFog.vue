@@ -36,7 +36,7 @@ const fogMask = `url("${props.selene.resolveAsset('./assets/fog_overlay.png')}")
   left: 0;
   width: 846px;
   height: 419px;
-  background: rgb(238 24 24);
+  background: rgb(255 26 26);
   mask-position: 0 0;
   mask-size: 100% 100%;
   mask-repeat: no-repeat;
@@ -44,6 +44,5 @@ const fogMask = `url("${props.selene.resolveAsset('./assets/fog_overlay.png')}")
   -webkit-mask-size: 100% 100%;
   -webkit-mask-repeat: no-repeat;
   pointer-events: none;
-  transition: opacity 0.5s linear;
 }
 </style>
