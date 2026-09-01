@@ -6,7 +6,9 @@ import ContextMenu from './ContextMenu.vue';
 const props = defineProps<{ selene: SeleneUiApi }>();
 const CHAT_PAYLOAD = 'illarion:chat';
 const INFORM_PAYLOAD = 'illarion:inform';
-const MAX_MESSAGES = 200;
+const MAX_INPUT_LENGTH = 200;
+const MAX_RENDERED_HISTORY_HEIGHT = 550;
+const LOG_STORAGE_KEY = 'illarion.log';
 const GAME_PASSTHROUGH_KEYS = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
 const modes = [
   { id: 'normal', name: 'Normal', icon: 'speak_normal.png', payloadMode: 'normal' },
@@ -19,15 +21,35 @@ type MessageKind = 'notice' | 'emote' | (typeof modes)[number]['id'];
 interface ChatMessage { id: number; author: string; text: string; kind: MessageKind }
 
 const history = ref<HTMLElement>();
+const historyContent = ref<HTMLElement>();
 const input = ref<HTMLTextAreaElement>();
 const message = ref('');
 const modeIndex = ref(0);
 const menuOpen = ref(false);
+const expanded = ref(false);
 const messages = ref<ChatMessage[]>([]);
 let nextMessageId = 0;
+let logWrite = Promise.resolve();
 const unsubscribers: Array<() => void> = [];
 
 const mode = () => modes[modeIndex.value];
+const renderedText = ({ author, text, kind }: ChatMessage) => author
+  ? `${author}${kind === 'emote' ? ' ' : ': '}${text}`
+  : text;
+const appendLog = (entry: ChatMessage) => {
+  const prefix = entry.kind === 'shout' ? 'S:' : entry.kind === 'whisper' ? 'w:' : '';
+  const line = `${prefix}${renderedText(entry)}\n`;
+  logWrite = logWrite
+    .then(async () => props.selene.storage.save(LOG_STORAGE_KEY, `${await props.selene.storage.load(LOG_STORAGE_KEY) ?? ''}${line}`))
+    .catch(error => console.warn('Could not write illarion.log.', error));
+};
+const trimHistory = async () => {
+  await nextTick();
+  while (messages.value.length > 1 && (historyContent.value?.scrollHeight ?? 0) > MAX_RENDERED_HISTORY_HEIGHT) {
+    messages.value.shift();
+    await nextTick();
+  }
+};
 const resizeInput = async () => {
   await nextTick();
   if (!input.value || !history.value) return;
@@ -35,13 +57,12 @@ const resizeInput = async () => {
   input.value.style.height = `${Math.min(64, Math.max(20, input.value.scrollHeight))}px`;
   history.value.style.bottom = `${Math.min(76, input.value.offsetHeight + 12)}px`;
 };
-const addMessage = async (text: unknown, kind: MessageKind, author = '') => {
+const addMessage = async (text: unknown, kind: MessageKind, author = '', log = false) => {
   if (typeof text !== 'string' || text.length === 0) return;
-  const wasAtBottom = !history.value || history.value.scrollHeight - history.value.scrollTop - history.value.clientHeight < 8;
-  messages.value.push({ id: nextMessageId++, author, text, kind });
-  if (messages.value.length > MAX_MESSAGES) messages.value.shift();
-  await nextTick();
-  if (wasAtBottom && history.value) history.value.scrollTop = history.value.scrollHeight;
+  const entry = { id: nextMessageId++, author, text, kind };
+  messages.value.push(entry);
+  if (log) appendLog(entry);
+  await trimHistory();
 };
 const normalizeMode = (value: unknown): MessageKind => {
   if (value === 1 || value === 'whisper') return 'whisper';
@@ -104,11 +125,15 @@ const onWindowKeydown = (event: KeyboardEvent) => {
   if (event.defaultPrevented || isEditable(activeElement) || isEditable(event.target as Element | null)) return;
   if (event.key === 'Enter') send();
   else if (event.key === 'Backspace') message.value = message.value.slice(0, -1);
-  else if (event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey) message.value += event.key;
+  else if (event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey && message.value.length < MAX_INPUT_LENGTH) message.value += event.key;
   else return;
   event.preventDefault();
   event.stopPropagation();
   void resizeInput();
+};
+const onWheel = (event: WheelEvent) => {
+  if (event.deltaY === 0) return;
+  expanded.value = event.deltaY < 0;
 };
 const stringValue = (payload: ClientNetworkPayload, key: string) => typeof payload[key] === 'string' ? payload[key] : '';
 
@@ -122,7 +147,7 @@ onMounted(() => {
     if (payload.showInChat === false) return;
     const author = stringValue(payload, 'authorName');
     const text = stringValue(payload, 'message');
-    if (author || text) void addMessage(text, normalizeMode(payload.mode), author);
+    if (author || text) void addMessage(text, normalizeMode(payload.mode), author, true);
   }));
   void resizeInput();
 });
@@ -133,14 +158,18 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <section class="chat" aria-label="Chat" data-selene-interactive>
+  <section class="chat" :class="{ 'chat--expanded': expanded }" :style="{ '--chat-background': `url(${selene.resolveAsset('./assets/gui_chat.png')})` }" aria-label="Chat" data-selene-interactive @wheel.prevent.stop="onWheel">
     <div ref="history" class="chat__history" role="log" aria-live="polite" aria-relevant="additions">
-      <p v-for="item in messages" :key="item.id" :class="item.kind === 'notice' ? 'chat__notice' : `chat__message chat__message--${item.kind}`">
-        <strong v-if="item.author">{{ item.author }}{{ item.kind === 'emote' ? ' ' : ': ' }}</strong>{{ item.text }}
-      </p>
+      <div ref="historyContent" class="chat__history-content">
+        <TransitionGroup name="chat-line">
+          <p v-for="item in messages" :key="item.id" :class="item.kind === 'notice' ? 'chat__notice' : `chat__message chat__message--${item.kind}`">
+            <strong v-if="item.author">{{ item.author }}{{ item.kind === 'emote' ? ' ' : ': ' }}</strong>{{ item.text }}
+          </p>
+        </TransitionGroup>
+      </div>
     </div>
     <label class="visually-hidden" for="chat-input">Chat message</label>
-    <textarea id="chat-input" ref="input" v-model="message" class="chat__input" rows="1" maxlength="4096" autocomplete="off" spellcheck="true" aria-label="Chat message" @input="resizeInput" @keydown="onInputKeydown" @keyup="onInputKeyup" />
+    <textarea id="chat-input" ref="input" v-model="message" class="chat__input" rows="1" :maxlength="MAX_INPUT_LENGTH" autocomplete="off" spellcheck="true" aria-label="Chat message" @input="resizeInput" @keydown="onInputKeydown" @keyup="onInputKeyup" />
   </section>
   <button class="chat__mode" type="button" data-selene-interactive :data-mode="mode().id" :aria-label="`Speech mode: ${mode().name}`" aria-haspopup="menu" :aria-expanded="menuOpen" :title="`${mode().name} — click to change speech mode; right-click for menu`" @click.stop="cycleMode" @contextmenu.prevent.stop="openMenu">
     <img :src="selene.resolveAsset(`./assets/${mode().icon}`)" alt="">
@@ -162,19 +191,25 @@ onBeforeUnmount(() => {
 .chat {
   position: absolute;
   left: 0;
-  bottom: 140px;
+  bottom: 141px;
   width: 784px;
-  height: 228px;
+  height: 212px;
   overflow: hidden;
   padding: 12px 18px 10px 12px;
   color: #fff;
   text-shadow: 1px 1px 2px #000, 0 0 3px #000;
   pointer-events: auto;
+  transition: height 180ms ease-out;
 }
 
-.chat::before { position: absolute; inset: 0; background: rgb(0 0 0 / 42%); content: ""; }
-.chat__history { position: absolute; top: 8px; right: 18px; bottom: 32px; left: 12px; overflow: hidden auto; scrollbar-width: thin; scrollbar-color: rgb(210 220 225 / 35%) transparent; }
+.chat--expanded { height: 590px; }
+.chat::before { position: absolute; inset: 0; background: var(--chat-background) 0 100% / 100% 100% no-repeat; content: ""; transition: opacity 180ms ease-out; }
+.chat--expanded::before { opacity: .75; }
+.chat__history { position: absolute; top: 8px; right: 18px; bottom: 32px; left: 12px; overflow: hidden; }
+.chat__history-content { position: absolute; right: 0; bottom: 0; left: 0; }
 .chat p { margin: 2px 0; line-height: 1.25; }
+.chat-line-enter-active { transition: opacity 140ms ease-out, transform 140ms ease-out; }
+.chat-line-enter-from { opacity: 0; transform: translateY(16px); }
 .chat__notice { color: #B2CCFF; }
 .chat__message--whisper, .chat__message--ooc { color: #999999; }
 .chat__message--shout { color: #FF4C4C; }
