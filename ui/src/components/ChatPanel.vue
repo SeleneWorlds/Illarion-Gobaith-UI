@@ -13,6 +13,7 @@ const modes = [
   { id: 'shout', name: 'Shout', icon: 'speak_shout.png', payloadMode: 'yell' },
   { id: 'ooc', name: 'OOC', icon: 'speak_ooc.png', payloadMode: 'normal', prefix: '#o ' },
 ] as const;
+const languages = ['Common', 'Ancient', 'Halfling', 'Dwarf', 'Elf', 'Human', 'Lizard', 'Orc', 'Fairy', 'Gnoll', 'Goblin'] as const;
 type MessageKind = 'notice' | 'emote' | (typeof modes)[number]['id'];
 interface ChatMessage { id: number; author: string; text: string; kind: MessageKind }
 
@@ -20,6 +21,7 @@ const history = ref<HTMLElement>();
 const input = ref<HTMLTextAreaElement>();
 const message = ref('');
 const modeIndex = ref(0);
+const menuOpen = ref(false);
 const messages = ref<ChatMessage[]>([]);
 let nextMessageId = 0;
 const unsubscribers: Array<() => void> = [];
@@ -60,8 +62,24 @@ const send = () => {
   void resizeInput();
 };
 const cycleMode = () => {
+  menuOpen.value = false;
   modeIndex.value = (modeIndex.value + 1) % modes.length;
   input.value?.focus();
+};
+const openMenu = () => { menuOpen.value = true; };
+const closeMenu = () => { menuOpen.value = false; };
+const selectMode = (index: number) => {
+  modeIndex.value = index;
+  closeMenu();
+  input.value?.focus();
+};
+const selectLanguage = (language: string) => {
+  props.selene.network.sendToServer(CHAT_PAYLOAD, { mode: 'normal', message: `!l ${language.toLowerCase()}` });
+  closeMenu();
+  input.value?.focus();
+};
+const closeOnEscape = (event: KeyboardEvent) => {
+  if (event.key === 'Escape') closeMenu();
 };
 const onInputKeydown = (event: KeyboardEvent) => {
   if (GAME_PASSTHROUGH_KEYS.has(event.key)) return event.preventDefault();
@@ -98,6 +116,8 @@ const stringValue = (payload: ClientNetworkPayload, key: string) => typeof paylo
 
 onMounted(() => {
   window.addEventListener('keydown', onWindowKeydown, true);
+  window.addEventListener('click', closeMenu);
+  window.addEventListener('keydown', closeOnEscape);
   unsubscribers.push(props.selene.input.captureKeys('Enter', 'Backspace'));
   unsubscribers.push(props.selene.input.captureText());
   unsubscribers.push(props.selene.input.passThroughKeys(...GAME_PASSTHROUGH_KEYS));
@@ -112,6 +132,8 @@ onMounted(() => {
 });
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onWindowKeydown, true);
+  window.removeEventListener('click', closeMenu);
+  window.removeEventListener('keydown', closeOnEscape);
   unsubscribers.forEach(unsubscribe => unsubscribe());
 });
 </script>
@@ -126,9 +148,19 @@ onBeforeUnmount(() => {
     <label class="visually-hidden" for="chat-input">Chat message</label>
     <textarea id="chat-input" ref="input" v-model="message" class="chat__input" rows="1" maxlength="4096" autocomplete="off" spellcheck="true" aria-label="Chat message" @input="resizeInput" @keydown="onInputKeydown" @keyup="onInputKeyup" />
   </section>
-  <button class="chat__mode" type="button" data-selene-interactive :data-mode="mode().id" :aria-label="`Speech mode: ${mode().name}`" :title="`${mode().name} — click to change speech mode`" @click="cycleMode">
+  <button class="chat__mode" type="button" data-selene-interactive :data-mode="mode().id" :aria-label="`Speech mode: ${mode().name}`" aria-haspopup="menu" :aria-expanded="menuOpen" :title="`${mode().name} — click to change speech mode; right-click for menu`" @click.stop="cycleMode" @contextmenu.prevent.stop="openMenu">
     <img :src="selene.resolveAsset(`./assets/${mode().icon}`)" alt="">
   </button>
+  <menu v-if="menuOpen" class="speech-menu" data-selene-interactive aria-label="Speech options" @click.stop>
+    <img class="speech-menu__frame" :src="selene.resolveAsset('./assets/menu_long.png')" alt="">
+    <li v-for="(item, index) in modes" v-show="index !== modeIndex" :key="item.id">
+      <button type="button" @click="selectMode(index)">{{ item.name === 'Normal' ? 'Speak' : item.name }}</button>
+    </li>
+    <li class="speech-menu__separator" role="separator" />
+    <li v-for="language in languages" :key="language">
+      <button type="button" @click="selectLanguage(language)">{{ language }}</button>
+    </li>
+  </menu>
 </template>
 
 <style scoped>
@@ -158,4 +190,10 @@ onBeforeUnmount(() => {
 .chat__mode { position: absolute; left: 799px; bottom: 146px; width: 30px; height: 30px; padding: 0; overflow: hidden; border: 0; background: transparent; cursor: pointer; pointer-events: auto; }
 .chat__mode img { display: block; width: 30px; height: 30px; }
 .chat__mode:focus-visible { outline: 1px solid #b7d9ba; outline-offset: 1px; }
+.speech-menu { position: absolute; z-index: 20; left: 770px; bottom: 178px; width: 164px; min-height: 202px; max-height: 370px; margin: 0; padding: 24px 20px; overflow-y: auto; list-style: none; pointer-events: auto; scrollbar-width: thin; scrollbar-color: rgb(80 55 30 / 45%) transparent; }
+.speech-menu__frame { position: absolute; z-index: -1; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.speech-menu li { margin: 0; padding: 0; }
+.speech-menu button { width: 100%; height: 21px; padding: 1px 8px; border: 0; background: transparent; color: #342515; font: 13px Georgia, serif; text-align: left; cursor: pointer; }
+.speech-menu button:hover, .speech-menu button:focus-visible { color: #8d1e18; outline: 0; }
+.speech-menu__separator { height: 7px; border-top: 1px solid rgb(75 50 25 / 35%); }
 </style>
