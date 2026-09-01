@@ -21,7 +21,7 @@ const counter = ref(1);
     <ChatPanel :selene="selene" />
     <CounterPanel v-model="counter" :selene="selene" />
     <StatusPanel :selene="selene" />
-    <InventoryPanel :selene="selene" :counter="counter" />
+    <InventoryPanel v-model:counter="counter" :selene="selene" />
   </main>
 </template>
 
