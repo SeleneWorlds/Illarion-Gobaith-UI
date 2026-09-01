@@ -34,6 +34,7 @@ const rotated = ref(false);
 const menuOpen = ref(false);
 const worldMapOpen = ref(false);
 const cameraCoordinate = ref(props.selene.world.getCameraCoordinate());
+const isGroundLevel = computed(() => Math.round(cameraCoordinate.value.z) === 0);
 const player = createPlayerStore(props.selene.storage);
 const unsubscribers: Array<() => void> = [];
 let mounted = false;
@@ -68,6 +69,7 @@ const zoomBy = (amount: number) => {
   void saveZoom();
 };
 const showWorldMap = () => {
+  if (!isGroundLevel.value) return;
   worldMapOpen.value = true;
   menuOpen.value = false;
   requestAnimationFrame(drawWorldMap);
@@ -139,15 +141,21 @@ const refreshTiles = () => {
   if (worldMapOpen.value) drawWorldMap();
 };
 const updateCamera = () => {
-  const previousLevel = Math.round(cameraCoordinate.value.z);
   cameraCoordinate.value = props.selene.world.getCameraCoordinate();
   draw();
-  if (worldMapOpen.value && Math.round(cameraCoordinate.value.z) !== previousLevel) drawWorldMap();
+  if (worldMapOpen.value && !isGroundLevel.value) hideWorldMap();
 };
 const closeMenu = () => { menuOpen.value = false; };
-const closeOnEscape = (event: KeyboardEvent) => {
-  if (event.key !== 'Escape') return;
+const onWindowKeydown = (event: KeyboardEvent) => {
+  if (event.key === 'Escape') {
+    if (worldMapOpen.value) hideWorldMap();
+    return;
+  }
+  if (event.key !== 'F9' || event.repeat) return;
+  event.preventDefault();
+  event.stopPropagation();
   if (worldMapOpen.value) hideWorldMap();
+  else showWorldMap();
 };
 
 onMounted(async () => {
@@ -164,14 +172,15 @@ onMounted(async () => {
   }
   rotated.value = storedRotation === '1' || storedRotation === 'true';
   refreshTiles();
+  unsubscribers.push(props.selene.input.captureKeys('F9'));
   unsubscribers.push(props.selene.world.onMapChanged(refreshTiles));
   unsubscribers.push(props.selene.world.onCameraCoordinateChanged(updateCamera));
-  window.addEventListener('keydown', closeOnEscape);
+  window.addEventListener('keydown', onWindowKeydown);
 });
 onUnmounted(() => {
   mounted = false;
   unsubscribers.forEach(unsubscribe => unsubscribe());
-  window.removeEventListener('keydown', closeOnEscape);
+  window.removeEventListener('keydown', onWindowKeydown);
   void player.flush().catch((error: unknown) => console.warn('Could not persist player data.', error));
 });
 </script>
@@ -194,10 +203,10 @@ onUnmounted(() => {
     </section>
 
     <ContextMenu class="minimap-menu" :open="menuOpen" :frame-src="selene.resolveAsset('./assets/menu_short.png')" label="Minimap options" @close="closeMenu">
-      <li v-if="!worldMapOpen">
+      <li v-if="!worldMapOpen && isGroundLevel">
         <button type="button" @click="showWorldMap">Open world map</button>
       </li>
-      <li v-else>
+      <li v-else-if="worldMapOpen">
         <button type="button" @click="hideWorldMap">Close world map</button>
       </li>
       <li><button type="button" :disabled="zoom >= MAX_ZOOM" @click="zoomBy(0.3)">Zoom in</button></li>
