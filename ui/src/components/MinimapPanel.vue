@@ -2,6 +2,7 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import type { MapTile, SeleneUiApi } from '../selene';
 import { createPlayerStore } from '../stores/player';
+import ContextMenu from './ContextMenu.vue';
 
 const props = defineProps<{ selene: SeleneUiApi }>();
 const SIZE = 256;
@@ -146,8 +147,7 @@ const updateCamera = () => {
 const closeMenu = () => { menuOpen.value = false; };
 const closeOnEscape = (event: KeyboardEvent) => {
   if (event.key !== 'Escape') return;
-  if (menuOpen.value) closeMenu();
-  else if (worldMapOpen.value) hideWorldMap();
+  if (worldMapOpen.value) hideWorldMap();
 };
 
 onMounted(async () => {
@@ -166,13 +166,11 @@ onMounted(async () => {
   refreshTiles();
   unsubscribers.push(props.selene.world.onMapChanged(refreshTiles));
   unsubscribers.push(props.selene.world.onCameraCoordinateChanged(updateCamera));
-  window.addEventListener('click', closeMenu);
   window.addEventListener('keydown', closeOnEscape);
 });
 onUnmounted(() => {
   mounted = false;
   unsubscribers.forEach(unsubscribe => unsubscribe());
-  window.removeEventListener('click', closeMenu);
   window.removeEventListener('keydown', closeOnEscape);
   void player.flush().catch((error: unknown) => console.warn('Could not persist player data.', error));
 });
@@ -195,8 +193,7 @@ onUnmounted(() => {
       <span class="minimap__crosshair" aria-hidden="true" />
     </section>
 
-    <menu v-if="menuOpen" class="minimap-menu" data-selene-interactive @click.stop>
-      <img class="minimap-menu__frame" :src="selene.resolveAsset('./assets/menu_short.png')" alt="">
+    <ContextMenu class="minimap-menu" :open="menuOpen" :frame-src="selene.resolveAsset('./assets/menu_short.png')" label="Minimap options" @close="closeMenu">
       <li v-if="!worldMapOpen">
         <button type="button" @click="showWorldMap">Open world map</button>
       </li>
@@ -205,7 +202,7 @@ onUnmounted(() => {
       </li>
       <li><button type="button" :disabled="zoom >= MAX_ZOOM" @click="zoomBy(0.3)">Zoom in</button></li>
       <li><button type="button" :disabled="zoom <= MIN_ZOOM" @click="zoomBy(-0.3)">Zoom out</button></li>
-    </menu>
+    </ContextMenu>
 
     <section v-if="worldMapOpen" class="world-map" aria-label="World map" data-selene-interactive>
       <img class="world-map__frame" :src="selene.resolveAsset('./assets/menu_short.png')" alt="">
@@ -261,43 +258,9 @@ onUnmounted(() => {
 }
 
 .minimap-menu {
-  position: absolute;
-  z-index: 20;
   top: 154px;
   right: 4px;
-  width: 198px;
-  height: 145px;
-  margin: 0;
-  padding: 25px 22px 20px;
-  list-style: none;
-  pointer-events: auto;
 }
-
-.minimap-menu__frame {
-  position: absolute;
-  z-index: -1;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-}
-
-.minimap-menu button {
-  position: relative;
-  width: 100%;
-  height: 32px;
-  padding: 4px 12px;
-  border: 0;
-  background: transparent;
-  color: #342515;
-  font: 14px Georgia, serif;
-  text-align: left;
-  cursor: pointer;
-}
-
-.minimap-menu button:hover:not(:disabled),
-.minimap-menu button:focus-visible { color: #8d1e18; }
-.minimap-menu button:disabled { color: #8b7c68; cursor: default; }
 
 .world-map {
   position: absolute;
