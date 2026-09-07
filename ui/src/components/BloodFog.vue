@@ -1,16 +1,10 @@
 <script setup lang="ts">
-import { computed, onUnmounted, ref } from 'vue';
-import type { SeleneUiApi } from '../selene';
+import { computed } from 'vue';
+import { useSelene } from '../selene';
+import { useVitalsStore } from '../stores/vitals';
 
-const props = defineProps<{ selene: SeleneUiApi }>();
-const health = ref(0);
-
-const unsubscribe = props.selene.network.onPayload('illarion:health', (payload) => {
-  if (typeof payload.value === 'number' && Number.isFinite(payload.value)) {
-    health.value = Math.min(1, Math.max(0, payload.value));
-  }
-});
-onUnmounted(unsubscribe);
+const selene = useSelene();
+const { health } = useVitalsStore();
 
 const opacity = computed(() => (
   health.value > 0 && health.value < 0.3
@@ -18,7 +12,7 @@ const opacity = computed(() => (
     : 0
 ));
 
-const fogMask = `url("${props.selene.resolveAsset('./assets/fog_overlay.png')}")`;
+const fogMask = `url("${selene.resolveAsset('./assets/fog_overlay.png')}")`;
 </script>
 
 <template>

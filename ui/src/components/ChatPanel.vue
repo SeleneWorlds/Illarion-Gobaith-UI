@@ -1,58 +1,31 @@
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
-import type { ClientNetworkPayload, SeleneUiApi } from '../selene';
-import ContextMenu from './ContextMenu.vue';
+import { nextTick, onBeforeUnmount, onMounted, ref, useTemplateRef } from 'vue';
+import { useSelene } from '../selene';
+import { speechModeById, type SpeechModeId } from '../chatModes';
+import { useChatMacros } from '../composables/useChatMacros';
+import { useLogger } from '../composables/useLogger';
+import SpeechModeControl from './SpeechModeControl.vue';
 
-const props = defineProps<{ selene: SeleneUiApi }>();
-const CHAT_PAYLOAD = 'illarion:chat';
-const INFORM_PAYLOAD = 'illarion:inform';
+const selene = useSelene();
+const logger = useLogger();
+const chatMacros = useChatMacros();
+const chatBackground = `url(${selene.resolveAsset('./assets/gui_chat.png')})`;
 const MAX_INPUT_LENGTH = 200;
-const MAX_RENDERED_HISTORY_HEIGHT = 550;
-const LOG_STORAGE_KEY = 'illarion.log';
 const DESCRIPTION_MACRO_KEYS = ['F2', 'F3', 'F4', 'F5', 'F6'] as const;
-const DESCRIPTION_MACRO_STORAGE_PREFIX = 'illarion.descriptionMacro.';
-const GAME_PASSTHROUGH_KEYS = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
-const modes = [
-  { id: 'normal', name: 'Normal', icon: 'speak_normal.png', payloadMode: 'normal' },
-  { id: 'whisper', name: 'Whisper', icon: 'speak_whisper.png', payloadMode: 'whisper' },
-  { id: 'shout', name: 'Shout', icon: 'speak_shout.png', payloadMode: 'yell' },
-  { id: 'ooc', name: 'OOC', icon: 'speak_ooc.png', payloadMode: 'normal', prefix: '#o ' },
-] as const;
-const languages = ['Common', 'Ancient', 'Halfling', 'Dwarf', 'Elf', 'Human', 'Lizard', 'Orc', 'Fairy', 'Gnoll', 'Goblin'] as const;
-type MessageKind = 'notice' | 'emote' | (typeof modes)[number]['id'];
+type MessageKind = 'inform' | 'emote' | SpeechModeId;
 interface ChatMessage { id: number; author: string; text: string; kind: MessageKind }
 
-const history = ref<HTMLElement>();
-const historyContent = ref<HTMLElement>();
-const input = ref<HTMLTextAreaElement>();
+const history = useTemplateRef<HTMLElement>('history');
+const input = useTemplateRef<HTMLTextAreaElement>('input');
 const message = ref('');
-const modeIndex = ref(0);
-const menuOpen = ref(false);
+const selectedMode = ref<SpeechModeId>('normal');
 const expanded = ref(false);
 const messages = ref<ChatMessage[]>([]);
 let nextMessageId = 0;
-let logWrite = Promise.resolve();
+// Promise queue for sending and saving macros
 let macroAction = Promise.resolve();
 const unsubscribers: Array<() => void> = [];
 
-const mode = () => modes[modeIndex.value];
-const renderedText = ({ author, text, kind }: ChatMessage) => author
-  ? `${author}${kind === 'emote' ? ' ' : ': '}${text}`
-  : text;
-const appendLog = (entry: ChatMessage) => {
-  const prefix = entry.kind === 'shout' ? 'S:' : entry.kind === 'whisper' ? 'w:' : '';
-  const line = `${prefix}${renderedText(entry)}\n`;
-  logWrite = logWrite
-    .then(async () => props.selene.storage.save(LOG_STORAGE_KEY, `${await props.selene.storage.load(LOG_STORAGE_KEY) ?? ''}${line}`))
-    .catch(error => console.warn('Could not write illarion.log.', error));
-};
-const trimHistory = async () => {
-  await nextTick();
-  while (messages.value.length > 1 && (historyContent.value?.scrollHeight ?? 0) > MAX_RENDERED_HISTORY_HEIGHT) {
-    messages.value.shift();
-    await nextTick();
-  }
-};
 const resizeInput = async () => {
   await nextTick();
   if (!input.value || !history.value) return;
@@ -60,76 +33,53 @@ const resizeInput = async () => {
   input.value.style.height = `${Math.min(64, Math.max(20, input.value.scrollHeight))}px`;
   history.value.style.bottom = `${Math.min(76, input.value.offsetHeight + 12)}px`;
 };
-const addMessage = async (text: unknown, kind: MessageKind, author = '', log = false) => {
+const addMessage = (text: unknown, kind: MessageKind, author = '', log = false) => {
   if (typeof text !== 'string' || text.length === 0) return;
   const entry = { id: nextMessageId++, author, text, kind };
   messages.value.push(entry);
-  if (log) appendLog(entry);
-  await trimHistory();
-};
-const normalizeMode = (value: unknown): MessageKind => {
-  if (value === 1 || value === 'whisper') return 'whisper';
-  if (value === 2 || value === 'yell' || value === 'shout') return 'shout';
-  if (value === 'ooc') return 'ooc';
-  if (value === 'emote') return 'emote';
-  return 'normal';
+  if (log) logger.log(entry);
+  const excess = messages.value.length - 100;
+  if (excess > 0) messages.value.splice(0, excess);
 };
 const send = () => {
   const text = message.value.trim();
   if (!text) return;
-  const currentMode = mode();
+  const currentMode = speechModeById(selectedMode.value);
   const prefix = 'prefix' in currentMode ? currentMode.prefix : '';
-  props.selene.network.sendToServer(CHAT_PAYLOAD, {
+  selene.network.sendToServer('illarion:chat', {
     mode: currentMode.payloadMode,
     message: `${prefix}${text}`,
   });
   message.value = '';
   void resizeInput();
 };
-const cycleMode = () => {
-  menuOpen.value = false;
-  modeIndex.value = (modeIndex.value + 1) % modes.length;
-  input.value?.focus();
-};
-const openMenu = () => { menuOpen.value = true; };
-const closeMenu = () => { menuOpen.value = false; };
-const selectMode = (index: number) => {
-  modeIndex.value = index;
-  closeMenu();
-  input.value?.focus();
-};
 const selectLanguage = (language: string) => {
-  props.selene.network.sendToServer(CHAT_PAYLOAD, { mode: 'normal', message: `!l ${language.toLowerCase()}` });
-  closeMenu();
-  input.value?.focus();
+  selene.network.sendToServer('illarion:chat', { mode: 'normal', message: `!l ${language.toLowerCase()}` });
 };
-const descriptionMacroSlot = (event: KeyboardEvent) => {
-  const index = DESCRIPTION_MACRO_KEYS.indexOf(event.key as (typeof DESCRIPTION_MACRO_KEYS)[number]);
-  return index < 0 ? undefined : index + (event.shiftKey ? 10 : 0);
-};
-const descriptionMacroStorageKey = (slot: number) => `${DESCRIPTION_MACRO_STORAGE_PREFIX}${slot}`;
 const useDescriptionMacro = (event: KeyboardEvent) => {
-  const slot = descriptionMacroSlot(event);
-  if (slot === undefined || event.repeat) return false;
+  if (!DESCRIPTION_MACRO_KEYS.includes(event.key as (typeof DESCRIPTION_MACRO_KEYS)[number])) return false;
+  const key = event.shiftKey ? `Shift+${event.key}` : event.key;
+  if (key === undefined || event.repeat) return false;
   event.preventDefault();
   event.stopPropagation();
+  const save = event.ctrlKey;
   macroAction = macroAction.then(async () => {
-    if (event.ctrlKey) {
+    if (save) {
       if (!message.value) return;
-      await props.selene.storage.save(descriptionMacroStorageKey(slot), message.value);
+      await chatMacros.save(key, message.value);
       message.value = '';
     } else {
-      const stored = await props.selene.storage.load(descriptionMacroStorageKey(slot));
+      const stored = await chatMacros.load(key);
       if (stored === null) return;
       message.value = stored.slice(0, MAX_INPUT_LENGTH);
     }
     await resizeInput();
-  }).catch(error => console.warn(`Could not access description macro ${slot}.`, error));
+  }).catch(error => console.warn(`Could not access description macro ${key}.`, error));
   return true;
 };
 const onInputKeydown = (event: KeyboardEvent) => {
   if (useDescriptionMacro(event)) return;
-  if (GAME_PASSTHROUGH_KEYS.has(event.key)) return event.preventDefault();
+  if (selene.input.isPassthroughKey(event.key)) return event.preventDefault();
   event.stopPropagation();
   if (event.key === 'Enter' && !event.shiftKey) {
     event.preventDefault();
@@ -140,7 +90,7 @@ const onInputKeydown = (event: KeyboardEvent) => {
   }
 };
 const onInputKeyup = (event: KeyboardEvent) => {
-  if (!GAME_PASSTHROUGH_KEYS.has(event.key)) event.stopPropagation();
+  if (!selene.input.isPassthroughKey(event.key)) event.stopPropagation();
 };
 const isEditable = (element: Element | null): boolean => (
   element instanceof HTMLInputElement
@@ -164,19 +114,17 @@ const onWheel = (event: WheelEvent) => {
   if (event.deltaY === 0) return;
   expanded.value = event.deltaY < 0;
 };
-const stringValue = (payload: ClientNetworkPayload, key: string) => typeof payload[key] === 'string' ? payload[key] : '';
-
 onMounted(() => {
   window.addEventListener('keydown', onWindowKeydown, true);
-  unsubscribers.push(props.selene.input.captureKeys('Enter', 'Backspace', ...DESCRIPTION_MACRO_KEYS));
-  unsubscribers.push(props.selene.input.captureText());
-  unsubscribers.push(props.selene.input.passThroughKeys(...GAME_PASSTHROUGH_KEYS));
-  unsubscribers.push(props.selene.network.onPayload(INFORM_PAYLOAD, payload => void addMessage(payload.Message, 'notice')));
-  unsubscribers.push(props.selene.network.onPayload(CHAT_PAYLOAD, payload => {
+  unsubscribers.push(selene.input.captureKeys('Enter', 'Backspace', ...DESCRIPTION_MACRO_KEYS));
+  unsubscribers.push(selene.input.captureText());
+  unsubscribers.push(selene.input.passThroughKeys('ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'));
+  unsubscribers.push(selene.network.onPayload('illarion:inform', payload => void addMessage(payload.Message, 'inform')));
+  unsubscribers.push(selene.network.onPayload('illarion:chat', payload => {
     if (payload.showInChat === false) return;
-    const author = stringValue(payload, 'authorName');
-    const text = stringValue(payload, 'message');
-    if (author || text) void addMessage(text, normalizeMode(payload.mode), author, true);
+    const author = typeof payload.authorName === 'string' ? payload.authorName : '';
+    const text = typeof payload.message === 'string' ? payload.message : '';
+    if (author || text) void addMessage(text, payload.mode as MessageKind, author, true);
   }));
   void resizeInput();
 });
@@ -187,37 +135,23 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <section class="chat" :class="{ 'chat--expanded': expanded }" :style="{ '--chat-background': `url(${selene.resolveAsset('./assets/gui_chat.png')})` }" aria-label="Chat" data-selene-interactive @wheel.prevent.stop="onWheel">
-    <div ref="history" class="chat__history" role="log" aria-live="polite" aria-relevant="additions">
-      <div ref="historyContent" class="chat__history-content">
-        <TransitionGroup name="chat-line">
-          <p v-for="item in messages" :key="item.id" :class="item.kind === 'notice' ? 'chat__notice' : `chat__message chat__message--${item.kind}`">
+  <section class="panel" :class="{ expanded }" aria-label="Chat" data-selene-interactive @wheel.prevent.stop="onWheel">
+    <div ref="history" class="history" role="log" aria-live="polite" aria-relevant="additions">
+      <div class="history-content">
+        <TransitionGroup name="line">
+          <p v-for="item in messages" :key="item.id" :class="item.kind">
             <strong v-if="item.author">{{ item.author }}{{ item.kind === 'emote' ? ' ' : ': ' }}</strong>{{ item.text }}
           </p>
         </TransitionGroup>
       </div>
     </div>
-    <label class="visually-hidden" for="chat-input">Chat message</label>
-    <textarea id="chat-input" ref="input" v-model="message" class="chat__input" rows="1" :maxlength="MAX_INPUT_LENGTH" autocomplete="off" spellcheck="true" aria-label="Chat message" @input="resizeInput" @keydown="onInputKeydown" @keyup="onInputKeyup" />
+    <textarea id="chat-input" ref="input" v-model="message" class="input" rows="1" :maxlength="MAX_INPUT_LENGTH" autocomplete="off" spellcheck="true" aria-label="Chat message" @input="resizeInput" @keydown="onInputKeydown" @keyup="onInputKeyup" />
   </section>
-  <button class="chat__mode" type="button" data-selene-interactive :data-mode="mode().id" :aria-label="`Speech mode: ${mode().name}`" aria-haspopup="menu" :aria-expanded="menuOpen" :title="`${mode().name} — click to change speech mode; right-click for menu`" @click.stop="cycleMode" @contextmenu.prevent.stop="openMenu">
-    <img :src="selene.resolveAsset(`./assets/${mode().icon}`)" alt="">
-  </button>
-  <ContextMenu class="speech-menu" :open="menuOpen" variant="long" :frame-src="selene.resolveAsset('./assets/menu_long.png')" label="Speech options" @close="closeMenu">
-    <li v-for="(item, index) in modes" v-show="index !== modeIndex" :key="item.id">
-      <button type="button" @click="selectMode(index)">{{ item.name === 'Normal' ? 'Speak' : item.name }}</button>
-    </li>
-    <li class="context-menu__separator" role="separator" />
-    <li v-for="language in languages" :key="language">
-      <button type="button" @click="selectLanguage(language)">{{ language }}</button>
-    </li>
-  </ContextMenu>
+  <SpeechModeControl v-model="selectedMode" @language-select="selectLanguage" @interaction-complete="input?.focus()" />
 </template>
 
 <style scoped>
-.visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
-
-.chat {
+.panel {
   position: absolute;
   left: 0;
   bottom: 141px;
@@ -231,21 +165,17 @@ onBeforeUnmount(() => {
   transition: height 180ms ease-out;
 }
 
-.chat--expanded { height: 590px; }
-.chat::before { position: absolute; inset: 0; background: var(--chat-background) 0 100% / 100% 100% no-repeat; content: ""; transition: opacity 180ms ease-out; }
-.chat--expanded::before { opacity: .75; }
-.chat__history { position: absolute; top: 8px; right: 18px; bottom: 32px; left: 12px; overflow: hidden; }
-.chat__history-content { position: absolute; right: 0; bottom: 0; left: 0; }
-.chat p { margin: 2px 0; line-height: 1.25; }
-.chat-line-enter-active { transition: opacity 140ms ease-out, transform 140ms ease-out; }
-.chat-line-enter-from { opacity: 0; transform: translateY(16px); }
-.chat__notice { color: #B2CCFF; }
-.chat__message--whisper, .chat__message--ooc { color: #999999; }
-.chat__message--shout { color: #FF4C4C; }
-.chat__message--emote { color: #FFFF33; }
-.chat__input { position: absolute; right: 18px; bottom: 8px; left: 12px; height: 20px; min-height: 20px; max-height: 64px; margin: 0; padding: 1px 3px; resize: none; overflow: hidden; border: 0; outline: 0; background: transparent; color: #fff; line-height: 17px; text-shadow: inherit; }
-.chat__mode { position: absolute; left: 799px; bottom: 146px; width: 30px; height: 30px; padding: 0; overflow: hidden; border: 0; background: transparent; cursor: pointer; pointer-events: auto; }
-.chat__mode img { display: block; width: 30px; height: 30px; }
-.chat__mode:focus-visible { outline: 1px solid #b7d9ba; outline-offset: 1px; }
-.speech-menu { left: 770px; bottom: 178px; }
+.expanded { height: 590px; }
+.panel::before { position: absolute; inset: 0; background: v-bind(chatBackground) 0 100% / 100% 100% no-repeat; content: ""; transition: opacity 180ms ease-out; }
+.expanded::before { opacity: .75; }
+.history { position: absolute; top: 8px; right: 18px; bottom: 32px; left: 12px; overflow: hidden; }
+.history-content { position: absolute; right: 0; bottom: 0; left: 0; }
+.panel p { margin: 2px 0; line-height: 1.25; }
+.line-enter-active { transition: opacity 140ms ease-out, transform 140ms ease-out; }
+.line-enter-from { opacity: 0; transform: translateY(16px); }
+.inform { color: #B2CCFF; }
+.whisper, .ooc { color: #999999; }
+.shout { color: #FF4C4C; }
+.emote { color: #FFFF33; }
+.input { position: absolute; right: 18px; bottom: 8px; left: 12px; height: 20px; min-height: 20px; max-height: 64px; margin: 0; padding: 1px 3px; resize: none; overflow: hidden; border: 0; outline: 0; background: transparent; color: #fff; line-height: 17px; text-shadow: inherit; }
 </style>

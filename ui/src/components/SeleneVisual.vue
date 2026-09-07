@@ -1,18 +1,16 @@
-<script lang="ts">
-const visualManifests = new Map<string, Promise<Record<string, string>>>();
-</script>
-
 <script setup lang="ts">
+// TODO deslop file
 import { computed, onUnmounted, ref, watch } from 'vue';
-import type { SeleneUiApi, VisualDefinition, VisualFrameDefinition } from '../selene';
+import { resolveClientAsset } from '../clientAssets';
+import { useSelene, type VisualDefinition, type VisualFrameDefinition } from '../selene';
 
 interface RenderLayer { texture: string; offsetX: number; offsetY: number; flipX: boolean; flipY: boolean }
 const props = withDefaults(defineProps<{
-  selene: SeleneUiApi;
   identifier?: string;
   seed?: string;
   withoutOffset?: boolean;
 }>(), { seed: '', withoutOffset: false });
+const selene = useSelene();
 
 const layers = ref<RenderLayer[]>([]);
 let generation = 0;
@@ -27,27 +25,10 @@ const hash = (value: string) => {
   for (let index = 0; index < value.length; index++) result = Math.imul(31, result) + value.charCodeAt(index) | 0;
   return Math.abs(result);
 };
-const resolveTexture = async (path: string) => {
-  const base = new URL(props.selene.resolveAsset('./'));
-  const manifestUrl = new URL('/client/asset-manifest.json', base).href;
-  let manifest = visualManifests.get(manifestUrl);
-  if (!manifest) {
-    manifest = fetch(manifestUrl)
-      .then(response => {
-        if (!response.ok) throw new Error(`Could not load client asset manifest: ${response.status}`);
-        return response.json() as Promise<{ assets?: Record<string, string> }>;
-      })
-      .then(value => value.assets ?? {});
-    visualManifests.set(manifestUrl, manifest);
-  }
-  const publicPath = (await manifest)[path];
-  if (!publicPath) throw new Error(`Client asset is missing: ${path}`);
-  return new URL(publicPath, base).href;
-};
 const asFrame = (frame: string | VisualFrameDefinition, parent: VisualDefinition): VisualFrameDefinition =>
   typeof frame === 'string' ? { ...parent, texture: frame } : { ...parent, ...frame };
 const makeLayer = async (frame: VisualFrameDefinition): Promise<RenderLayer | undefined> => frame.texture ? {
-  texture: await resolveTexture(frame.texture),
+  texture: await resolveClientAsset(selene, frame.texture),
   offsetX: props.withoutOffset ? 0 : frame.offsetX ?? 0,
   offsetY: props.withoutOffset ? 0 : frame.offsetY ?? 0,
   flipX: frame.flipX ?? false,
@@ -83,7 +64,7 @@ const load = async () => {
   layers.value = [];
   if (!props.identifier) return;
   try {
-    const definition = await props.selene.visuals.getDefinition(props.identifier);
+    const definition = await selene.visuals.getDefinition(props.identifier);
     const definitions = definition.layers?.length ? definition.layers : [definition];
     const layerFrames = await Promise.all(definitions.map(async part => {
       const result = await Promise.all(definitionFrames(part).map(makeLayer));

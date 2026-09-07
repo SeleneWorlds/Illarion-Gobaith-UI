@@ -1,23 +1,22 @@
 <script setup lang="ts">
-import { onUnmounted, ref } from 'vue';
+import { computed, onUnmounted, ref } from 'vue';
 
-const formatClock = () => {
-  const now = new Date();
-  return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-};
-const clock = ref(formatClock());
+const now = ref(new Date());
+const formattedClock = computed(() => {
+  return `${String(now.value.getHours()).padStart(2, '0')}:${String(now.value.getMinutes()).padStart(2, '0')}`;
+});
 const timer = window.setInterval(() => {
-  clock.value = formatClock();
+  now.value = new Date();
 }, 1000);
 onUnmounted(() => window.clearInterval(timer));
 </script>
 
 <template>
-  <time class="counter__time">{{ clock }}</time>
+  <time class="clock">{{ formattedClock }}</time>
 </template>
 
 <style scoped>
-.counter__time {
+.clock {
   position: absolute;
   right: 8px;
   bottom: 3px;

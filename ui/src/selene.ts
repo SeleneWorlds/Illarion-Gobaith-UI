@@ -1,3 +1,6 @@
+// TODO deslop, this type info should be imported from a package instead of duplicated in UIs
+import { inject, type InjectionKey } from 'vue';
+
 export type ClientNetworkPayload = Record<string, unknown>;
 export interface Coordinate { x: number; y: number; z: number }
 export interface MapTile extends Coordinate { visualMetadata: Readonly<Record<string, unknown>> }
@@ -23,6 +26,7 @@ export interface SeleneUiApi {
     captureKeys(...keys: string[]): () => void;
     captureText(): () => void;
     passThroughKeys(...keys: string[]): () => void;
+    isPassthroughKey(key: string): boolean;
     onPointerDown(callback: (event: SelenePointerEvent) => void): () => void;
     onPointerUp(callback: (event: SelenePointerEvent) => void): () => void;
   };
@@ -37,6 +41,14 @@ export interface SeleneUiApi {
     onMapChanged(callback: () => void): () => void;
   };
 }
+
+export const seleneKey: InjectionKey<SeleneUiApi> = Symbol('selene-api');
+
+export const useSelene = (): SeleneUiApi => {
+  const selene = inject(seleneKey);
+  if (!selene) throw new Error('Selene API was not provided.');
+  return selene;
+};
 
 export interface VisualFrameDefinition {
   texture?: string;
