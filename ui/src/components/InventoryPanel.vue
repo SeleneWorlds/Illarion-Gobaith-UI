@@ -1,14 +1,6 @@
 <script setup lang="ts">
-import { inject } from 'vue';
-import type { InventoryDragStartDetail, InventorySlotDefinition } from '../inventory';
-import { inventoryDragKey } from '../inventoryDrag';
+import type { InventorySlotDefinition } from '../inventory';
 import InventorySlot from './InventorySlot.vue';
-
-const inventoryDrag = inject(inventoryDragKey);
-if (!inventoryDrag) {
-  throw new Error('Inventory drag API was not provided.');
-}
-const startDrag = (detail: InventoryDragStartDetail) => inventoryDrag.start(detail);
 
 const equipmentSlots: InventorySlotDefinition[] = Array.from({ length: 12 }, (_, slotId) => ({
   viewId: 'equipment',
@@ -29,7 +21,6 @@ const slots = [...equipmentSlots, ...beltSlots];
       :class="`${slot.viewId}-${slot.slotId}`"
       :view-id="slot.viewId"
       :slot-id="slot.slotId"
-      @drag-start="startDrag"
     />
   </section>
 </template>

@@ -1,20 +1,24 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, inject } from 'vue';
 import { useClientAssetSrc, useClientAssetStyle } from '../composables/useClientAsset';
-import type { InventoryDragStartDetail, InventoryViewId } from '../inventory';
+import { sameInventorySlot, type InventoryViewId } from '../inventory';
+import { inventoryDragKey } from '../inventoryDrag';
 import { useMenu } from '../overlays';
 import { useInventoryStore } from '../stores/inventory';
 import InventoryItemMenu from './InventoryItemMenu.vue';
 import SeleneVisual from './SeleneVisual.vue';
 
 const props = defineProps<{ viewId: InventoryViewId; slotId: number }>();
-const emit = defineEmits<{ dragStart: [detail: InventoryDragStartDetail] }>();
 
 const slotBackground = useClientAssetStyle('client/textures/illarion/ui/inv_slot-0.png');
 const hoverBackground = useClientAssetStyle('client/textures/illarion/ui/inv_slot-7.png');
 const markUseSrc = useClientAssetSrc('client/textures/illarion/ui/mark_use.png');
 
 const inventory = useInventoryStore();
+const inventoryDrag = inject(inventoryDragKey);
+if (!inventoryDrag) {
+  throw new Error('Inventory drag API was not provided.');
+}
 const menu = useMenu();
 
 const item = computed(() => inventory.getItem(props.viewId, props.slotId));
@@ -42,11 +46,26 @@ const onMouseDown = (event: MouseEvent) => {
   if (event.shiftKey) {
     inventory.selectUseSlot(props.viewId, props.slotId);
   }
-  emit('dragStart', {
+  inventoryDrag.start({
     viewId: props.viewId,
     slotId: props.slotId,
     clientX: event.clientX,
     clientY: event.clientY,
+  });
+};
+const onMouseUp = (event: MouseEvent) => {
+  const target = { viewId: props.viewId, slotId: props.slotId };
+  inventoryDrag.releaseOn({
+    clientX: event.clientX,
+    clientY: event.clientY,
+    acceptSlot(source, _item, count) {
+      if (!sameInventorySlot(source, target)) {
+        inventory.moveSlotToSlot(source.viewId, source.slotId, target.viewId, target.slotId, count);
+      }
+    },
+    acceptCoordinate(source, count) {
+      inventory.moveCoordinateToSlot(source, target.viewId, target.slotId, count);
+    },
   });
 };
 type ItemMenuAction = 'open' | 'lookAt' | 'use' | 'useWith' | 'drop';
@@ -89,6 +108,7 @@ const onScrollSlot = (event: WheelEvent) => {
       :data-slot-id="slotId"
       :aria-label="`${viewId} slot ${slotId}`"
       @mousedown.left.prevent="onMouseDown"
+      @mouseup.left.prevent.stop="onMouseUp"
       @click="lookAt"
       @contextmenu.prevent.stop="onContextMenu"
       @wheel.prevent="onScrollSlot"

@@ -1,31 +1,17 @@
 <script setup lang="ts">
 import { nextTick, onMounted, onUnmounted, provide, reactive, useTemplateRef } from 'vue';
 import {
-  sameInventorySlot,
   type InventoryDragStartDetail,
   type InventoryItem,
   type InventorySlotDefinition,
 } from '../inventory';
 import type { Coordinate, SelenePointerEvent } from '../selene';
 import { useSelene } from '../selene';
-import { inventoryDragKey } from '../inventoryDrag';
+import { inventoryDragKey, type InventoryDropTarget } from '../inventoryDrag';
 import { useInventoryStore } from '../stores/inventory';
 import SeleneVisual from './SeleneVisual.vue';
 
 const isInWorldViewport = (x: number, y: number) => x >= 0 && x < 839 && y >= 0 && y < 419;
-
-const inventorySlotFromEvent = (event: MouseEvent): InventorySlotDefinition | undefined => {
-  const candidate = event
-    .composedPath()
-    .find((node): node is HTMLElement => node instanceof HTMLElement && node.matches('[data-inventory-slot-button]'));
-  if (!(candidate instanceof HTMLElement)) {
-    return undefined;
-  }
-
-  const viewId = candidate.dataset.viewId;
-  const slotId = Number(candidate.dataset.slotId);
-  return (viewId === 'equipment' || viewId === 'belt') && Number.isInteger(slotId) ? { viewId, slotId } : undefined;
-};
 
 interface InventoryPointer {
   slot: InventorySlotDefinition;
@@ -74,8 +60,6 @@ const startInventoryDrag = ({ viewId, slotId, clientX, clientY }: InventoryDragS
   void nextTick(() => updatePreviewPosition(clientX, clientY));
 };
 
-provide(inventoryDragKey, { start: startInventoryDrag });
-
 const finishUse = (event: KeyboardEvent) => {
   if (event.key === 'Shift') {
     inventory.finishUse();
@@ -118,34 +102,29 @@ const resetPointers = () => {
   preview.slot = undefined;
 };
 
-const onMouseUp = (event: MouseEvent) => {
-  if (event.button !== 0) {
-    return;
-  }
-  const target = inventorySlotFromEvent(event);
-  if (!target) {
-    return;
-  }
+const releaseOn = (target: InventoryDropTarget) => {
   if (inventoryPointer) {
-    const { slot: source, dragged } = inventoryPointer;
+    const { slot: source, item, dragged } = inventoryPointer;
     if (dragged) {
-      suppressedClick = { x: event.clientX, y: event.clientY, button: event.button };
+      suppressedClick = { x: target.clientX, y: target.clientY, button: 0 };
+      target.acceptSlot(source, item, inventory.counter.value);
     }
-    if (dragged && !sameInventorySlot(target, source)) {
-      inventory.moveSlotToSlot(source.viewId, source.slotId, target.viewId, target.slotId, inventory.counter.value);
-    }
-  } else if (worldPointer) {
-    inventory.moveCoordinateToSlot(worldPointer, target.viewId, target.slotId, inventory.counter.value);
+  } else if (worldPointer && target.acceptCoordinate) {
+    target.acceptCoordinate(worldPointer, inventory.counter.value);
   }
   resetPointers();
 };
+
+provide(inventoryDragKey, { start: startInventoryDrag, releaseOn });
 
 const onPointerUp = ({ button, clientX, clientY, coordinate }: SelenePointerEvent) => {
   if (inventoryPointer) {
     const { slot: source, dragged } = inventoryPointer;
     if (dragged) {
       suppressedClick = { x: clientX, y: clientY, button };
-      inventory.moveSlotToCoordinate(source.viewId, source.slotId, coordinate, inventory.counter.value);
+      if (isInWorldViewport(clientX, clientY)) {
+        inventory.moveSlotToCoordinate(source.viewId, source.slotId, coordinate, inventory.counter.value);
+      }
     }
   }
   resetPointers();
@@ -153,7 +132,6 @@ const onPointerUp = ({ button, clientX, clientY, coordinate }: SelenePointerEven
 
 onMounted(() => {
   window.addEventListener('mousemove', onMouseMove, true);
-  window.addEventListener('mouseup', onMouseUp, true);
   window.addEventListener('click', onClick, true);
   window.addEventListener('keyup', finishUse, true);
   selene.input.onPointerDown(onPointerDown);
@@ -161,7 +139,6 @@ onMounted(() => {
 });
 onUnmounted(() => {
   window.removeEventListener('mousemove', onMouseMove, true);
-  window.removeEventListener('mouseup', onMouseUp, true);
   window.removeEventListener('click', onClick, true);
   window.removeEventListener('keyup', finishUse, true);
 });
