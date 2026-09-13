@@ -1,16 +1,17 @@
 <script setup lang="ts">
 // TODO deslop file
-import { computed, onMounted, ref, useTemplateRef, watch } from 'vue';
+import { computed, onMounted, useTemplateRef, watch } from 'vue';
 import { MAP_COLORS } from '../map';
+import { useMenu } from '../overlays';
 import { useMinimapStore } from '../stores/minimap';
-import ContextMenu from './ContextMenu.vue';
+import MinimapMenu from './MinimapMenu.vue';
 
 const SIZE = 256;
 const RADIUS = SIZE / 2;
 const emit = defineEmits<{ openWorldMap: [] }>();
 
 const canvas = useTemplateRef<HTMLCanvasElement>('canvas');
-const menuOpen = ref(false);
+const menu = useMenu();
 const minimap = useMinimapStore();
 const isGroundLevel = computed(() => Math.round(minimap.cameraCoordinate.value.z) === 0);
 const surfaceStyle = computed(() => ({
@@ -28,22 +29,24 @@ const adjustZoom = (event: WheelEvent) => {
   const direction = event.deltaY < 0 ? 1 : -1;
   minimap.adjustZoom(direction * 0.1);
 };
-const zoomBy = (amount: number) => {
-  minimap.adjustZoom(amount);
-  menuOpen.value = false;
-};
-const showWorldMap = () => {
-  if (!isGroundLevel.value) return;
-  menuOpen.value = false;
-  emit('openWorldMap');
-};
-const openMenu = () => {
-  menuOpen.value = true;
+const openMenu = async (event: MouseEvent) => {
+  const action = await menu.open<'openWorldMap' | number>(
+    MinimapMenu,
+    { canOpenWorldMap: isGroundLevel.value, canZoomIn: minimap.canZoomIn.value, canZoomOut: minimap.canZoomOut.value },
+    { label: 'Minimap options', anchor: event.currentTarget as HTMLElement },
+  );
+  if (action === 'openWorldMap') {
+    emit('openWorldMap');
+  } else if (action !== undefined) {
+    minimap.adjustZoom(action);
+  }
 };
 
 const draw = () => {
   const context = canvas.value?.getContext('2d');
-  if (!context) return;
+  if (!context) {
+    return;
+  }
   const camera = minimap.cameraCoordinate.value;
   const center = {
     x: Math.round(camera.x),
@@ -72,29 +75,20 @@ watch([minimap.revision, minimap.cameraCoordinate], draw);
 
 <template>
   <section
-      class="minimap"
-      aria-label="Minimap"
-      data-selene-interactive
-      tabindex="0"
-      title="Click to toggle zoom; wheel to zoom; Shift-click to rotate; right-click for menu"
-      @click="toggleZoom"
-      @contextmenu.prevent.stop="openMenu"
-      @keydown.enter.prevent="toggleZoom()"
-      @keydown.space.prevent="toggleZoom()"
-      @wheel.prevent.stop="adjustZoom"
-    >
-      <canvas ref="canvas" class="surface" :style="surfaceStyle" :width="SIZE" :height="SIZE" />
-      <span class="crosshair" aria-hidden="true" />
-    </section>
-
-    <ContextMenu v-model:open="menuOpen" class="menu" label="Minimap options">
-      <li v-if="isGroundLevel">
-        <button type="button" @click="showWorldMap">Open world map</button>
-      </li>
-      <li><button type="button" :disabled="!minimap.canZoomIn.value" @click="zoomBy(0.3)">Zoom in</button></li>
-      <li><button type="button" :disabled="!minimap.canZoomOut.value" @click="zoomBy(-0.3)">Zoom out</button></li>
-    </ContextMenu>
-
+    class="minimap"
+    aria-label="Minimap"
+    data-selene-interactive
+    tabindex="0"
+    title="Click to toggle zoom; wheel to zoom; Shift-click to rotate; right-click for menu"
+    @click="toggleZoom"
+    @contextmenu.prevent.stop="openMenu"
+    @keydown.enter.prevent="toggleZoom()"
+    @keydown.space.prevent="toggleZoom()"
+    @wheel.prevent.stop="adjustZoom"
+  >
+    <canvas ref="canvas" class="surface" :style="surfaceStyle" :width="SIZE" :height="SIZE" />
+    <span class="crosshair" aria-hidden="true" />
+  </section>
 </template>
 
 <style scoped>
@@ -137,10 +131,4 @@ watch([minimap.revision, minimap.cameraCoordinate], draw);
 .crosshair::after {
   transform: translate(-50%, -50%) rotate(90deg);
 }
-
-.menu {
-  top: 154px;
-  right: 4px;
-}
-
 </style>

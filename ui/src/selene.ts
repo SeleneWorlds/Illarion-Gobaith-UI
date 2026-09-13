@@ -2,8 +2,14 @@
 import { inject, type InjectionKey } from 'vue';
 
 export type ClientNetworkPayload = Record<string, unknown>;
-export interface Coordinate { x: number; y: number; z: number }
-export interface MapTile extends Coordinate { visualMetadata: Readonly<Record<string, unknown>> }
+export interface Coordinate {
+  x: number;
+  y: number;
+  z: number;
+}
+export interface MapTile extends Coordinate {
+  visualMetadata: Readonly<Record<string, unknown>>;
+}
 export interface SelenePointerEvent {
   clientX: number;
   clientY: number;
@@ -46,7 +52,9 @@ export const seleneKey: InjectionKey<SeleneUiApi> = Symbol('selene-api');
 
 export const useSelene = (): SeleneUiApi => {
   const selene = inject(seleneKey);
-  if (!selene) throw new Error('Selene API was not provided.');
+  if (!selene) {
+    throw new Error('Selene API was not provided.');
+  }
   return selene;
 };
 
@@ -63,7 +71,10 @@ export interface VisualDefinition extends VisualFrameDefinition {
   type?: string;
   textures?: string[];
   frames?: Array<string | VisualFrameDefinition>;
-  animations?: Record<string, VisualFrameDefinition & { textures?: string[]; frames?: Array<string | VisualFrameDefinition> }>;
+  animations?: Record<
+    string,
+    VisualFrameDefinition & { textures?: string[]; frames?: Array<string | VisualFrameDefinition> }
+  >;
   layers?: VisualDefinition[];
   instanced?: boolean;
 }

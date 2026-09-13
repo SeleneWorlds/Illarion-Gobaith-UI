@@ -3,10 +3,13 @@ import { onUnmounted, provide, useTemplateRef } from 'vue';
 import BloodFog from './components/BloodFog.vue';
 import ChatPanel from './components/ChatPanel.vue';
 import CounterPanel from './components/CounterPanel.vue';
+import InputHandler from './components/InputHandler.vue';
 import InventoryPanel from './components/InventoryPanel.vue';
 import MinimapPanel from './components/MinimapPanel.vue';
+import MenuContainer from './components/MenuContainer.vue';
 import WorldMap from './components/WorldMap.vue';
 import StatusPanel from './components/StatusPanel.vue';
+import TooltipContainer from './components/TooltipContainer.vue';
 import { useSelene } from './selene';
 import { createVitalsStore, vitalsStoreKey } from './stores/vitals';
 import { createInventoryStore, inventoryStoreKey } from './stores/inventory';
@@ -32,15 +35,20 @@ onUnmounted(() => {
 
 <template>
   <main class="hud" aria-label="Illarion game interface">
-    <BloodFog />
-    <img class="bottom-frame" :src="selene.resolveAsset('./assets/gui_bottom.png')" alt="">
-    <img class="top-frame" :src="selene.resolveAsset('./assets/gui_top.png')" alt="">
-    <MinimapPanel @open-world-map="openWorldMap" />
-    <WorldMap ref="worldMap" />
-    <ChatPanel />
-    <CounterPanel />
-    <StatusPanel />
-    <InventoryPanel />
+    <TooltipContainer>
+      <MenuContainer>
+        <InputHandler />
+        <BloodFog />
+        <img class="bottom-frame" :src="selene.resolveAsset('./assets/gui_bottom.png')" alt="" />
+        <img class="top-frame" :src="selene.resolveAsset('./assets/gui_top.png')" alt="" />
+        <MinimapPanel @open-world-map="openWorldMap" />
+        <WorldMap ref="worldMap" />
+        <ChatPanel />
+        <CounterPanel />
+        <StatusPanel />
+        <InventoryPanel />
+      </MenuContainer>
+    </TooltipContainer>
   </main>
 </template>
 
@@ -66,6 +74,16 @@ onUnmounted(() => {
   user-select: none;
 }
 
-.bottom-frame { left: 0; bottom: 0; width: 1024px; height: 512px; }
-.top-frame { top: 0; right: 0; width: 256px; height: 256px; }
+.bottom-frame {
+  left: 0;
+  bottom: 0;
+  width: 1024px;
+  height: 512px;
+}
+.top-frame {
+  top: 0;
+  right: 0;
+  width: 256px;
+  height: 256px;
+}
 </style>

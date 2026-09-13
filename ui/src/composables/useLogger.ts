@@ -8,9 +8,8 @@ export interface LogMessage {
 
 const LOG_FILE = 'illarion.log';
 
-const renderMessage = ({ author, text, kind }: LogMessage) => (
-  author ? `${author}${kind === 'emote' ? ' ' : ': '}${text}` : text
-);
+const renderMessage = ({ author, text, kind }: LogMessage) =>
+  author ? `${author}${kind === 'emote' ? ' ' : ': '}${text}` : text;
 
 export const useLogger = () => {
   const { storage } = useSelene();
@@ -20,8 +19,8 @@ export const useLogger = () => {
     const prefix = message.kind === 'shout' ? 'S:' : message.kind === 'whisper' ? 'w:' : '';
     const line = `${prefix}${renderMessage(message)}\n`;
     pendingWrite = pendingWrite
-      .then(async () => storage.save(LOG_FILE, `${await storage.load(LOG_FILE) ?? ''}${line}`))
-      .catch(error => console.warn(`Could not write ${LOG_FILE}.`, error));
+      .then(async () => storage.save(LOG_FILE, `${(await storage.load(LOG_FILE)) ?? ''}${line}`))
+      .catch((error) => console.warn(`Could not write ${LOG_FILE}.`, error));
   };
 
   return { log };

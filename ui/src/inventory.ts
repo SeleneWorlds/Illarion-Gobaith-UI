@@ -20,5 +20,3 @@ export interface InventoryTooltipResponse {
   slot: InventorySlotDefinition;
   tooltip?: InventoryTooltip;
 }
-
-export const inventorySlotKey = ({ viewId, slotId }: InventorySlotDefinition) => `${viewId}:${slotId}`;

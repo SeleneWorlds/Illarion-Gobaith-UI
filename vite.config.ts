@@ -17,7 +17,8 @@ export default defineConfig({
         this.emitFile({
           type: 'asset',
           fileName: 'index.html',
-          source: '<!doctype html>\n<html lang="en">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <title>Illarion Gobaith HUD</title>\n  <script type="module" src="./ui.js"></script>\n  <link rel="stylesheet" href="./ui.css">\n</head>\n<body>\n  <div id="illarion-ui"></div>\n</body>\n</html>\n',
+          source:
+            '<!doctype html>\n<html lang="en">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <title>Illarion Gobaith HUD</title>\n  <script type="module" src="./ui.js"></script>\n  <link rel="stylesheet" href="./ui.css">\n</head>\n<body>\n  <div id="illarion-ui"></div>\n</body>\n</html>\n',
         });
       },
     },

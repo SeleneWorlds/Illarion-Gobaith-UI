@@ -11,11 +11,13 @@ const loadManifest = (manifestUrl: string) => {
   let manifest = manifests.get(manifestUrl);
   if (!manifest) {
     manifest = fetch(manifestUrl)
-      .then(response => {
-        if (!response.ok) throw new Error(`Could not load client asset manifest: ${response.status}`);
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`Could not load client asset manifest: ${response.status}`);
+        }
         return response.json() as Promise<ClientAssetManifest>;
       })
-      .then(value => value.assets ?? {});
+      .then((value) => value.assets ?? {});
     manifests.set(manifestUrl, manifest);
   }
   return manifest;
@@ -27,9 +29,11 @@ export const resolveClientAsset = (selene: SeleneUiApi, path: string): Promise<s
   const key = `${manifestUrl}\n${path}`;
   let asset = assets.get(key);
   if (!asset) {
-    asset = loadManifest(manifestUrl).then(manifest => {
+    asset = loadManifest(manifestUrl).then((manifest) => {
       const publicPath = manifest[path];
-      if (!publicPath) throw new Error(`Client asset is missing: ${path}`);
+      if (!publicPath) {
+        throw new Error(`Client asset is missing: ${path}`);
+      }
       return new URL(publicPath, base).href;
     });
     assets.set(key, asset);

@@ -18,10 +18,14 @@ export const createVitalsStore = (network: SeleneUiApi['network']): VitalsStore 
   const unsubscribers: Array<() => void> = [];
 
   const subscribe = (payloadId: string, value: Ref<number>) => {
-    unsubscribers.push(network.onPayload(payloadId, (payload) => {
-      if (typeof payload.value !== 'number' || !Number.isFinite(payload.value)) return;
-      value.value = Math.min(1, Math.max(0, payload.value));
-    }));
+    unsubscribers.push(
+      network.onPayload(payloadId, (payload) => {
+        if (typeof payload.value !== 'number' || !Number.isFinite(payload.value)) {
+          return;
+        }
+        value.value = Math.min(1, Math.max(0, payload.value));
+      }),
+    );
   };
 
   subscribe('illarion:health', health);
@@ -33,13 +37,15 @@ export const createVitalsStore = (network: SeleneUiApi['network']): VitalsStore 
     food: readonly(food),
     mana: readonly(mana),
     dispose() {
-      unsubscribers.splice(0).forEach(unsubscribe => unsubscribe());
+      unsubscribers.splice(0).forEach((unsubscribe) => unsubscribe());
     },
   };
 };
 
 export const useVitalsStore = (): VitalsStore => {
   const store = inject(vitalsStoreKey);
-  if (!store) throw new Error('Vitals store was not provided.');
+  if (!store) {
+    throw new Error('Vitals store was not provided.');
+  }
   return store;
 };

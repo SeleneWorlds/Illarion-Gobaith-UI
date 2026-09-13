@@ -6,21 +6,13 @@ import { useVitalsStore } from '../stores/vitals';
 const selene = useSelene();
 const { health } = useVitalsStore();
 
-const opacity = computed(() => (
-  health.value > 0 && health.value < 0.3
-    ? (0.3 - health.value) / 0.4
-    : 0
-));
+const opacity = computed(() => (health.value > 0 && health.value < 0.3 ? (0.3 - health.value) / 0.4 : 0));
 
 const fogMask = `url("${selene.resolveAsset('./assets/fog_overlay.png')}")`;
 </script>
 
 <template>
-  <div
-    class="blood-fog"
-    :style="{ opacity, maskImage: fogMask, WebkitMaskImage: fogMask }"
-    aria-hidden="true"
-  />
+  <div class="blood-fog" :style="{ opacity, maskImage: fogMask, WebkitMaskImage: fogMask }" aria-hidden="true" />
 </template>
 
 <style scoped>

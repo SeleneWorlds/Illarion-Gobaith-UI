@@ -8,6 +8,5 @@ export const speechModes = [
 export type SpeechMode = (typeof speechModes)[number];
 export type SpeechModeId = SpeechMode['id'];
 
-export const speechModeById = (id: SpeechModeId): SpeechMode => (
-  speechModes.find(mode => mode.id === id) ?? speechModes[0]
-);
+export const speechModeById = (id: SpeechModeId): SpeechMode =>
+  speechModes.find((mode) => mode.id === id) ?? speechModes[0];

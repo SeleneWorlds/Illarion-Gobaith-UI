@@ -1,15 +1,11 @@
 {
-    "name": "illarion-gobaith-ui",
-    "description": "Illarion UI based on Gobaith era.",
-    "entrypoints": [
-        "client/lua/viewport.lua",
-        "client/lua/cursor.lua",
-        "client/lua/input.lua"
-    ],
-    "ui": [
-        {
-            "id": "hud",
-            "entrypoint": "client/ui/dist/index.html"
-        }
-    ]
+  "name": "illarion-gobaith-ui",
+  "description": "Illarion UI based on Gobaith era.",
+  "entrypoints": ["client/lua/viewport.lua", "client/lua/cursor.lua", "client/lua/input.lua"],
+  "ui": [
+    {
+      "id": "hud",
+      "entrypoint": "client/ui/dist/index.html"
+    }
+  ]
 }

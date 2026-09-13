@@ -22,13 +22,21 @@ const tileKey = (x: number, y: number, z: number) => `${x}:${y}:${z}`;
 const readTiles = (value: string | null): Map<string, number> => {
   const result = new Map<string, number>();
   try {
-    if (!value) return result;
+    if (!value) {
+      return result;
+    }
     const data: unknown = JSON.parse(value);
-    if (!data || typeof data !== 'object') return result;
+    if (!data || typeof data !== 'object') {
+      return result;
+    }
     const stored = data as Partial<StoredPlayerData>;
-    if (stored.version !== STORAGE_VERSION || !Array.isArray(stored.minimapTiles)) return result;
+    if (stored.version !== STORAGE_VERSION || !Array.isArray(stored.minimapTiles)) {
+      return result;
+    }
     for (const tile of stored.minimapTiles) {
-      if (!Array.isArray(tile) || tile.length !== 4 || !tile.every(Number.isFinite)) continue;
+      if (!Array.isArray(tile) || tile.length !== 4 || !tile.every(Number.isFinite)) {
+        continue;
+      }
       const [x, y, z, colorIndex] = tile;
       result.set(tileKey(x, y, z), colorIndex);
     }
@@ -58,7 +66,9 @@ export const minimapStoreKey: InjectionKey<MinimapStore> = Symbol('minimap-store
 
 export const useMinimapStore = (): MinimapStore => {
   const store = inject(minimapStoreKey);
-  if (!store) throw new Error('Minimap store is not provided.');
+  if (!store) {
+    throw new Error('Minimap store is not provided.');
+  }
   return store;
 };
 
@@ -75,18 +85,24 @@ export const createMinimapStore = (selene: SeleneUiApi): MinimapStore => {
   let disposed = false;
 
   const flush = async () => {
-    if (saveTimer !== undefined) clearTimeout(saveTimer);
+    if (saveTimer !== undefined) {
+      clearTimeout(saveTimer);
+    }
     saveTimer = undefined;
     const data: StoredPlayerData = { version: STORAGE_VERSION, minimapTiles: [] };
     for (const [key, colorIndex] of tiles) {
       const coordinates = key.split(':').map(Number);
-      if (coordinates.length === 3) data.minimapTiles.push([coordinates[0], coordinates[1], coordinates[2], colorIndex]);
+      if (coordinates.length === 3) {
+        data.minimapTiles.push([coordinates[0], coordinates[1], coordinates[2], colorIndex]);
+      }
     }
     await selene.storage.save(STORAGE_KEY, JSON.stringify(data));
   };
 
   const scheduleSave = () => {
-    if (saveTimer !== undefined) clearTimeout(saveTimer);
+    if (saveTimer !== undefined) {
+      clearTimeout(saveTimer);
+    }
     saveTimer = setTimeout(() => {
       void flush().catch((error: unknown) => console.warn('Could not persist minimap data.', error));
     }, SAVE_DELAY_MS);
@@ -96,9 +112,13 @@ export const createMinimapStore = (selene: SeleneUiApi): MinimapStore => {
     let changed = false;
     for (const tile of selene.world.getMapTiles()) {
       const colorIndex = tile.visualMetadata.mapColorIndex;
-      if (typeof colorIndex !== 'number') continue;
+      if (typeof colorIndex !== 'number') {
+        continue;
+      }
       const key = tileKey(tile.x, tile.y, tile.z);
-      if (tiles.get(key) === colorIndex) continue;
+      if (tiles.get(key) === colorIndex) {
+        continue;
+      }
       tiles.set(key, colorIndex);
       changed = true;
     }
@@ -136,7 +156,9 @@ export const createMinimapStore = (selene: SeleneUiApi): MinimapStore => {
             selene.storage.load(ZOOM_STORAGE_KEY),
             selene.storage.load(ROTATION_STORAGE_KEY),
           ]);
-          for (const [key, colorIndex] of readTiles(storedTiles)) tiles.set(key, colorIndex);
+          for (const [key, colorIndex] of readTiles(storedTiles)) {
+            tiles.set(key, colorIndex);
+          }
           const legacyZoom = Number(storedZoom);
           if (storedZoom !== null && Number.isFinite(legacyZoom)) {
             zoom.value = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, 1 + legacyZoom / 1000));
