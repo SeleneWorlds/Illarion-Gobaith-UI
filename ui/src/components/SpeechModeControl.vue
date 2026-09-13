@@ -57,7 +57,7 @@ const openMenu = async (event: MouseEvent) => {
     aria-haspopup="menu"
     :aria-expanded="menu.isOpen(SpeechOptionsMenu)"
     :title="`${mode().name} — click to change speech mode; right-click for menu`"
-    @click.stop="cycleMode"
+    @click.left.stop="cycleMode"
     @contextmenu.prevent.stop="openMenu"
   >
     <img :src="selene.resolveAsset(`./assets/${mode().icon}`)" alt="" />

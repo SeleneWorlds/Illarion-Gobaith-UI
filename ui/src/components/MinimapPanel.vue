@@ -78,7 +78,7 @@ watch([minimap.revision, minimap.cameraCoordinate], draw);
     data-selene-interactive
     tabindex="0"
     title="Click to toggle zoom; wheel to zoom; Shift-click to rotate; right-click for menu"
-    @click="onClick"
+    @click.left="onClick"
     @contextmenu.prevent.stop="onContextMenu"
     @wheel.prevent.stop="onScroll"
   >
