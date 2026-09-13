@@ -10,6 +10,11 @@ export interface Coordinate {
 export interface MapTile extends Coordinate {
   visualMetadata: Readonly<Record<string, unknown>>;
 }
+export interface WorldEntity {
+  networkId: number;
+  tags: readonly string[];
+  visual?: string;
+}
 export interface SelenePointerEvent {
   clientX: number;
   clientY: number;
@@ -43,6 +48,7 @@ export interface SeleneUiApi {
   readonly world: {
     getCameraCoordinate(): Coordinate;
     getMapTiles(): MapTile[];
+    getEntitiesAt(coordinate: Coordinate): Promise<WorldEntity[]>;
     onCameraCoordinateChanged(callback: (coordinate: Coordinate) => void): () => void;
     onMapChanged(callback: () => void): () => void;
   };
@@ -83,7 +89,7 @@ export const createMockSeleneUiApi = (): SeleneUiApi => {
   const passthroughKeys = new Map<string, number>();
 
   return {
-    apiVersion: 4,
+    apiVersion: 5,
     resolveAsset: (path) => new URL(path, window.location.href).href,
     visuals: {
       getDefinition: async (identifier) => {
@@ -133,6 +139,7 @@ export const createMockSeleneUiApi = (): SeleneUiApi => {
     world: {
       getCameraCoordinate: () => ({ x: 0, y: 0, z: 0 }),
       getMapTiles: () => [],
+      getEntitiesAt: async () => [],
       onCameraCoordinateChanged: () => () => undefined,
       onMapChanged: () => () => undefined,
     },
