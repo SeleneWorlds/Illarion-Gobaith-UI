@@ -1,4 +1,3 @@
-// TODO deslop file
 import { computed, inject, readonly, ref, type ComputedRef, type InjectionKey, type Ref } from 'vue';
 import type { SeleneUiApi } from '../selene';
 
@@ -47,7 +46,7 @@ const readTiles = (value: string | null): Map<string, number> => {
 };
 
 export interface MinimapStore {
-  readonly tiles: Map<string, number>;
+  readonly tiles: ReadonlyMap<string, number>;
   readonly revision: Readonly<Ref<number>>;
   readonly cameraCoordinate: Readonly<Ref<ReturnType<SeleneUiApi['world']['getCameraCoordinate']>>>;
   readonly zoom: Readonly<Ref<number>>;
@@ -59,7 +58,6 @@ export interface MinimapStore {
   toggleZoom(): void;
   adjustZoom(amount: number): void;
   toggleRotation(): void;
-  dispose(): void;
 }
 
 export const minimapStoreKey: InjectionKey<MinimapStore> = Symbol('minimap-store');
@@ -80,12 +78,24 @@ export const createMinimapStore = (selene: SeleneUiApi): MinimapStore => {
   const rotated = ref(false);
   let saveTimer: ReturnType<typeof setTimeout> | undefined;
   let initialization: Promise<void> | undefined;
+  let saveQueue = Promise.resolve();
+  let mapDirty = false;
+
+  const save = (key: string, value: string) => {
+    const pendingSave = saveQueue.then(() => selene.storage.save(key, value));
+    saveQueue = pendingSave.catch(() => undefined);
+    return pendingSave;
+  };
 
   const flush = async () => {
     if (saveTimer !== undefined) {
       clearTimeout(saveTimer);
     }
     saveTimer = undefined;
+    if (!mapDirty) {
+      return;
+    }
+    mapDirty = false;
     const data: StoredPlayerData = { version: STORAGE_VERSION, minimapTiles: [] };
     for (const [key, colorIndex] of tiles) {
       const coordinates = key.split(':').map(Number);
@@ -93,7 +103,12 @@ export const createMinimapStore = (selene: SeleneUiApi): MinimapStore => {
         data.minimapTiles.push([coordinates[0], coordinates[1], coordinates[2], colorIndex]);
       }
     }
-    await selene.storage.save(STORAGE_KEY, JSON.stringify(data));
+    try {
+      await save(STORAGE_KEY, JSON.stringify(data));
+    } catch (error) {
+      mapDirty = true;
+      throw error;
+    }
   };
 
   const scheduleSave = () => {
@@ -120,18 +135,30 @@ export const createMinimapStore = (selene: SeleneUiApi): MinimapStore => {
       changed = true;
     }
     if (changed) {
+      mapDirty = true;
       revision.value += 1;
       scheduleSave();
     }
   };
 
   const saveZoom = () => {
-    void selene.storage.save(ZOOM_STORAGE_KEY, String(Math.round((zoom.value - 1) * 1000)));
+    void save(ZOOM_STORAGE_KEY, String(Math.round((zoom.value - 1) * 1000))).catch((error: unknown) =>
+      console.warn('Could not persist minimap zoom.', error),
+    );
   };
 
   const setZoom = (value: number) => {
     zoom.value = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Math.round(value * 10) / 10));
     saveZoom();
+  };
+
+  const load = async (key: string) => {
+    try {
+      return await selene.storage.load(key);
+    } catch (error) {
+      console.warn(`Could not load minimap storage key "${key}".`, error);
+      return null;
+    }
   };
 
   return {
@@ -149,9 +176,9 @@ export const createMinimapStore = (selene: SeleneUiApi): MinimapStore => {
       initialization ??= (async () => {
         try {
           const [storedTiles, storedZoom, storedRotation] = await Promise.all([
-            selene.storage.load(STORAGE_KEY),
-            selene.storage.load(ZOOM_STORAGE_KEY),
-            selene.storage.load(ROTATION_STORAGE_KEY),
+            load(STORAGE_KEY),
+            load(ZOOM_STORAGE_KEY),
+            load(ROTATION_STORAGE_KEY),
           ]);
           for (const [key, colorIndex] of readTiles(storedTiles)) {
             tiles.set(key, colorIndex);
@@ -167,8 +194,8 @@ export const createMinimapStore = (selene: SeleneUiApi): MinimapStore => {
         refresh();
         revision.value += 1;
         selene.world.onMapChanged(refresh);
-        selene.world.onCameraCoordinateChanged(() => {
-          cameraCoordinate.value = selene.world.getCameraCoordinate();
+        selene.world.onCameraCoordinateChanged((coordinate) => {
+          cameraCoordinate.value = coordinate;
         });
       })();
       return initialization;
@@ -181,10 +208,9 @@ export const createMinimapStore = (selene: SeleneUiApi): MinimapStore => {
     },
     toggleRotation() {
       rotated.value = !rotated.value;
-      void selene.storage.save(ROTATION_STORAGE_KEY, rotated.value ? '1' : '0');
-    },
-    dispose() {
-      void flush().catch((error: unknown) => console.warn('Could not persist minimap data.', error));
+      void save(ROTATION_STORAGE_KEY, rotated.value ? '1' : '0').catch((error: unknown) =>
+        console.warn('Could not persist minimap rotation.', error),
+      );
     },
   };
 };

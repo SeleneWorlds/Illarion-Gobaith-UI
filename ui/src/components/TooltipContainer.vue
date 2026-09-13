@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { nextTick, onUnmounted, provide, reactive, useTemplateRef, watch } from 'vue';
-import { inventorySlotElement } from '../inventoryInteractions';
 import { tooltipControllerKey, type TooltipOptions } from '../overlays';
 import { useInventoryStore } from '../stores/inventory';
 
@@ -69,7 +68,11 @@ watch(inventory.tooltipResponse, (response) => {
     hide();
     return;
   }
-  const anchor = inventorySlotElement(response.slot);
+  const anchor = document
+    .querySelector<HTMLElement>(
+      `[data-inventory-slot-button][data-view-id="${response.slot.viewId}"][data-slot-id="${response.slot.slotId}"]`,
+    )
+    ?.closest<HTMLElement>('[data-inventory-slot]');
   if (anchor) {
     void show({ anchor, title: response.tooltip.name ?? '', description: response.tooltip.description });
   }

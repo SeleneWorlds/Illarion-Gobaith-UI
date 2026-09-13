@@ -5,6 +5,9 @@ export interface InventorySlotDefinition {
   slotId: number;
 }
 
+export const sameInventorySlot = (left: InventorySlotDefinition, right: InventorySlotDefinition) =>
+  left.viewId === right.viewId && left.slotId === right.slotId;
+
 export interface InventoryItem {
   visual: string;
   count: number;

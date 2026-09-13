@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onUnmounted, provide, useTemplateRef } from 'vue';
+import { provide, useTemplateRef } from 'vue';
 import BloodFog from './components/BloodFog.vue';
 import ChatPanel from './components/ChatPanel.vue';
 import CounterPanel from './components/CounterPanel.vue';
@@ -26,9 +26,6 @@ provide(vitalsStoreKey, vitals);
 provide(inventoryStoreKey, inventory);
 provide(minimapStoreKey, minimap);
 void minimap.initialize();
-onUnmounted(() => {
-  minimap.dispose();
-});
 </script>
 
 <template>

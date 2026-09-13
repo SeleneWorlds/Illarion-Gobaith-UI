@@ -1,4 +1,3 @@
-// TODO deslop file
 import { inject, readonly, ref, type InjectionKey, type Ref } from 'vue';
 import type { SeleneUiApi } from '../selene';
 

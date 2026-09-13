@@ -1,11 +1,33 @@
 <script setup lang="ts">
 import { nextTick, onMounted, onUnmounted, reactive, useTemplateRef } from 'vue';
-import type { InventoryItem, InventorySlotDefinition } from '../inventory';
-import { inventorySlotAt, isInWorldViewport, sameInventorySlot } from '../inventoryInteractions';
+import { sameInventorySlot, type InventoryItem, type InventorySlotDefinition } from '../inventory';
 import type { Coordinate, SelenePointerEvent } from '../selene';
 import { useSelene } from '../selene';
 import { useInventoryStore } from '../stores/inventory';
 import SeleneVisual from './SeleneVisual.vue';
+
+const isInWorldViewport = (x: number, y: number) => x >= 0 && x < 839 && y >= 0 && y < 419;
+
+const inventorySlotAt = (x: number, y: number): InventorySlotDefinition | undefined => {
+  const candidate = document
+    .elementsFromPoint(x, y)
+    .map((node) => (node instanceof HTMLElement ? node.closest<HTMLElement>('[data-inventory-slot-button]') : null))
+    .find((node) => node !== null);
+  if (!(candidate instanceof HTMLElement)) {
+    return undefined;
+  }
+
+  const rect = candidate.getBoundingClientRect();
+  const normalizedX = Math.abs(x - (rect.left + rect.width / 2)) / (rect.width / 2);
+  const normalizedY = Math.abs(y - (rect.top + rect.height / 2)) / (rect.height / 2);
+  if (normalizedX + normalizedY > 1) {
+    return undefined;
+  }
+
+  const viewId = candidate.dataset.viewId;
+  const slotId = Number(candidate.dataset.slotId);
+  return (viewId === 'equipment' || viewId === 'belt') && Number.isInteger(slotId) ? { viewId, slotId } : undefined;
+};
 
 interface InventoryPointer {
   slot: InventorySlotDefinition;

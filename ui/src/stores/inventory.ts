@@ -1,4 +1,3 @@
-// TODO deslop file
 import { inject, reactive, readonly, ref, type InjectionKey, type Ref } from 'vue';
 import type { ClientNetworkPayload, Coordinate, SeleneUiApi } from '../selene';
 import type { InventoryItem, InventorySlotDefinition, InventoryTooltipResponse } from '../inventory';
@@ -35,17 +34,15 @@ export interface InventoryStore {
 
 export const inventoryStoreKey: InjectionKey<InventoryStore> = Symbol('inventory-store');
 
-const payloadString = (payload: ClientNetworkPayload, field: string) =>
-  typeof payload[field] === 'string' ? (payload[field] as string) : undefined;
-const payloadNumber = (payload: ClientNetworkPayload, field: string) =>
-  typeof payload[field] === 'number' && Number.isInteger(payload[field]) ? (payload[field] as number) : undefined;
 const slotKey = (viewId: InventorySlotDefinition['viewId'], slotId: number) => `${viewId}:${slotId}`;
 const sameSlot = (left: InventorySlotDefinition, right: InventorySlotDefinition) =>
   left.viewId === right.viewId && left.slotId === right.slotId;
 const payloadSlot = (payload: ClientNetworkPayload): InventorySlotDefinition | undefined => {
-  const viewId = payloadString(payload, 'viewId');
-  const slotId = payloadNumber(payload, 'slotId');
-  return (viewId === 'equipment' || viewId === 'belt') && slotId !== undefined ? { viewId, slotId } : undefined;
+  const viewId = payload.viewId;
+  const slotId = payload.slotId;
+  return (viewId === 'equipment' || viewId === 'belt') && typeof slotId === 'number' && Number.isInteger(slotId)
+    ? { viewId, slotId }
+    : undefined;
 };
 
 export const createInventoryStore = (network: NetworkApi): InventoryStore => {
