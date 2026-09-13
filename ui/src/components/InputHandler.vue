@@ -21,6 +21,13 @@ interface InventoryPointer {
   dragged: boolean;
 }
 
+interface WorldPointer {
+  coordinate: Coordinate;
+  downX: number;
+  downY: number;
+  dragged: boolean;
+}
+
 const selene = useSelene();
 const inventory = useInventoryStore();
 const previewElement = useTemplateRef<HTMLElement>('previewElement');
@@ -31,7 +38,7 @@ const preview = reactive({
   top: 0,
 });
 let inventoryPointer: InventoryPointer | undefined;
-let worldPointer: Coordinate | undefined;
+let worldPointer: WorldPointer | undefined;
 let suppressedClick: { x: number; y: number; button: number } | undefined;
 
 const updatePreviewPosition = (clientX: number, clientY: number) => {
@@ -74,6 +81,10 @@ const onMouseMove = (event: MouseEvent) => {
     inventoryPointer.dragged ||=
       Math.abs(event.clientX - inventoryPointer.downX) + Math.abs(event.clientY - inventoryPointer.downY) > 3;
   }
+  if (worldPointer) {
+    worldPointer.dragged ||=
+      Math.abs(event.clientX - worldPointer.downX) + Math.abs(event.clientY - worldPointer.downY) > 3;
+  }
   updatePreviewPosition(event.clientX, event.clientY);
 };
 
@@ -93,7 +104,7 @@ const onClick = (event: MouseEvent) => {
 
 const onPointerDown = ({ button, shiftKey, clientX, clientY, coordinate }: SelenePointerEvent) => {
   if (button === 0 && !shiftKey && isInWorldViewport(clientX, clientY)) {
-    worldPointer = coordinate;
+    worldPointer = { coordinate, downX: clientX, downY: clientY, dragged: false };
     const source = worldPointer;
     void selene.world
       .getEntitiesAt(coordinate)
@@ -129,8 +140,8 @@ const releaseOn = (target: InventoryDropTarget) => {
       suppressedClick = { x: target.clientX, y: target.clientY, button: 0 };
       target.acceptSlot(source, item, inventory.counter.value);
     }
-  } else if (worldPointer && target.acceptCoordinate) {
-    target.acceptCoordinate(worldPointer, inventory.counter.value);
+  } else if (worldPointer?.dragged && target.acceptCoordinate) {
+    target.acceptCoordinate(worldPointer.coordinate, inventory.counter.value);
   }
   resetPointers();
 };
@@ -145,6 +156,11 @@ const onPointerUp = ({ button, clientX, clientY, coordinate }: SelenePointerEven
       if (isInWorldViewport(clientX, clientY)) {
         inventory.moveSlotToCoordinate(source.viewId, source.slotId, coordinate, inventory.counter.value);
       }
+    }
+  } else if (worldPointer?.dragged) {
+    suppressedClick = { x: clientX, y: clientY, button };
+    if (isInWorldViewport(clientX, clientY)) {
+      inventory.moveCoordinateToCoordinate(worldPointer.coordinate, coordinate, inventory.counter.value);
     }
   }
   resetPointers();

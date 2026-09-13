@@ -25,6 +25,7 @@ export interface InventoryStore {
     slotId: number,
     count: number,
   ): void;
+  moveCoordinateToCoordinate(from: Coordinate, to: Coordinate, count: number): void;
   openContainer(viewId: InventorySlotDefinition['viewId'], slotId: number, count: number): void;
   use(viewId: InventorySlotDefinition['viewId'], slotId: number, count?: number): void;
   selectUseSlot(viewId: InventorySlotDefinition['viewId'], slotId: number): void;
@@ -127,6 +128,17 @@ export const createInventoryStore = (network: NetworkApi): InventoryStore => {
         fromZ: from.z,
         toViewId: viewId,
         toSlotId: slotId,
+        count,
+      });
+    },
+    moveCoordinateToCoordinate(from, to, count) {
+      network.sendToServer('illarion:move_coordinate_to_coordinate', {
+        fromX: from.x,
+        fromY: from.y,
+        fromZ: from.z,
+        toX: to.x,
+        toY: to.y,
+        toZ: to.z,
         count,
       });
     },
