@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useClientAssetSrc, useClientAssetStyle } from '../composables/useClientAsset';
-import type { InventoryViewId } from '../inventory';
+import type { InventoryDragStartDetail, InventoryViewId } from '../inventory';
 import { useMenu } from '../overlays';
 import { useInventoryStore } from '../stores/inventory';
 import InventoryItemMenu from './InventoryItemMenu.vue';
 import SeleneVisual from './SeleneVisual.vue';
 
 const props = defineProps<{ viewId: InventoryViewId; slotId: number }>();
+const emit = defineEmits<{ dragStart: [detail: InventoryDragStartDetail] }>();
 
 const slotBackground = useClientAssetStyle('client/textures/illarion/ui/inv_slot-0.png');
 const hoverBackground = useClientAssetStyle('client/textures/illarion/ui/inv_slot-7.png');
@@ -35,9 +36,18 @@ const lookAt = () => {
   }
 };
 const onMouseDown = (event: MouseEvent) => {
-  if (item.value && event.shiftKey) {
+  if (!item.value) {
+    return;
+  }
+  if (event.shiftKey) {
     inventory.selectUseSlot(props.viewId, props.slotId);
   }
+  emit('dragStart', {
+    viewId: props.viewId,
+    slotId: props.slotId,
+    clientX: event.clientX,
+    clientY: event.clientY,
+  });
 };
 type ItemMenuAction = 'open' | 'lookAt' | 'use' | 'useWith' | 'drop';
 const onContextMenu = async (event: MouseEvent) => {

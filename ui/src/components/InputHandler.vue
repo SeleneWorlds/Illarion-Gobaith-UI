@@ -1,26 +1,24 @@
 <script setup lang="ts">
-import { nextTick, onMounted, onUnmounted, reactive, useTemplateRef } from 'vue';
-import { sameInventorySlot, type InventoryItem, type InventorySlotDefinition } from '../inventory';
+import { nextTick, onMounted, onUnmounted, provide, reactive, useTemplateRef } from 'vue';
+import {
+  sameInventorySlot,
+  type InventoryDragStartDetail,
+  type InventoryItem,
+  type InventorySlotDefinition,
+} from '../inventory';
 import type { Coordinate, SelenePointerEvent } from '../selene';
 import { useSelene } from '../selene';
+import { inventoryDragKey } from '../inventoryDrag';
 import { useInventoryStore } from '../stores/inventory';
 import SeleneVisual from './SeleneVisual.vue';
 
 const isInWorldViewport = (x: number, y: number) => x >= 0 && x < 839 && y >= 0 && y < 419;
 
-const inventorySlotAt = (x: number, y: number): InventorySlotDefinition | undefined => {
-  const candidate = document
-    .elementsFromPoint(x, y)
-    .map((node) => (node instanceof HTMLElement ? node.closest<HTMLElement>('[data-inventory-slot-button]') : null))
-    .find((node) => node !== null);
+const inventorySlotFromEvent = (event: MouseEvent): InventorySlotDefinition | undefined => {
+  const candidate = event
+    .composedPath()
+    .find((node): node is HTMLElement => node instanceof HTMLElement && node.matches('[data-inventory-slot-button]'));
   if (!(candidate instanceof HTMLElement)) {
-    return undefined;
-  }
-
-  const rect = candidate.getBoundingClientRect();
-  const normalizedX = Math.abs(x - (rect.left + rect.width / 2)) / (rect.width / 2);
-  const normalizedY = Math.abs(y - (rect.top + rect.height / 2)) / (rect.height / 2);
-  if (normalizedX + normalizedY > 1) {
     return undefined;
   }
 
@@ -61,26 +59,22 @@ const updatePreviewPosition = (clientX: number, clientY: number) => {
   preview.top = (clientY - rect.top) / scale;
 };
 
-const onMouseDown = (event: MouseEvent) => {
+const startInventoryDrag = ({ viewId, slotId, clientX, clientY }: InventoryDragStartDetail) => {
   suppressedClick = undefined;
-  if (event.button !== 0) {
-    return;
-  }
-  const slot = inventorySlotAt(event.clientX, event.clientY);
-  if (!slot) {
-    return;
-  }
+  const slot = { viewId, slotId };
   const item = inventory.getItem(slot.viewId, slot.slotId);
   if (!item) {
     return;
   }
-  inventoryPointer = { slot, item, downX: event.clientX, downY: event.clientY, dragged: false };
+  inventoryPointer = { slot, item, downX: clientX, downY: clientY, dragged: false };
   preview.item = item;
   preview.slot = slot;
-  preview.left = event.clientX;
-  preview.top = event.clientY;
-  void nextTick(() => updatePreviewPosition(event.clientX, event.clientY));
+  preview.left = clientX;
+  preview.top = clientY;
+  void nextTick(() => updatePreviewPosition(clientX, clientY));
 };
+
+provide(inventoryDragKey, { start: startInventoryDrag });
 
 const finishUse = (event: KeyboardEvent) => {
   if (event.key === 'Shift') {
@@ -117,44 +111,64 @@ const onPointerDown = ({ button, shiftKey, clientX, clientY, coordinate }: Selen
   }
 };
 
-const onPointerUp = ({ button, clientX, clientY, coordinate }: SelenePointerEvent) => {
-  const target = inventorySlotAt(clientX, clientY);
-  if (inventoryPointer) {
-    const { slot: source, dragged } = inventoryPointer;
-    if (dragged) {
-      suppressedClick = { x: clientX, y: clientY, button };
-    }
-    if (dragged && target && !sameInventorySlot(target, source)) {
-      inventory.moveSlotToSlot(source.viewId, source.slotId, target.viewId, target.slotId, inventory.counter.value);
-    } else if (dragged && !target && isInWorldViewport(clientX, clientY)) {
-      inventory.moveSlotToCoordinate(source.viewId, source.slotId, coordinate, inventory.counter.value);
-    }
-  } else if (worldPointer && target) {
-    inventory.moveCoordinateToSlot(worldPointer, target.viewId, target.slotId, inventory.counter.value);
-  }
+const resetPointers = () => {
   inventoryPointer = undefined;
   worldPointer = undefined;
   preview.item = undefined;
   preview.slot = undefined;
 };
 
+const onMouseUp = (event: MouseEvent) => {
+  if (event.button !== 0) {
+    return;
+  }
+  const target = inventorySlotFromEvent(event);
+  if (!target) {
+    return;
+  }
+  if (inventoryPointer) {
+    const { slot: source, dragged } = inventoryPointer;
+    if (dragged) {
+      suppressedClick = { x: event.clientX, y: event.clientY, button: event.button };
+    }
+    if (dragged && !sameInventorySlot(target, source)) {
+      inventory.moveSlotToSlot(source.viewId, source.slotId, target.viewId, target.slotId, inventory.counter.value);
+    }
+  } else if (worldPointer) {
+    inventory.moveCoordinateToSlot(worldPointer, target.viewId, target.slotId, inventory.counter.value);
+  }
+  resetPointers();
+};
+
+const onPointerUp = ({ button, clientX, clientY, coordinate }: SelenePointerEvent) => {
+  if (inventoryPointer) {
+    const { slot: source, dragged } = inventoryPointer;
+    if (dragged) {
+      suppressedClick = { x: clientX, y: clientY, button };
+      inventory.moveSlotToCoordinate(source.viewId, source.slotId, coordinate, inventory.counter.value);
+    }
+  }
+  resetPointers();
+};
+
 onMounted(() => {
-  window.addEventListener('mousedown', onMouseDown, true);
   window.addEventListener('mousemove', onMouseMove, true);
+  window.addEventListener('mouseup', onMouseUp, true);
   window.addEventListener('click', onClick, true);
   window.addEventListener('keyup', finishUse, true);
   selene.input.onPointerDown(onPointerDown);
   selene.input.onPointerUp(onPointerUp);
 });
 onUnmounted(() => {
-  window.removeEventListener('mousedown', onMouseDown, true);
   window.removeEventListener('mousemove', onMouseMove, true);
+  window.removeEventListener('mouseup', onMouseUp, true);
   window.removeEventListener('click', onClick, true);
   window.removeEventListener('keyup', finishUse, true);
 });
 </script>
 
 <template>
+  <slot />
   <span
     v-if="preview.item && preview.slot"
     ref="previewElement"

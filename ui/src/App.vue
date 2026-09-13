@@ -32,16 +32,17 @@ void minimap.initialize();
   <main class="hud" aria-label="Illarion game interface">
     <TooltipContainer>
       <MenuContainer>
-        <InputHandler />
-        <BloodFog />
-        <img class="bottom-frame" :src="selene.resolveAsset('./assets/gui_bottom.png')" alt="" />
-        <img class="top-frame" :src="selene.resolveAsset('./assets/gui_top.png')" alt="" />
-        <MinimapPanel @open-world-map="openWorldMap" />
-        <WorldMap ref="worldMap" />
-        <ChatPanel />
-        <CounterPanel />
-        <StatusPanel />
-        <InventoryPanel />
+        <InputHandler>
+          <BloodFog />
+          <img class="bottom-frame" :src="selene.resolveAsset('./assets/gui_bottom.png')" alt="" />
+          <img class="top-frame" :src="selene.resolveAsset('./assets/gui_top.png')" alt="" />
+          <MinimapPanel @open-world-map="openWorldMap" />
+          <WorldMap ref="worldMap" />
+          <ChatPanel />
+          <CounterPanel />
+          <StatusPanel />
+          <InventoryPanel />
+        </InputHandler>
       </MenuContainer>
     </TooltipContainer>
   </main>

@@ -5,6 +5,11 @@ export interface InventorySlotDefinition {
   slotId: number;
 }
 
+export interface InventoryDragStartDetail extends InventorySlotDefinition {
+  clientX: number;
+  clientY: number;
+}
+
 export const sameInventorySlot = (left: InventorySlotDefinition, right: InventorySlotDefinition) =>
   left.viewId === right.viewId && left.slotId === right.slotId;
 
