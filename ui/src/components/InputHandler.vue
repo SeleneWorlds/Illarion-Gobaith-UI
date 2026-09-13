@@ -25,8 +25,8 @@ const selene = useSelene();
 const inventory = useInventoryStore();
 const previewElement = useTemplateRef<HTMLElement>('previewElement');
 const preview = reactive({
-  item: undefined as InventoryItem | undefined,
-  slot: undefined as InventorySlotDefinition | undefined,
+  visual: undefined as string | undefined,
+  seed: undefined as string | undefined,
   left: 0,
   top: 0,
 });
@@ -53,8 +53,8 @@ const startInventoryDrag = ({ viewId, slotId, clientX, clientY }: InventoryDragS
     return;
   }
   inventoryPointer = { slot, item, downX: clientX, downY: clientY, dragged: false };
-  preview.item = item;
-  preview.slot = slot;
+  preview.visual = item.visual;
+  preview.seed = `${slot.viewId}:${slot.slotId}`;
   preview.left = clientX;
   preview.top = clientY;
   void nextTick(() => updatePreviewPosition(clientX, clientY));
@@ -67,11 +67,13 @@ const finishUse = (event: KeyboardEvent) => {
 };
 
 const onMouseMove = (event: MouseEvent) => {
-  if (!inventoryPointer) {
+  if (!inventoryPointer && !worldPointer) {
     return;
   }
-  inventoryPointer.dragged ||=
-    Math.abs(event.clientX - inventoryPointer.downX) + Math.abs(event.clientY - inventoryPointer.downY) > 3;
+  if (inventoryPointer) {
+    inventoryPointer.dragged ||=
+      Math.abs(event.clientX - inventoryPointer.downX) + Math.abs(event.clientY - inventoryPointer.downY) > 3;
+  }
   updatePreviewPosition(event.clientX, event.clientY);
 };
 
@@ -92,14 +94,32 @@ const onClick = (event: MouseEvent) => {
 const onPointerDown = ({ button, shiftKey, clientX, clientY, coordinate }: SelenePointerEvent) => {
   if (button === 0 && !shiftKey && isInWorldViewport(clientX, clientY)) {
     worldPointer = coordinate;
+    const source = worldPointer;
+    void selene.world
+      .getEntitiesAt(coordinate)
+      .then((entities) => {
+        if (worldPointer !== source) {
+          return;
+        }
+        const item = [...entities].reverse().find((entity) => entity.tags.includes('illarion:item') && entity.visual);
+        if (!item?.visual) {
+          return;
+        }
+        preview.visual = item.visual;
+        preview.seed = String(item.networkId);
+        preview.left = clientX;
+        preview.top = clientY;
+        void nextTick(() => updatePreviewPosition(clientX, clientY));
+      })
+      .catch(() => undefined);
   }
 };
 
 const resetPointers = () => {
   inventoryPointer = undefined;
   worldPointer = undefined;
-  preview.item = undefined;
-  preview.slot = undefined;
+  preview.visual = undefined;
+  preview.seed = undefined;
 };
 
 const releaseOn = (target: InventoryDropTarget) => {
@@ -147,14 +167,14 @@ onUnmounted(() => {
 <template>
   <slot />
   <span
-    v-if="preview.item && preview.slot"
+    v-if="preview.visual && preview.seed"
     ref="previewElement"
     class="drag-preview-overlay"
     :style="{ left: `${preview.left}px`, top: `${preview.top}px` }"
   >
     <SeleneVisual
-      :identifier="preview.item.visual"
-      :seed="`${preview.slot.viewId}:${preview.slot.slotId}`"
+      :identifier="preview.visual"
+      :seed="preview.seed"
       without-offset
     />
   </span>
