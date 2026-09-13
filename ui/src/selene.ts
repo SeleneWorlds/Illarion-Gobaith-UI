@@ -1,4 +1,4 @@
-// TODO deslop, this type info should be imported from a package instead of duplicated in UIs
+// TODO This should later be moved into a selene-ui package that can be used by other bundles too
 import { inject, type InjectionKey } from 'vue';
 
 export type ClientNetworkPayload = Record<string, unknown>;
@@ -78,3 +78,63 @@ export interface VisualDefinition extends VisualFrameDefinition {
   layers?: VisualDefinition[];
   instanced?: boolean;
 }
+
+export const createMockSeleneUiApi = (): SeleneUiApi => {
+  const passthroughKeys = new Map<string, number>();
+
+  return {
+    apiVersion: 4,
+    resolveAsset: (path) => new URL(path, window.location.href).href,
+    visuals: {
+      getDefinition: async (identifier) => {
+        const response = await fetch('/client/registries/selene:visuals');
+        const snapshot = (await response.json()) as { entries?: Record<string, VisualDefinition> };
+        const definition = snapshot.entries?.[identifier];
+        if (!definition) {
+          throw new Error(`Visual not found: ${identifier}`);
+        }
+        return definition;
+      },
+    },
+    storage: {
+      load: async (key) => window.localStorage.getItem(`selene.bundle.dev.${key}`),
+      save: async (key, value) => window.localStorage.setItem(`selene.bundle.dev.${key}`, value),
+    },
+    input: {
+      captureKeys: () => () => undefined,
+      captureText: () => () => undefined,
+      passThroughKeys: (...keys) => {
+        const uniqueKeys = new Set(keys);
+        uniqueKeys.forEach((key) => passthroughKeys.set(key, (passthroughKeys.get(key) ?? 0) + 1));
+        let active = true;
+        return () => {
+          if (!active) {
+            return;
+          }
+          active = false;
+          uniqueKeys.forEach((key) => {
+            const count = passthroughKeys.get(key)! - 1;
+            if (count) {
+              passthroughKeys.set(key, count);
+            } else {
+              passthroughKeys.delete(key);
+            }
+          });
+        };
+      },
+      isPassthroughKey: (key) => passthroughKeys.has(key),
+      onPointerDown: () => () => undefined,
+      onPointerUp: () => () => undefined,
+    },
+    network: {
+      sendToServer: (payloadId, payload) => console.info('[Selene UI]', payloadId, payload),
+      onPayload: () => () => undefined,
+    },
+    world: {
+      getCameraCoordinate: () => ({ x: 0, y: 0, z: 0 }),
+      getMapTiles: () => [],
+      onCameraCoordinateChanged: () => () => undefined,
+      onMapChanged: () => () => undefined,
+    },
+  };
+};

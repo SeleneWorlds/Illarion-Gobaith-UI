@@ -1,5 +1,4 @@
 <script setup lang="ts">
-// TODO deslop file
 import { computed, nextTick, onUnmounted, ref, useTemplateRef, watch } from 'vue';
 import { MAP_COLORS } from '../map';
 import { useSelene } from '../selene';
@@ -12,10 +11,8 @@ const visible = ref(false);
 const WORLD_SIZE = 1024;
 const WORLD_OFFSET_X = 500;
 const WORLD_OFFSET_Y = 524;
-const crosshairStyle = computed(() => ({
-  left: `${(WORLD_OFFSET_X + minimap.cameraCoordinate.value.x) / 2}px`,
-  top: `${(WORLD_SIZE - (WORLD_OFFSET_Y - minimap.cameraCoordinate.value.y)) / 2}px`,
-}));
+const crosshairLeft = computed(() => (WORLD_OFFSET_X + minimap.cameraCoordinate.value.x) / 2);
+const crosshairTop = computed(() => (WORLD_SIZE - (WORLD_OFFSET_Y - minimap.cameraCoordinate.value.y)) / 2);
 
 const draw = () => {
   const context = canvas.value?.getContext('2d');
@@ -33,11 +30,11 @@ const draw = () => {
       continue;
     }
     const worldX = WORLD_OFFSET_X + x;
-    const legacyWorldY = WORLD_OFFSET_Y - y;
-    if (worldX < 0 || worldX >= WORLD_SIZE || legacyWorldY < 0 || legacyWorldY >= WORLD_SIZE) {
+    const worldY = WORLD_OFFSET_Y - y;
+    if (worldX < 0 || worldX >= WORLD_SIZE || worldY < 0 || worldY >= WORLD_SIZE) {
       continue;
     }
-    const canvasY = WORLD_SIZE - 1 - legacyWorldY;
+    const canvasY = WORLD_SIZE - 1 - worldY;
     const color = MAP_COLORS[colorIndex] ?? MAP_COLORS[0];
     const offset = (canvasY * WORLD_SIZE + worldX) * 4;
     image.data[offset] = color[0];
@@ -74,7 +71,7 @@ const onKeydown = (event: KeyboardEvent) => {
     open();
   }
 };
-const releaseCapturedKey = selene.input.captureKeys('F9');
+selene.input.captureKeys('F9');
 watch(minimap.revision, () => {
   if (visible.value) {
     draw();
@@ -94,7 +91,6 @@ watch(visible, async (value) => {
   draw();
 });
 onUnmounted(() => {
-  releaseCapturedKey();
   window.removeEventListener('keydown', onKeydown);
 });
 </script>
@@ -104,7 +100,7 @@ onUnmounted(() => {
     <img class="frame" :src="selene.resolveAsset('./assets/menu_short.png')" alt="" />
     <div class="viewport">
       <canvas ref="canvas" class="surface" :width="WORLD_SIZE" :height="WORLD_SIZE" />
-      <span class="crosshair" :style="crosshairStyle" aria-hidden="true" />
+      <span class="crosshair" aria-hidden="true" />
     </div>
     <button class="close" type="button" aria-label="Close world map" @click="close">
       <img :src="selene.resolveAsset('./assets/menu_close.png')" alt="" />
@@ -156,8 +152,8 @@ onUnmounted(() => {
   transform: translate(-50%, -50%);
 }
 .crosshair {
-  top: 0;
-  left: 0;
+  top: calc(v-bind(crosshairTop) * 1px);
+  left: calc(v-bind(crosshairLeft) * 1px);
 }
 .crosshair::after {
   top: 50%;

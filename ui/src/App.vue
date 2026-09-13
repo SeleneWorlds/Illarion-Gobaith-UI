@@ -27,8 +27,6 @@ provide(inventoryStoreKey, inventory);
 provide(minimapStoreKey, minimap);
 void minimap.initialize();
 onUnmounted(() => {
-  vitals.dispose();
-  inventory.dispose();
   minimap.dispose();
 });
 </script>

@@ -80,9 +80,6 @@ export const createMinimapStore = (selene: SeleneUiApi): MinimapStore => {
   const rotated = ref(false);
   let saveTimer: ReturnType<typeof setTimeout> | undefined;
   let initialization: Promise<void> | undefined;
-  let unsubscribeMap: (() => void) | undefined;
-  let unsubscribeCamera: (() => void) | undefined;
-  let disposed = false;
 
   const flush = async () => {
     if (saveTimer !== undefined) {
@@ -169,12 +166,10 @@ export const createMinimapStore = (selene: SeleneUiApi): MinimapStore => {
         }
         refresh();
         revision.value += 1;
-        if (!disposed) {
-          unsubscribeMap = selene.world.onMapChanged(refresh);
-          unsubscribeCamera = selene.world.onCameraCoordinateChanged(() => {
-            cameraCoordinate.value = selene.world.getCameraCoordinate();
-          });
-        }
+        selene.world.onMapChanged(refresh);
+        selene.world.onCameraCoordinateChanged(() => {
+          cameraCoordinate.value = selene.world.getCameraCoordinate();
+        });
       })();
       return initialization;
     },
@@ -189,11 +184,6 @@ export const createMinimapStore = (selene: SeleneUiApi): MinimapStore => {
       void selene.storage.save(ROTATION_STORAGE_KEY, rotated.value ? '1' : '0');
     },
     dispose() {
-      disposed = true;
-      unsubscribeMap?.();
-      unsubscribeMap = undefined;
-      unsubscribeCamera?.();
-      unsubscribeCamera = undefined;
       void flush().catch((error: unknown) => console.warn('Could not persist minimap data.', error));
     },
   };

@@ -1,75 +1,33 @@
 <script setup lang="ts">
-// TODO deslop file
-import { computed, onUnmounted, ref, watch, type Ref } from 'vue';
-import { useSelene } from '../selene';
+import { computed, ref } from 'vue';
+import { useClientAssetSrc, useClientAssetStyle } from '../composables/useClientAsset';
 import { useVitalsStore } from '../stores/vitals';
 
-const selene = useSelene();
-const vitals = useVitalsStore();
-const mode = ref<0 | 1>(0);
-const tooltips = [
-  'These gauges show your health, when you need to eat and your mana. Click to show the clock.',
-  'This clock shows the day and month, the time of day and the temperature. Click to show your status.',
-] as const;
-const backgroundImage = (path: string) => ({ backgroundImage: `url("${selene.resolveAsset(path)}")` });
+const { health, food, mana } = useVitalsStore();
+const modes = {
+  status: {
+    tooltip: 'These gauges show your health, when you need to eat and your mana. Click to show the clock.',
+    ariaLabel: 'Character status; show clock',
+    next: 'clock',
+  },
+  clock: {
+    tooltip: 'This clock shows the day and month, the time of day and the temperature. Click to show your status.',
+    ariaLabel: 'Game clock; show character status',
+    next: 'status',
+  },
+} as const;
+type Mode = keyof typeof modes;
 
-/** Reproduce Animation.approach at the legacy client's default 25 FPS. */
-const statusBar = (source: Readonly<Ref<number>>, asset: string, maxValue: number) => {
-  const value = ref(0);
-  let target = 0;
-  let frame: number | undefined;
-  let previousTime: number | undefined;
-  let elapsed = 0;
+const mode = ref<Mode>('status');
+const currentMode = computed(() => modes[mode.value]);
 
-  const approach = () => {
-    const difference = target - value.value;
-    if (difference === 0) {
-      return;
-    }
-    const step = Math.abs(difference) > 4 ? Math.trunc(difference / 4) : Math.sign(difference);
-    value.value = Math.min(maxValue, Math.max(0, value.value + step));
-  };
-  const animate = (time: number) => {
-    if (previousTime !== undefined) {
-      elapsed += Math.min(time - previousTime, 200);
-    }
-    previousTime = time;
-    while (elapsed >= 40) {
-      approach();
-      elapsed -= 40;
-    }
-    if (value.value !== target) {
-      frame = requestAnimationFrame(animate);
-    } else {
-      frame = undefined;
-      previousTime = undefined;
-      elapsed = 0;
-    }
-  };
-  watch(
-    source,
-    (normalizedValue) => {
-      target = Math.round(normalizedValue * maxValue);
-      if (frame === undefined && value.value !== target) {
-        frame = requestAnimationFrame(animate);
-      }
-    },
-    { immediate: true },
-  );
-  onUnmounted(() => {
-    if (frame !== undefined) {
-      cancelAnimationFrame(frame);
-    }
-  });
-  return computed(() => ({
-    ...backgroundImage(asset),
-    height: `${(value.value / maxValue) * 100}%`,
-  }));
-};
-
-const healthStyle = statusBar(vitals.health, './assets/status_health.png', 10_000);
-const foodStyle = statusBar(vitals.food, './assets/status_food.png', 60_000);
-const manaStyle = statusBar(vitals.mana, './assets/status_mana.png', 10_000);
+const healthBackground = useClientAssetStyle('client/textures/illarion/ui/status_health.png');
+const foodBackground = useClientAssetStyle('client/textures/illarion/ui/status_food.png');
+const manaBackground = useClientAssetStyle('client/textures/illarion/ui/status_mana.png');
+const frameSrc = useClientAssetSrc('client/textures/illarion/ui/gui_status.png');
+const clockTimeSrc = useClientAssetSrc('client/textures/illarion/ui/clock_time.png');
+const clockTemperatureSrc = useClientAssetSrc('client/textures/illarion/ui/clock_temp.png');
+const clockDragonSrc = useClientAssetSrc('client/textures/illarion/ui/clock_dragon.png');
 
 // Fixed until game date, time, and weather payloads are available.
 const clock = { day: '1.', month: 'Elos', year: '1', hour: 12, minute: 0, temperature: 15 };
@@ -82,28 +40,30 @@ const temperatureOffset = ((clock.temperature + 15) * 280) / 60;
     class="status"
     type="button"
     data-selene-interactive
-    :aria-label="mode === 0 ? 'Character status; show clock' : 'Game clock; show character status'"
-    :title="tooltips[mode]"
-    @click.stop="mode = mode === 0 ? 1 : 0"
+    :aria-label="currentMode.ariaLabel"
+    :title="currentMode.tooltip"
+    @click.stop="mode = currentMode.next"
   >
-    <template v-if="mode === 0">
-      <img class="frame" :src="selene.resolveAsset('./assets/gui_status.png')" alt="" />
-      <span class="bar health"><span :style="healthStyle" /></span>
-      <span class="bar food"><span :style="foodStyle" /></span>
-      <span class="bar mana"><span :style="manaStyle" /></span>
+    <template v-if="mode === 'status'">
+      <img class="frame" :src="frameSrc" alt="" />
+      <span class="bar health">
+        <span :style="{ backgroundImage: healthBackground, height: `${health * 100}%` }" />
+      </span>
+      <span class="bar food">
+        <span :style="{ backgroundImage: foodBackground, height: `${food * 100}%` }" />
+      </span>
+      <span class="bar mana">
+        <span :style="{ backgroundImage: manaBackground, height: `${mana * 100}%` }" />
+      </span>
     </template>
     <span v-else class="clock" aria-hidden="true">
       <span class="time-strip">
-        <img :src="selene.resolveAsset('./assets/clock_time.png')" alt="" :style="{ left: `${32 - timeOffset}px` }" />
+        <img :src="clockTimeSrc" alt="" :style="{ left: `${32 - timeOffset}px` }" />
       </span>
       <span class="temperature-strip">
-        <img
-          :src="selene.resolveAsset('./assets/clock_temp.png')"
-          alt=""
-          :style="{ left: `${67 - temperatureOffset}px` }"
-        />
+        <img :src="clockTemperatureSrc" alt="" :style="{ left: `${67 - temperatureOffset}px` }" />
       </span>
-      <img class="dragon" :src="selene.resolveAsset('./assets/clock_dragon.png')" alt="" />
+      <img class="dragon" :src="clockDragonSrc" alt="" />
       <span class="day">{{ clock.day }}</span>
       <span class="month">{{ clock.month }}</span>
       <span class="year">{{ clock.year }}</span>
@@ -151,6 +111,7 @@ const temperatureOffset = ((clock.temperature + 15) * 280) / 60;
   left: 0;
   background-position: bottom;
   background-repeat: repeat-y;
+  transition: height 180ms ease-out;
 }
 .health {
   left: 53px;

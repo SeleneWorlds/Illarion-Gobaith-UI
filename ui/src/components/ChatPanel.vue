@@ -29,7 +29,6 @@ const messages = ref<ChatMessage[]>([]);
 let nextMessageId = 0;
 // Promise queue for sending and saving macros
 let macroAction = Promise.resolve();
-const unsubscribers: Array<() => void> = [];
 
 const resizeInput = async () => {
   await nextTick();
@@ -163,29 +162,24 @@ const onWheel = (event: WheelEvent) => {
 };
 onMounted(() => {
   window.addEventListener('keydown', onWindowKeydown, true);
-  unsubscribers.push(selene.input.captureKeys('Enter', 'Backspace', ...DESCRIPTION_MACRO_KEYS));
-  unsubscribers.push(selene.input.captureText());
-  unsubscribers.push(selene.input.passThroughKeys('ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'));
-  unsubscribers.push(
-    selene.network.onPayload('illarion:inform', (payload) => void addMessage(payload.Message, 'inform')),
-  );
-  unsubscribers.push(
-    selene.network.onPayload('illarion:chat', (payload) => {
-      if (payload.showInChat === false) {
-        return;
-      }
-      const author = typeof payload.authorName === 'string' ? payload.authorName : '';
-      const text = typeof payload.message === 'string' ? payload.message : '';
-      if (author || text) {
-        void addMessage(text, payload.mode as MessageKind, author, true);
-      }
-    }),
-  );
+  selene.input.captureKeys('Enter', 'Backspace', ...DESCRIPTION_MACRO_KEYS);
+  selene.input.captureText();
+  selene.input.passThroughKeys('ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight');
+  selene.network.onPayload('illarion:inform', (payload) => void addMessage(payload.Message, 'inform'));
+  selene.network.onPayload('illarion:chat', (payload) => {
+    if (payload.showInChat === false) {
+      return;
+    }
+    const author = typeof payload.authorName === 'string' ? payload.authorName : '';
+    const text = typeof payload.message === 'string' ? payload.message : '';
+    if (author || text) {
+      void addMessage(text, payload.mode as MessageKind, author, true);
+    }
+  });
   void resizeInput();
 });
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onWindowKeydown, true);
-  unsubscribers.forEach((unsubscribe) => unsubscribe());
 });
 </script>
 
@@ -216,7 +210,7 @@ onBeforeUnmount(() => {
       @keyup="onInputKeyup"
     />
   </section>
-  <SpeechModeControl v-model="selectedMode" @language-select="selectLanguage" @interaction-complete="input?.focus()" />
+  <SpeechModeControl v-model="selectedMode" @language-select="selectLanguage" />
 </template>
 
 <style scoped>

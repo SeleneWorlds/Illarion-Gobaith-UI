@@ -27,7 +27,6 @@ const preview = reactive({
 let inventoryPointer: InventoryPointer | undefined;
 let worldPointer: Coordinate | undefined;
 let suppressedClick: { x: number; y: number; button: number } | undefined;
-const inputUnsubscribers: Array<() => void> = [];
 
 const updatePreviewPosition = (clientX: number, clientY: number) => {
   const container = previewElement.value?.offsetParent;
@@ -125,14 +124,14 @@ onMounted(() => {
   window.addEventListener('mousemove', onMouseMove, true);
   window.addEventListener('click', onClick, true);
   window.addEventListener('keyup', finishUse, true);
-  inputUnsubscribers.push(selene.input.onPointerDown(onPointerDown), selene.input.onPointerUp(onPointerUp));
+  selene.input.onPointerDown(onPointerDown);
+  selene.input.onPointerUp(onPointerUp);
 });
 onUnmounted(() => {
   window.removeEventListener('mousedown', onMouseDown, true);
   window.removeEventListener('mousemove', onMouseMove, true);
   window.removeEventListener('click', onClick, true);
   window.removeEventListener('keyup', finishUse, true);
-  inputUnsubscribers.splice(0).forEach((release) => release());
 });
 </script>
 

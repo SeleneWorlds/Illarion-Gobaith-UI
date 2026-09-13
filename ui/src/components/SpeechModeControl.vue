@@ -1,5 +1,4 @@
 <script setup lang="ts">
-// TODO deslop file
 import { useSelene } from '../selene';
 import { useMenu } from '../overlays';
 import { speechModes, type SpeechModeId } from '../chatModes';
@@ -22,7 +21,6 @@ const selene = useSelene();
 const menu = useMenu();
 const selectedMode = defineModel<SpeechModeId>({ required: true });
 const emit = defineEmits<{
-  interactionComplete: [];
   languageSelect: [language: string];
 }>();
 const mode = () => speechModes.find((item) => item.id === selectedMode.value) ?? speechModes[0];
@@ -30,7 +28,6 @@ const cycleMode = () => {
   menu.close();
   const index = speechModes.findIndex((item) => item.id === selectedMode.value);
   selectedMode.value = speechModes[(index + 1) % speechModes.length].id;
-  emit('interactionComplete');
 };
 type SpeechSelection = { mode: SpeechModeId } | { language: string };
 const openMenu = async (event: MouseEvent) => {
@@ -47,7 +44,6 @@ const openMenu = async (event: MouseEvent) => {
   } else {
     emit('languageSelect', selection.language);
   }
-  emit('interactionComplete');
 };
 </script>
 

@@ -1,5 +1,4 @@
 <script setup lang="ts">
-// TODO deslop file
 import { computed, onMounted, useTemplateRef, watch } from 'vue';
 import { MAP_COLORS } from '../map';
 import { useMenu } from '../overlays';
@@ -14,22 +13,21 @@ const canvas = useTemplateRef<HTMLCanvasElement>('canvas');
 const menu = useMenu();
 const minimap = useMinimapStore();
 const isGroundLevel = computed(() => Math.round(minimap.cameraCoordinate.value.z) === 0);
-const surfaceStyle = computed(() => ({
-  transform: `translate(-50%, -50%) scale(${minimap.zoom.value}) rotate(${minimap.rotated.value ? -45 : 0}deg)`,
-}));
+const zoom = minimap.zoom;
+const rotation = computed(() => (minimap.rotated.value ? 1 : 0));
 
-const toggleZoom = (event?: MouseEvent) => {
+const onClick = (event?: MouseEvent) => {
   if (event?.shiftKey) {
     minimap.toggleRotation();
-    return;
+  } else {
+    minimap.toggleZoom();
   }
-  minimap.toggleZoom();
 };
-const adjustZoom = (event: WheelEvent) => {
+const onScroll = (event: WheelEvent) => {
   const direction = event.deltaY < 0 ? 1 : -1;
   minimap.adjustZoom(direction * 0.1);
 };
-const openMenu = async (event: MouseEvent) => {
+const onContextMenu = async (event: MouseEvent) => {
   const action = await menu.open<'openWorldMap' | number>(
     MinimapMenu,
     { canOpenWorldMap: isGroundLevel.value, canZoomIn: minimap.canZoomIn.value, canZoomOut: minimap.canZoomOut.value },
@@ -80,13 +78,11 @@ watch([minimap.revision, minimap.cameraCoordinate], draw);
     data-selene-interactive
     tabindex="0"
     title="Click to toggle zoom; wheel to zoom; Shift-click to rotate; right-click for menu"
-    @click="toggleZoom"
-    @contextmenu.prevent.stop="openMenu"
-    @keydown.enter.prevent="toggleZoom()"
-    @keydown.space.prevent="toggleZoom()"
-    @wheel.prevent.stop="adjustZoom"
+    @click="onClick"
+    @contextmenu.prevent.stop="onContextMenu"
+    @wheel.prevent.stop="onScroll"
   >
-    <canvas ref="canvas" class="surface" :style="surfaceStyle" :width="SIZE" :height="SIZE" />
+    <canvas ref="canvas" class="surface" :width="SIZE" :height="SIZE" />
     <span class="crosshair" aria-hidden="true" />
   </section>
 </template>
@@ -110,6 +106,7 @@ watch([minimap.revision, minimap.cameraCoordinate], draw);
   left: 50%;
   width: 256px;
   height: 256px;
+  transform: translate(-50%, -50%) scale(v-bind(zoom)) rotate(calc(v-bind(rotation) * -45deg));
   transform-origin: center;
   transition: transform 100ms linear;
   image-rendering: pixelated;

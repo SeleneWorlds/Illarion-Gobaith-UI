@@ -1,5 +1,4 @@
 <script setup lang="ts">
-// TODO deslop file
 import { computed, onUnmounted, ref, watch } from 'vue';
 import { resolveClientAsset } from '../clientAssets';
 import { useSelene, type VisualDefinition, type VisualFrameDefinition } from '../selene';

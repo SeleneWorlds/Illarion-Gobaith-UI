@@ -31,7 +31,6 @@ export interface InventoryStore {
   selectUseSlot(viewId: InventorySlotDefinition['viewId'], slotId: number): void;
   finishUse(): void;
   dropInFront(viewId: InventorySlotDefinition['viewId'], slotId: number, count: number): void;
-  dispose(): void;
 }
 
 export const inventoryStoreKey: InjectionKey<InventoryStore> = Symbol('inventory-store');
@@ -93,10 +92,8 @@ export const createInventoryStore = (network: NetworkApi): InventoryStore => {
     };
   };
 
-  const unsubscribers = [
-    network.onPayload('illarion:update_slot', updateSlot),
-    network.onPayload('illarion:look_at_slot', updateTooltip),
-  ];
+  network.onPayload('illarion:update_slot', updateSlot);
+  network.onPayload('illarion:look_at_slot', updateTooltip);
 
   return {
     tooltipResponse: readonly(tooltipResponse),
@@ -159,9 +156,6 @@ export const createInventoryStore = (network: NetworkApi): InventoryStore => {
     },
     dropInFront(viewId, slotId, count) {
       network.sendToServer('illarion:drop_slot_in_front', { viewId, slotId, count });
-    },
-    dispose() {
-      unsubscribers.splice(0).forEach((unsubscribe) => unsubscribe());
     },
   };
 };
