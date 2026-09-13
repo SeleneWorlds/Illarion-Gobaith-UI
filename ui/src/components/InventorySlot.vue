@@ -34,6 +34,11 @@ const lookAt = () => {
     inventory.lookAt(props.viewId, props.slotId);
   }
 };
+const onMouseDown = (event: MouseEvent) => {
+  if (item.value && event.shiftKey) {
+    inventory.selectUseSlot(props.viewId, props.slotId);
+  }
+};
 type ItemMenuAction = 'open' | 'lookAt' | 'use' | 'useWith' | 'drop';
 const onContextMenu = async (event: MouseEvent) => {
   if (!item.value) {
@@ -73,7 +78,7 @@ const onScrollSlot = (event: WheelEvent) => {
       :data-view-id="viewId"
       :data-slot-id="slotId"
       :aria-label="`${viewId} slot ${slotId}`"
-      @mousedown.left.prevent
+      @mousedown.left.prevent="onMouseDown"
       @click="lookAt"
       @contextmenu.prevent.stop="onContextMenu"
       @wheel.prevent="onScrollSlot"

@@ -74,9 +74,6 @@ const onMouseDown = (event: MouseEvent) => {
   if (!item) {
     return;
   }
-  if (event.shiftKey) {
-    inventory.selectUseSlot(slot.viewId, slot.slotId);
-  }
   inventoryPointer = { slot, item, downX: event.clientX, downY: event.clientY, dragged: false };
   preview.item = item;
   preview.slot = slot;
