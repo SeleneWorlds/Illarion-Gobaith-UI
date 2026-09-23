@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { computed, inject } from 'vue';
+import { computed, inject, useTemplateRef, watch } from 'vue';
 import { useClientAssetSrc, useClientAssetStyle } from '../composables/useClientAsset';
 import { sameInventorySlot, type InventoryViewId } from '../inventory';
 import { inventoryDragKey } from '../inventoryDrag';
-import { useMenu } from '../overlays';
+import { useMenu, useTooltip } from '../overlays';
 import { useInventoryStore } from '../stores/inventory';
 import InventoryItemMenu from './InventoryItemMenu.vue';
 import SeleneVisual from './SeleneVisual.vue';
@@ -15,11 +15,13 @@ const hoverBackground = useClientAssetStyle('client/textures/illarion/ui/inv_slo
 const markUseSrc = useClientAssetSrc('client/textures/illarion/ui/mark_use.png');
 
 const inventory = useInventoryStore();
+const slotElement = useTemplateRef<HTMLElement>('slotElement');
 const inventoryDrag = inject(inventoryDragKey);
 if (!inventoryDrag) {
   throw new Error('Inventory drag API was not provided.');
 }
 const menu = useMenu();
+const tooltip = useTooltip();
 
 const item = computed(() => inventory.getItem(props.viewId, props.slotId));
 const isUsing = computed(() =>
@@ -36,9 +38,22 @@ const hitBands = Array.from({ length: 20 }, (_, index) => {
 
 const lookAt = () => {
   if (item.value) {
+    tooltip.hide();
     inventory.lookAt(props.viewId, props.slotId);
   }
 };
+
+watch(inventory.tooltipResponse, (response) => {
+  const anchor = slotElement.value;
+  if (!response?.tooltip || !anchor || !sameInventorySlot(response.slot, props)) {
+    return;
+  }
+  void tooltip.show({
+    anchor,
+    title: response.tooltip.name ?? '',
+    description: response.tooltip.description,
+  });
+});
 const onMouseDown = (event: MouseEvent) => {
   if (!item.value) {
     return;
@@ -105,7 +120,7 @@ const onScrollSlot = (event: WheelEvent) => {
 </script>
 
 <template>
-  <div class="inventory-slot" data-inventory-slot>
+  <div ref="slotElement" class="inventory-slot" data-inventory-slot>
     <button
       type="button"
       class="button"

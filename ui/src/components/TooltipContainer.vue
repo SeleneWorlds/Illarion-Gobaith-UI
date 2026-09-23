@@ -1,9 +1,7 @@
 <script setup lang="ts">
-import { nextTick, onUnmounted, provide, reactive, useTemplateRef, watch } from 'vue';
+import { nextTick, onUnmounted, provide, reactive, useTemplateRef } from 'vue';
 import { tooltipControllerKey, type TooltipOptions } from '../overlays';
-import { useInventoryStore } from '../stores/inventory';
 
-const inventory = useInventoryStore();
 const tooltipElement = useTemplateRef<HTMLElement>('tooltipElement');
 const tooltip = reactive({ options: undefined as TooltipOptions | undefined, left: 0, top: 0, visible: false });
 let hideTimeout: number | undefined;
@@ -63,20 +61,6 @@ const show = async (options: TooltipOptions) => {
 };
 
 provide(tooltipControllerKey, { show, hide });
-watch(inventory.tooltipResponse, (response) => {
-  if (!response?.tooltip) {
-    hide();
-    return;
-  }
-  const anchor = document
-    .querySelector<HTMLElement>(
-      `[data-inventory-slot-button][data-view-id="${response.slot.viewId}"][data-slot-id="${response.slot.slotId}"]`,
-    )
-    ?.closest<HTMLElement>('[data-inventory-slot]');
-  if (anchor) {
-    void show({ anchor, title: response.tooltip.name ?? '', description: response.tooltip.description });
-  }
-});
 onUnmounted(clearTimers);
 </script>
 
