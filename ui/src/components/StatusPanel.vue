@@ -59,6 +59,7 @@ const syncedTime = ref(0);
 const timeFactor = ref(3);
 const syncedAt = ref(performance.now());
 const now = ref(syncedAt.value);
+const temperature = ref(15);
 
 const unsubscribeTime = selene.network.onPayload('illarion:time', (payload) => {
   if (typeof payload.illarionTime !== 'number' || !Number.isFinite(payload.illarionTime)) {
@@ -74,6 +75,13 @@ const unsubscribeTime = selene.network.onPayload('illarion:time', (payload) => {
 });
 selene.network.sendToServer('illarion:request_time');
 
+const unsubscribeWeather = selene.network.onPayload('illarion:weather', (payload) => {
+  if (typeof payload.temperature === 'number' && Number.isFinite(payload.temperature)) {
+    temperature.value = payload.temperature;
+  }
+});
+selene.network.sendToServer('illarion:request_weather');
+
 const timer = window.setInterval(() => {
   now.value = performance.now();
 }, 1000);
@@ -81,6 +89,7 @@ const timer = window.setInterval(() => {
 onUnmounted(() => {
   window.clearInterval(timer);
   unsubscribeTime();
+  unsubscribeWeather();
 });
 
 const clock = computed(() => {
@@ -106,8 +115,7 @@ const clock = computed(() => {
     year,
     hour,
     minute,
-    // Fixed until weather payloads are available.
-    temperature: 15,
+    temperature: temperature.value,
   };
 });
 const timeOffset = computed(() => ((clock.value.hour * 60 + clock.value.minute) * 329) / 1440);
