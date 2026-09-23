@@ -6,6 +6,7 @@ export interface TooltipOptions {
   description?: string;
   duration?: number;
   offset?: number;
+  immediate?: boolean;
 }
 
 export interface TooltipController {

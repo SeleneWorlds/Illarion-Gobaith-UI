@@ -26,7 +26,7 @@ const hide = () => {
   tooltip.visible = false;
   fadeTimeout = window.setTimeout(() => {
     tooltip.options = undefined;
-  }, 400);
+  }, 100);
 };
 const show = async (options: TooltipOptions) => {
   const currentUpdateId = ++updateId;
@@ -86,7 +86,7 @@ onUnmounted(clearTimers);
     v-if="tooltip.options"
     ref="tooltipElement"
     class="tooltip-overlay"
-    :class="{ visible: tooltip.visible }"
+    :class="{ visible: tooltip.visible, immediate: tooltip.options.immediate }"
     :style="{ left: `${tooltip.left}px`, top: `${tooltip.top}px` }"
     role="tooltip"
   >
@@ -116,11 +116,14 @@ onUnmounted(clearTimers);
   white-space: pre-line;
   opacity: 0;
   transform: translate(-50%, -50%);
-  transition: opacity 400ms linear;
+  transition: opacity 100ms linear;
   pointer-events: none;
 }
 .tooltip-overlay.visible {
   opacity: 1;
+}
+.tooltip-overlay.immediate {
+  transition: none;
 }
 .tooltip-overlay span {
   display: block;

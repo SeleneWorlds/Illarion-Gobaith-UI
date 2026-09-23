@@ -7,6 +7,7 @@ import InputHandler from './components/InputHandler.vue';
 import InventoryPanel from './components/InventoryPanel.vue';
 import MinimapPanel from './components/MinimapPanel.vue';
 import MenuContainer from './components/MenuContainer.vue';
+import MenuStructMenu from './components/MenuStructMenu.vue';
 import WorldMap from './components/WorldMap.vue';
 import StatusPanel from './components/StatusPanel.vue';
 import TooltipContainer from './components/TooltipContainer.vue';
@@ -42,6 +43,7 @@ void minimap.initialize();
           <CounterPanel />
           <StatusPanel />
           <InventoryPanel />
+          <MenuStructMenu />
         </InputHandler>
       </MenuContainer>
     </TooltipContainer>
