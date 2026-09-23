@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, onUnmounted, ref } from 'vue';
 import { useClientAssetSrc, useClientAssetStyle } from '../composables/useClientAsset';
+import { useSelene } from '../selene';
 import { useVitalsStore } from '../stores/vitals';
 
 const { health, food, mana } = useVitalsStore();
@@ -29,10 +30,88 @@ const clockTimeSrc = useClientAssetSrc('client/textures/illarion/ui/clock_time.p
 const clockTemperatureSrc = useClientAssetSrc('client/textures/illarion/ui/clock_temp.png');
 const clockDragonSrc = useClientAssetSrc('client/textures/illarion/ui/clock_dragon.png');
 
-// Fixed until game date, time, and weather payloads are available.
-const clock = { day: '1.', month: 'Elos', year: '1', hour: 12, minute: 0, temperature: 15 };
-const timeOffset = ((clock.hour * 60 + clock.minute) * 329) / 1440;
-const temperatureOffset = ((clock.temperature + 15) * 280) / 60;
+const selene = useSelene();
+const monthNames = [
+  'Elos',
+  'Tanos',
+  'Zhas',
+  'Ushos',
+  'Siros',
+  'Ronas',
+  'Bras',
+  'Eldas',
+  'Irmas',
+  'Malas',
+  'Findos',
+  'Olos',
+  'Adras',
+  'Naras',
+  'Chos',
+  'Mas',
+] as const;
+const secondsPerMinute = 60;
+const secondsPerHour = 60 * secondsPerMinute;
+const secondsPerDay = 24 * secondsPerHour;
+const secondsPerYear = 365 * secondsPerDay;
+const daysPerMonth = 24;
+
+const syncedTime = ref(0);
+const timeFactor = ref(3);
+const syncedAt = ref(performance.now());
+const now = ref(syncedAt.value);
+
+const unsubscribeTime = selene.network.onPayload('illarion:time', (payload) => {
+  if (typeof payload.illarionTime !== 'number' || !Number.isFinite(payload.illarionTime)) {
+    return;
+  }
+  syncedTime.value = payload.illarionTime;
+  timeFactor.value =
+    typeof payload.timeFactor === 'number' && Number.isFinite(payload.timeFactor) && payload.timeFactor > 0
+      ? payload.timeFactor
+      : 3;
+  syncedAt.value = performance.now();
+  now.value = syncedAt.value;
+});
+selene.network.sendToServer('illarion:request_time');
+
+const timer = window.setInterval(() => {
+  now.value = performance.now();
+}, 1000);
+
+onUnmounted(() => {
+  window.clearInterval(timer);
+  unsubscribeTime();
+});
+
+const clock = computed(() => {
+  let illarionTime = syncedTime.value + ((now.value - syncedAt.value) / 1000) * timeFactor.value;
+  const year = Math.floor(illarionTime / secondsPerYear);
+  illarionTime -= year * secondsPerYear;
+
+  let day = Math.floor(illarionTime / secondsPerDay) + 1;
+  illarionTime %= secondsPerDay;
+  let month = Math.floor(day / daysPerMonth);
+  day -= month * daysPerMonth;
+  if (day === 0) {
+    day = month > 0 && month < monthNames.length ? daysPerMonth : 5;
+  } else {
+    month += 1;
+  }
+
+  const hour = Math.floor(illarionTime / secondsPerHour);
+  const minute = Math.floor((illarionTime % secondsPerHour) / secondsPerMinute);
+  return {
+    day: `${day}.`,
+    month: monthNames[month - 1] ?? monthNames[0],
+    year,
+    hour,
+    minute,
+    // Fixed until weather payloads are available.
+    temperature: 15,
+  };
+});
+const timeOffset = computed(() => ((clock.value.hour * 60 + clock.value.minute) * 329) / 1440);
+const temperatureOffset = computed(() => ((clock.value.temperature + 15) * 280) / 60);
 </script>
 
 <template>
