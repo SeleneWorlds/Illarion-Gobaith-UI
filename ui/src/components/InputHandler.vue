@@ -1,17 +1,12 @@
 <script setup lang="ts">
 import { nextTick, onMounted, onUnmounted, provide, reactive, useTemplateRef } from 'vue';
-import {
-  type InventoryDragStartDetail,
-  type InventoryItem,
-  type InventorySlotDefinition,
-} from '../inventory';
+import { type InventoryDragStartDetail, type InventoryItem, type InventorySlotDefinition } from '../inventory';
 import type { Coordinate, SelenePointerEvent } from '../selene';
 import { useSelene } from '../selene';
 import { inventoryDragKey, type InventoryDropTarget } from '../inventoryDrag';
+import { useTooltip } from '../overlays';
 import { useInventoryStore } from '../stores/inventory';
 import SeleneVisual from './SeleneVisual.vue';
-
-const isInWorldViewport = (x: number, y: number) => x >= 0 && x < 839 && y >= 0 && y < 419;
 
 interface InventoryPointer {
   slot: InventorySlotDefinition;
@@ -28,18 +23,41 @@ interface WorldPointer {
   dragged: boolean;
 }
 
+interface PendingWorldLookAt {
+  coordinate: Coordinate;
+  entityId?: number | null;
+}
+
 const selene = useSelene();
 const inventory = useInventoryStore();
+const tooltip = useTooltip();
 const previewElement = useTemplateRef<HTMLElement>('previewElement');
+const worldTooltipAnchor = useTemplateRef<HTMLElement>('worldTooltipAnchor');
 const preview = reactive({
   visual: undefined as string | undefined,
   seed: undefined as string | undefined,
   left: 0,
   top: 0,
 });
+const worldTooltipPosition = reactive({ left: 0, top: 0 });
 let inventoryPointer: InventoryPointer | undefined;
 let worldPointer: WorldPointer | undefined;
+let pendingWorldLookAt: PendingWorldLookAt | undefined;
+let pendingEntityTooltip: { networkId: number; tooltip: unknown } | undefined;
 let suppressedClick: { x: number; y: number; button: number } | undefined;
+const inputUnsubscribers: Array<() => void> = [];
+const networkUnsubscribers: Array<() => void> = [];
+
+const isInWorldViewport = (clientX: number, clientY: number) => {
+  const container = worldTooltipAnchor.value?.offsetParent;
+  if (!(container instanceof HTMLElement)) {
+    return false;
+  }
+  const rect = container.getBoundingClientRect();
+  const x = ((clientX - rect.left) * container.offsetWidth) / rect.width;
+  const y = ((clientY - rect.top) * container.offsetHeight) / rect.height;
+  return x >= 0 && x < 839 && y >= 0 && y < 419;
+};
 
 const updatePreviewPosition = (clientX: number, clientY: number) => {
   const container = previewElement.value?.offsetParent;
@@ -50,6 +68,42 @@ const updatePreviewPosition = (clientX: number, clientY: number) => {
   const scale = rect.width / container.offsetWidth;
   preview.left = (clientX - rect.left) / scale;
   preview.top = (clientY - rect.top) / scale;
+};
+
+const updateWorldTooltipPosition = (clientX: number, clientY: number) => {
+  const container = worldTooltipAnchor.value?.offsetParent;
+  if (!(container instanceof HTMLElement)) {
+    return;
+  }
+  const rect = container.getBoundingClientRect();
+  const scale = rect.width / container.offsetWidth;
+  worldTooltipPosition.left = (clientX - rect.left) / scale;
+  worldTooltipPosition.top = (clientY - rect.top) / scale;
+};
+
+const showWorldTooltip = (value: unknown) => {
+  const anchor = worldTooltipAnchor.value;
+  if (!anchor || !value || typeof value !== 'object') {
+    return;
+  }
+  const payload = value as Record<string, unknown>;
+  const title = typeof payload.name === 'string' ? payload.name : '';
+  const description = typeof payload.description === 'string' ? payload.description : undefined;
+  if (!title && !description) {
+    return;
+  }
+  void tooltip.show({ anchor, title, description });
+};
+
+const resolvePendingEntityTooltip = () => {
+  if (
+    pendingWorldLookAt?.entityId !== undefined &&
+    pendingWorldLookAt.entityId !== null &&
+    pendingEntityTooltip?.networkId === pendingWorldLookAt.entityId
+  ) {
+    showWorldTooltip(pendingEntityTooltip.tooltip);
+    pendingEntityTooltip = undefined;
+  }
 };
 
 const startInventoryDrag = ({ viewId, slotId, clientX, clientY }: InventoryDragStartDetail) => {
@@ -85,6 +139,11 @@ const onMouseMove = (event: MouseEvent) => {
   if (worldPointer) {
     worldPointer.dragged ||=
       Math.abs(event.clientX - worldPointer.downX) + Math.abs(event.clientY - worldPointer.downY) > 3;
+    if (worldPointer.dragged) {
+      pendingWorldLookAt = undefined;
+      pendingEntityTooltip = undefined;
+      tooltip.hide();
+    }
   }
   updatePreviewPosition(event.clientX, event.clientY);
 };
@@ -105,15 +164,25 @@ const onClick = (event: MouseEvent) => {
 
 const onPointerDown = ({ button, shiftKey, clientX, clientY, coordinate }: SelenePointerEvent) => {
   if (button === 0 && !shiftKey && isInWorldViewport(clientX, clientY)) {
+    tooltip.hide();
+    pendingEntityTooltip = undefined;
+    pendingWorldLookAt = { coordinate };
+    updateWorldTooltipPosition(clientX, clientY);
     worldPointer = { coordinate, downX: clientX, downY: clientY, dragged: false };
     const source = worldPointer;
     void selene.world
       .getEntitiesAt(coordinate)
       .then((entities) => {
+        const reversedEntities = [...entities].reverse();
+        const lookAtEntity = reversedEntities.find((entity) => entity.tags.includes('illarion:supports_look_at'));
+        if (pendingWorldLookAt && pendingWorldLookAt.coordinate === coordinate) {
+          pendingWorldLookAt.entityId = lookAtEntity?.networkId ?? null;
+          resolvePendingEntityTooltip();
+        }
         if (worldPointer !== source) {
           return;
         }
-        const item = [...entities].reverse().find((entity) => entity.tags.includes('illarion:item') && entity.visual);
+        const item = reversedEntities.find((entity) => entity.tags.includes('illarion:item') && entity.visual);
         if (!item?.visual) {
           return;
         }
@@ -171,33 +240,65 @@ onMounted(() => {
   window.addEventListener('mousemove', onMouseMove, true);
   window.addEventListener('click', onClick, true);
   window.addEventListener('keyup', finishUse, true);
-  selene.input.onPointerDown(onPointerDown);
-  selene.input.onPointerUp(onPointerUp);
+  inputUnsubscribers.push(selene.input.onPointerDown(onPointerDown));
+  inputUnsubscribers.push(selene.input.onPointerUp(onPointerUp));
+  networkUnsubscribers.push(
+    selene.network.onPayload('illarion:look_at', (payload) => {
+      const pending = pendingWorldLookAt;
+      if (
+        !pending ||
+        payload.x !== pending.coordinate.x ||
+        payload.y !== pending.coordinate.y ||
+        payload.z !== pending.coordinate.z
+      ) {
+        return;
+      }
+      showWorldTooltip(payload.tooltip);
+    }),
+  );
+  networkUnsubscribers.push(
+    selene.network.onPayload('illarion:look_at_entity', (payload) => {
+      if (!pendingWorldLookAt || typeof payload.networkId !== 'number') {
+        return;
+      }
+      pendingEntityTooltip = { networkId: payload.networkId, tooltip: payload.tooltip };
+      resolvePendingEntityTooltip();
+    }),
+  );
 });
 onUnmounted(() => {
   window.removeEventListener('mousemove', onMouseMove, true);
   window.removeEventListener('click', onClick, true);
   window.removeEventListener('keyup', finishUse, true);
+  inputUnsubscribers.splice(0).forEach((unsubscribe) => unsubscribe());
+  networkUnsubscribers.splice(0).forEach((unsubscribe) => unsubscribe());
 });
 </script>
 
 <template>
   <slot />
   <span
+    ref="worldTooltipAnchor"
+    class="world-tooltip-anchor"
+    :style="{ left: `${worldTooltipPosition.left}px`, top: `${worldTooltipPosition.top}px` }"
+  />
+  <span
     v-if="preview.visual && preview.seed"
     ref="previewElement"
     class="drag-preview-overlay"
     :style="{ left: `${preview.left}px`, top: `${preview.top}px` }"
   >
-    <SeleneVisual
-      :identifier="preview.visual"
-      :seed="preview.seed"
-      without-offset
-    />
+    <SeleneVisual :identifier="preview.visual" :seed="preview.seed" without-offset />
   </span>
 </template>
 
 <style scoped>
+.world-tooltip-anchor {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+}
 .drag-preview-overlay {
   position: absolute;
   z-index: 10;
