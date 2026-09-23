@@ -45,6 +45,7 @@ const onMouseDown = (event: MouseEvent) => {
   }
   if (event.shiftKey) {
     inventory.selectUseSlot(props.viewId, props.slotId);
+    return;
   }
   inventoryDrag.start({
     viewId: props.viewId,
@@ -52,6 +53,11 @@ const onMouseDown = (event: MouseEvent) => {
     clientX: event.clientX,
     clientY: event.clientY,
   });
+};
+const onClick = (event: MouseEvent) => {
+  if (!event.shiftKey) {
+    lookAt();
+  }
 };
 const onMouseUp = (event: MouseEvent) => {
   const target = { viewId: props.viewId, slotId: props.slotId };
@@ -109,7 +115,7 @@ const onScrollSlot = (event: WheelEvent) => {
       :aria-label="`${viewId} slot ${slotId}`"
       @mousedown.left.prevent="onMouseDown"
       @mouseup.left.prevent.stop="onMouseUp"
-      @click="lookAt"
+      @click="onClick"
       @contextmenu.prevent.stop="onContextMenu"
       @wheel.prevent="onScrollSlot"
     >

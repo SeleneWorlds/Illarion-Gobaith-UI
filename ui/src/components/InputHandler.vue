@@ -60,11 +60,6 @@ const startInventoryDrag = ({ viewId, slotId, clientX, clientY }: InventoryDragS
     return;
   }
   inventoryPointer = { slot, item, downX: clientX, downY: clientY, dragged: false };
-  preview.visual = item.visual;
-  preview.seed = `${slot.viewId}:${slot.slotId}`;
-  preview.left = clientX;
-  preview.top = clientY;
-  void nextTick(() => updatePreviewPosition(clientX, clientY));
 };
 
 const finishUse = (event: KeyboardEvent) => {
@@ -78,8 +73,14 @@ const onMouseMove = (event: MouseEvent) => {
     return;
   }
   if (inventoryPointer) {
+    const wasDragged = inventoryPointer.dragged;
     inventoryPointer.dragged ||=
       Math.abs(event.clientX - inventoryPointer.downX) + Math.abs(event.clientY - inventoryPointer.downY) > 3;
+    if (!wasDragged && inventoryPointer.dragged) {
+      preview.visual = inventoryPointer.item.visual;
+      preview.seed = `${inventoryPointer.slot.viewId}:${inventoryPointer.slot.slotId}`;
+      void nextTick(() => updatePreviewPosition(event.clientX, event.clientY));
+    }
   }
   if (worldPointer) {
     worldPointer.dragged ||=
