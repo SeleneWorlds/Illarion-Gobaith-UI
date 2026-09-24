@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { useSelene } from '../selene';
 import { useMenu } from '../overlays';
 import { speechModes, type SpeechModeId } from '../chatModes';
 import SpeechOptionsMenu from './SpeechOptionsMenu.vue';
+import { useUiAssetSrc } from '../composables/useClientAsset';
 
 const languages = [
   'Common',
@@ -17,13 +17,13 @@ const languages = [
   'Gnoll',
   'Goblin',
 ] as const;
-const selene = useSelene();
 const menu = useMenu();
 const selectedMode = defineModel<SpeechModeId>({ required: true });
 const emit = defineEmits<{
   languageSelect: [language: string];
 }>();
 const mode = () => speechModes.find((item) => item.id === selectedMode.value) ?? speechModes[0];
+const modeIcon = useUiAssetSrc(() => mode().icon);
 const cycleMode = () => {
   menu.close();
   const index = speechModes.findIndex((item) => item.id === selectedMode.value);
@@ -60,7 +60,7 @@ const openMenu = async (event: MouseEvent) => {
     @click.left.stop="cycleMode"
     @contextmenu.prevent.stop="openMenu"
   >
-    <img :src="selene.resolveAsset(`./assets/${mode().icon}`)" alt="" />
+    <img :src="modeIcon" alt="" />
   </button>
 </template>
 

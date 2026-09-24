@@ -25,7 +25,7 @@ export interface SelenePointerEvent {
 
 export interface SeleneUiApi {
   readonly apiVersion: number;
-  readonly resolveAsset: (path: string) => string;
+  readonly resolveAsset: (path: string) => Promise<string>;
   readonly visuals: {
     getDefinition(identifier: string): Promise<VisualDefinition>;
   };
@@ -90,8 +90,8 @@ export const createMockSeleneUiApi = (): SeleneUiApi => {
   const passthroughKeys = new Map<string, number>();
 
   return {
-    apiVersion: 5,
-    resolveAsset: (path) => new URL(path, window.location.href).href,
+    apiVersion: 6,
+    resolveAsset: async (path) => `/${path.replace(/^client\/ui\/dist\//, '')}`,
     visuals: {
       getDefinition: async (identifier) => {
         const response = await fetch('/client/registries/selene:visuals');

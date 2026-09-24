@@ -1,15 +1,17 @@
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, onMounted, ref, useTemplateRef } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, useTemplateRef } from 'vue';
 import { useSelene } from '../selene';
 import { speechModeById, type SpeechModeId } from '../chatModes';
 import { useChatMacros } from '../composables/useChatMacros';
 import { useLogger } from '../composables/useLogger';
 import SpeechModeControl from './SpeechModeControl.vue';
+import { useUiAssetSrc } from '../composables/useClientAsset';
 
 const selene = useSelene();
 const logger = useLogger();
 const chatMacros = useChatMacros();
-const chatBackground = `url(${selene.resolveAsset('./assets/gui_chat.png')})`;
+const chatBackgroundUrl = useUiAssetSrc('gui_chat.png');
+const chatBackground = computed(() => chatBackgroundUrl.value ? `url(${chatBackgroundUrl.value})` : 'none');
 const MAX_INPUT_LENGTH = 200;
 const DESCRIPTION_MACRO_KEYS = ['F2', 'F3', 'F4', 'F5', 'F6'] as const;
 type MessageKind = 'inform' | 'emote' | SpeechModeId;

@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { useSelene } from '../selene';
+import { useUiAssetSrc } from '../composables/useClientAsset';
 import { useVitalsStore } from '../stores/vitals';
 
-const selene = useSelene();
 const { health } = useVitalsStore();
 
 const opacity = computed(() => (health.value > 0 && health.value < 0.3 ? (0.3 - health.value) / 0.4 : 0));
 
-const fogMask = `url("${selene.resolveAsset('./assets/fog_overlay.png')}")`;
+const fogMaskUrl = useUiAssetSrc('fog_overlay.png');
+const fogMask = computed(() => fogMaskUrl.value ? `url("${fogMaskUrl.value}")` : 'none');
 </script>
 
 <template>

@@ -11,18 +11,15 @@ import {
   type Component,
 } from 'vue';
 import { menuControllerKey, type MenuOptions } from '../overlays';
-import { useSelene } from '../selene';
+import { useUiAssetSrc } from '../composables/useClientAsset';
 
-const selene = useSelene();
 const element = useTemplateRef<HTMLElement>('element');
 const component = ref<Component>();
 const componentProps = ref<Record<string, unknown>>({});
 const options = ref<MenuOptions>();
 const layout = ref<{ width: number; height: number; paddingX: number; paddingY: number; variant: 'short' | 'long' }>();
 const position = reactive({ left: 0, top: 0 });
-const frameSrc = computed(() =>
-  selene.resolveAsset(layout.value?.variant === 'short' ? './assets/menu_short.png' : './assets/menu_long.png'),
-);
+const frameSrc = useUiAssetSrc(() => layout.value?.variant === 'short' ? 'menu_short.png' : 'menu_long.png');
 const menuStyle = computed(() => ({
   left: `${position.left}px`,
   top: `${position.top}px`,

@@ -1,17 +1,19 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, useTemplateRef } from 'vue';
-import { useSelene } from '../selene';
+import { useUiAssetSrc } from '../composables/useClientAsset';
 
 const props = defineProps<{ value: number }>();
 const emit = defineEmits<{
   confirm: [value: number];
   cancel: [];
 }>();
-const selene = useSelene();
 const input = useTemplateRef<HTMLInputElement>('input');
 const text = ref(String(props.value));
 const number = computed(() => Number(text.value));
 const valid = computed(() => /^\d{1,3}$/.test(text.value) && number.value >= 1 && number.value <= 250);
+const frame = useUiAssetSrc('menu_short.png');
+const storeIcon = useUiAssetSrc('spellbook_store.png');
+const closeIcon = useUiAssetSrc('menu_close.png');
 
 const onInput = (event: Event) => {
   text.value = (event.target as HTMLInputElement).value.replace(/\D/g, '').slice(0, 3);
@@ -46,7 +48,7 @@ onMounted(() => input.value?.select());
     @click.stop
     @keydown.stop
   >
-    <img class="frame" :src="selene.resolveAsset('./assets/menu_short.png')" alt="" />
+    <img class="frame" :src="frame" alt="" />
     <form @submit.prevent="confirm">
       <label id="counter-editor-title" for="counter-input">Enter new number</label>
       <input
@@ -62,10 +64,10 @@ onMounted(() => input.value?.select());
         @keyup.stop
       />
       <button class="confirm" type="submit" :disabled="!valid" title="Set number" aria-label="Set number">
-        <img :src="selene.resolveAsset('./assets/spellbook_store.png')" alt="" />
+        <img :src="storeIcon" alt="" />
       </button>
       <button class="cancel" type="button" title="Cancel" aria-label="Cancel" @click="emit('cancel')">
-        <img :src="selene.resolveAsset('./assets/menu_close.png')" alt="" />
+        <img :src="closeIcon" alt="" />
       </button>
     </form>
   </section>

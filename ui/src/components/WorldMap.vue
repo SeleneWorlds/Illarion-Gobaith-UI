@@ -3,11 +3,14 @@ import { computed, nextTick, onUnmounted, ref, useTemplateRef, watch } from 'vue
 import { MAP_COLORS } from '../map';
 import { useSelene } from '../selene';
 import { useMinimapStore } from '../stores/minimap';
+import { useUiAssetSrc } from '../composables/useClientAsset';
 
 const selene = useSelene();
 const minimap = useMinimapStore();
 const canvas = useTemplateRef<HTMLCanvasElement>('canvas');
 const visible = ref(false);
+const frame = useUiAssetSrc('menu_short.png');
+const closeIcon = useUiAssetSrc('menu_close.png');
 const WORLD_SIZE = 1024;
 const WORLD_OFFSET_X = 500;
 const WORLD_OFFSET_Y = 524;
@@ -97,13 +100,13 @@ onUnmounted(() => {
 
 <template>
   <section v-if="visible" class="world-map" aria-label="World map" data-selene-interactive>
-    <img class="frame" :src="selene.resolveAsset('./assets/menu_short.png')" alt="" />
+    <img class="frame" :src="frame" alt="" />
     <div class="viewport">
       <canvas ref="canvas" class="surface" :width="WORLD_SIZE" :height="WORLD_SIZE" />
       <span class="crosshair" aria-hidden="true" />
     </div>
     <button class="close" type="button" aria-label="Close world map" @click="close">
-      <img :src="selene.resolveAsset('./assets/menu_close.png')" alt="" />
+      <img :src="closeIcon" alt="" />
     </button>
   </section>
 </template>

@@ -15,6 +15,7 @@ import { useSelene } from './selene';
 import { createVitalsStore, vitalsStoreKey } from './stores/vitals';
 import { createInventoryStore, inventoryStoreKey } from './stores/inventory';
 import { createMinimapStore, minimapStoreKey } from './stores/minimap';
+import { useUiAssetSrc } from './composables/useClientAsset';
 
 const selene = useSelene();
 const vitals = createVitalsStore(selene.network);
@@ -22,6 +23,8 @@ const inventory = createInventoryStore(selene.network);
 const minimap = createMinimapStore(selene);
 const worldMap = useTemplateRef<InstanceType<typeof WorldMap>>('worldMap');
 const openWorldMap = () => worldMap.value?.open();
+const bottomFrame = useUiAssetSrc('gui_bottom.png');
+const topFrame = useUiAssetSrc('gui_top.png');
 
 provide(vitalsStoreKey, vitals);
 provide(inventoryStoreKey, inventory);
@@ -35,8 +38,8 @@ void minimap.initialize();
       <MenuContainer>
         <InputHandler>
           <BloodFog />
-          <img class="bottom-frame" :src="selene.resolveAsset('./assets/gui_bottom.png')" alt="" />
-          <img class="top-frame" :src="selene.resolveAsset('./assets/gui_top.png')" alt="" />
+          <img class="bottom-frame" :src="bottomFrame" alt="" />
+          <img class="top-frame" :src="topFrame" alt="" />
           <MinimapPanel @open-world-map="openWorldMap" />
           <WorldMap ref="worldMap" />
           <ChatPanel />

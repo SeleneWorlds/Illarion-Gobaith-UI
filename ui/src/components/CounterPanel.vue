@@ -1,19 +1,19 @@
 <script setup lang="ts">
 import { onBeforeUnmount, ref } from 'vue';
-import { useSelene } from '../selene';
 import { useInventoryStore } from '../stores/inventory';
 import { useMenu } from '../overlays';
 import ClockDisplay from './ClockDisplay.vue';
 import CounterPresetsMenu from './CounterPresetsMenu.vue';
 import CounterModal from './CounterModal.vue';
+import { useUiAssetSrc } from '../composables/useClientAsset';
 
-const selene = useSelene();
 const inventory = useInventoryStore();
 const menu = useMenu();
 const DRAG_STEP = 5;
 const presets = [1, 5, 10, 100, 250];
 const counter = inventory.counter;
 const modalOpen = ref(false);
+const counterFrame = useUiAssetSrc('gui_counter.png');
 let dragOrigin: { x: number; y: number; value: number } | undefined;
 let dragged = false;
 
@@ -88,7 +88,7 @@ onBeforeUnmount(endDrag);
 
 <template>
   <section class="counter" aria-label="Counter and clock">
-    <img :src="selene.resolveAsset('./assets/gui_counter.png')" alt="" />
+    <img :src="counterFrame" alt="" />
     <button
       class="value"
       type="button"
