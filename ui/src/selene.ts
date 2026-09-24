@@ -44,6 +44,7 @@ export interface SeleneUiApi {
   readonly network: {
     sendToServer(payloadId: string, payload?: ClientNetworkPayload): void;
     onPayload(payloadId: string, callback: (payload: ClientNetworkPayload) => void): () => void;
+    onConnected(callback: () => void): () => void;
   };
   readonly world: {
     getCameraCoordinate(): Coordinate;
@@ -133,6 +134,10 @@ export const createMockSeleneUiApi = (): SeleneUiApi => {
       onPointerUp: () => () => undefined,
     },
     network: {
+      onConnected: (callback) => {
+        callback();
+        return () => undefined;
+      },
       sendToServer: (payloadId, payload) => console.info('[Selene UI]', payloadId, payload),
       onPayload: () => () => undefined,
     },

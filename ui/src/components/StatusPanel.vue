@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onUnmounted, ref } from 'vue';
 import { useClientAssetSrc, useClientAssetStyle } from '../composables/useClientAsset';
+import { onConnected } from '../composables/onConnected';
 import { useSelene } from '../selene';
 import { useVitalsStore } from '../stores/vitals';
 
@@ -73,14 +74,16 @@ const unsubscribeTime = selene.network.onPayload('illarion:time', (payload) => {
   syncedAt.value = performance.now();
   now.value = syncedAt.value;
 });
-selene.network.sendToServer('illarion:request_time');
 
 const unsubscribeWeather = selene.network.onPayload('illarion:weather', (payload) => {
   if (typeof payload.temperature === 'number' && Number.isFinite(payload.temperature)) {
     temperature.value = payload.temperature;
   }
 });
-selene.network.sendToServer('illarion:request_weather');
+onConnected(() => {
+  selene.network.sendToServer('illarion:request_time');
+  selene.network.sendToServer('illarion:request_weather');
+});
 
 const timer = window.setInterval(() => {
   now.value = performance.now();
