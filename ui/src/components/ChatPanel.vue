@@ -3,32 +3,22 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, useTemplateRef } f
 import { useSelene } from '../selene';
 import { speechModeById, type SpeechModeId } from '../chatModes';
 import { useChatMacros } from '../composables/useChatMacros';
-import { useLogger } from '../composables/useLogger';
 import SpeechModeControl from './SpeechModeControl.vue';
 import { useUiAssetSrc } from '../composables/useClientAsset';
+import { useChatStore } from '../stores/chat';
 
 const selene = useSelene();
-const logger = useLogger();
+const { messages } = useChatStore();
 const chatMacros = useChatMacros();
 const chatBackgroundUrl = useUiAssetSrc('gui_chat.png');
-const chatBackground = computed(() => chatBackgroundUrl.value ? `url(${chatBackgroundUrl.value})` : 'none');
+const chatBackground = computed(() => (chatBackgroundUrl.value ? `url(${chatBackgroundUrl.value})` : 'none'));
 const MAX_INPUT_LENGTH = 200;
 const DESCRIPTION_MACRO_KEYS = ['F2', 'F3', 'F4', 'F5', 'F6'] as const;
-type MessageKind = 'inform' | 'emote' | SpeechModeId;
-interface ChatMessage {
-  id: number;
-  author: string;
-  text: string;
-  kind: MessageKind;
-}
-
 const history = useTemplateRef<HTMLElement>('history');
 const input = useTemplateRef<HTMLTextAreaElement>('input');
 const message = ref('');
 const selectedMode = ref<SpeechModeId>('normal');
 const expanded = ref(false);
-const messages = ref<ChatMessage[]>([]);
-let nextMessageId = 0;
 // Promise queue for sending and saving macros
 let macroAction = Promise.resolve();
 
@@ -40,20 +30,6 @@ const resizeInput = async () => {
   input.value.style.height = '20px';
   input.value.style.height = `${Math.min(64, Math.max(20, input.value.scrollHeight))}px`;
   history.value.style.bottom = `${Math.min(76, input.value.offsetHeight + 12)}px`;
-};
-const addMessage = (text: unknown, kind: MessageKind, author = '', log = false) => {
-  if (typeof text !== 'string' || text.length === 0) {
-    return;
-  }
-  const entry = { id: nextMessageId++, author, text, kind };
-  messages.value.push(entry);
-  if (log) {
-    logger.log(entry);
-  }
-  const excess = messages.value.length - 100;
-  if (excess > 0) {
-    messages.value.splice(0, excess);
-  }
 };
 const send = () => {
   const text = message.value.trim();
@@ -167,17 +143,6 @@ onMounted(() => {
   selene.input.captureKeys('Enter', 'Backspace', ...DESCRIPTION_MACRO_KEYS);
   selene.input.captureText();
   selene.input.passThroughKeys('ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight');
-  selene.network.onPayload('illarion:inform', (payload) => void addMessage(payload.Message, 'inform'));
-  selene.network.onPayload('illarion:chat', (payload) => {
-    if (payload.showInChat === false) {
-      return;
-    }
-    const author = typeof payload.authorName === 'string' ? payload.authorName : '';
-    const text = typeof payload.message === 'string' ? payload.message : '';
-    if (author || text) {
-      void addMessage(text, payload.mode as MessageKind, author, true);
-    }
-  });
   void resizeInput();
 });
 onBeforeUnmount(() => {

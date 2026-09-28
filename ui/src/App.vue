@@ -16,12 +16,15 @@ import { useSelene } from './selene';
 import { createVitalsStore, vitalsStoreKey } from './stores/vitals';
 import { createInventoryStore, inventoryStoreKey } from './stores/inventory';
 import { createMinimapStore, minimapStoreKey } from './stores/minimap';
+import { chatStoreKey, createChatStore } from './stores/chat';
 import { useUiAssetSrc } from './composables/useClientAsset';
+import { useLogger } from './composables/useLogger';
 
 const selene = useSelene();
 const vitals = createVitalsStore(selene.network);
 const inventory = createInventoryStore(selene.network);
 const minimap = createMinimapStore(selene);
+const chat = createChatStore(useLogger().log);
 const worldMap = useTemplateRef<InstanceType<typeof WorldMap>>('worldMap');
 const openWorldMap = () => worldMap.value?.open();
 const bottomFrame = useUiAssetSrc('gui_bottom.png');
@@ -31,6 +34,7 @@ const characterSelected = ref(false);
 provide(vitalsStoreKey, vitals);
 provide(inventoryStoreKey, inventory);
 provide(minimapStoreKey, minimap);
+provide(chatStoreKey, chat);
 void minimap.initialize();
 </script>
 
