@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { provide, useTemplateRef } from 'vue';
+import { provide, ref, useTemplateRef } from 'vue';
 import BloodFog from './components/BloodFog.vue';
 import ChatPanel from './components/ChatPanel.vue';
 import CounterPanel from './components/CounterPanel.vue';
@@ -11,6 +11,7 @@ import MenuStructMenu from './components/MenuStructMenu.vue';
 import WorldMap from './components/WorldMap.vue';
 import StatusPanel from './components/StatusPanel.vue';
 import TooltipContainer from './components/TooltipContainer.vue';
+import CharacterSelection from './components/CharacterSelection.vue';
 import { useSelene } from './selene';
 import { createVitalsStore, vitalsStoreKey } from './stores/vitals';
 import { createInventoryStore, inventoryStoreKey } from './stores/inventory';
@@ -25,6 +26,7 @@ const worldMap = useTemplateRef<InstanceType<typeof WorldMap>>('worldMap');
 const openWorldMap = () => worldMap.value?.open();
 const bottomFrame = useUiAssetSrc('gui_bottom.png');
 const topFrame = useUiAssetSrc('gui_top.png');
+const characterSelected = ref(false);
 
 provide(vitalsStoreKey, vitals);
 provide(inventoryStoreKey, inventory);
@@ -33,7 +35,8 @@ void minimap.initialize();
 </script>
 
 <template>
-  <main class="hud" aria-label="Illarion game interface">
+  <CharacterSelection v-if="!characterSelected" @selected="characterSelected = true" />
+  <main v-else class="hud" aria-label="Illarion game interface">
     <TooltipContainer>
       <MenuContainer>
         <InputHandler>
