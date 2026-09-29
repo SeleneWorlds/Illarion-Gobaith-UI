@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { provide, ref, useTemplateRef } from 'vue';
+import { computed, provide, ref, useTemplateRef } from 'vue';
 import BloodFog from './components/BloodFog.vue';
 import ChatPanel from './components/ChatPanel.vue';
 import CounterPanel from './components/CounterPanel.vue';
 import InputHandler from './components/InputHandler.vue';
 import InventoryPanel from './components/InventoryPanel.vue';
+import ShowcasePanel from './components/ShowcasePanel.vue';
 import MinimapPanel from './components/MinimapPanel.vue';
 import MenuContainer from './components/MenuContainer.vue';
 import MenuStructMenu from './components/MenuStructMenu.vue';
@@ -23,6 +24,7 @@ import { useLogger } from './composables/useLogger';
 const selene = useSelene();
 const vitals = createVitalsStore(selene.network);
 const inventory = createInventoryStore(selene.network);
+const showcases = computed(() => inventory.showcases.value);
 const minimap = createMinimapStore(selene);
 const chat = createChatStore(useLogger().log);
 const worldMap = useTemplateRef<InstanceType<typeof WorldMap>>('worldMap');
@@ -53,6 +55,7 @@ void minimap.initialize();
           <CounterPanel />
           <StatusPanel />
           <InventoryPanel />
+          <ShowcasePanel v-for="showcase in showcases" :key="showcase.id" :showcase="showcase" />
           <MenuStructMenu />
         </InputHandler>
       </MenuContainer>

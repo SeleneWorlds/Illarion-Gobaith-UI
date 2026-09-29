@@ -8,7 +8,9 @@ import { useInventoryStore } from '../stores/inventory';
 import InventoryItemMenu from './InventoryItemMenu.vue';
 import SeleneVisual from './SeleneVisual.vue';
 
-const props = defineProps<{ viewId: InventoryViewId; slotId: number }>();
+const props = withDefaults(defineProps<{ viewId: InventoryViewId; slotId: number; canScrollCounter?: boolean }>(), {
+  canScrollCounter: true,
+});
 
 const slotBackground = useClientAssetStyle('client/textures/illarion/ui/inv_slot-0.png');
 const hoverBackground = useClientAssetStyle('client/textures/illarion/ui/inv_slot-7.png');
@@ -115,6 +117,9 @@ const onContextMenu = async (event: MouseEvent) => {
 };
 
 const onScrollSlot = (event: WheelEvent) => {
+  if (!props.canScrollCounter) {
+    return;
+  }
   inventory.setCounter(inventory.counter.value + (event.deltaY < 0 ? 1 : -1));
 };
 </script>

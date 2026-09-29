@@ -2,12 +2,18 @@ import { inject, reactive, readonly, ref, type InjectionKey, type Ref } from 'vu
 import type { ClientNetworkPayload, Coordinate, SeleneUiApi } from '../selene';
 import type { InventoryItem, InventorySlotDefinition, InventoryTooltipResponse } from '../inventory';
 
+export interface ShowcaseDefinition {
+  id: number;
+  slotCount: number;
+}
+
 type NetworkApi = SeleneUiApi['network'];
 
 export interface InventoryStore {
   readonly tooltipResponse: Readonly<Ref<InventoryTooltipResponse | undefined>>;
   readonly counter: Readonly<Ref<number>>;
   readonly selectedUseSlots: Readonly<Ref<readonly InventorySlotDefinition[]>>;
+  readonly showcases: Readonly<Ref<readonly ShowcaseDefinition[]>>;
   getItem(viewId: InventorySlotDefinition['viewId'], slotId: number): InventoryItem | undefined;
   setCounter(value: number): void;
   lookAt(viewId: InventorySlotDefinition['viewId'], slotId: number): void;
@@ -27,6 +33,7 @@ export interface InventoryStore {
   ): void;
   moveCoordinateToCoordinate(from: Coordinate, to: Coordinate, count: number): void;
   openContainer(viewId: InventorySlotDefinition['viewId'], slotId: number, count: number): void;
+  closeShowcase(showcaseId: number): void;
   use(viewId: InventorySlotDefinition['viewId'], slotId: number, count?: number): void;
   selectUseSlot(viewId: InventorySlotDefinition['viewId'], slotId: number): void;
   finishUse(): void;
@@ -41,9 +48,12 @@ const sameSlot = (left: InventorySlotDefinition, right: InventorySlotDefinition)
 const payloadSlot = (payload: ClientNetworkPayload): InventorySlotDefinition | undefined => {
   const viewId = payload.viewId;
   const slotId = payload.slotId;
-  return (viewId === 'equipment' || viewId === 'belt') && typeof slotId === 'number' && Number.isInteger(slotId)
-    ? { viewId, slotId }
-    : undefined;
+  const validViewId =
+    viewId === 'equipment' || viewId === 'belt' || (typeof viewId === 'string' && /^showcase:\d+$/.test(viewId));
+  if (!validViewId || typeof slotId !== 'number' || !Number.isInteger(slotId)) {
+    return undefined;
+  }
+  return { viewId: viewId as InventorySlotDefinition['viewId'], slotId };
 };
 
 export const createInventoryStore = (network: NetworkApi): InventoryStore => {
@@ -51,6 +61,7 @@ export const createInventoryStore = (network: NetworkApi): InventoryStore => {
   const tooltipResponse = ref<InventoryTooltipResponse>();
   const counter = ref(1);
   const selectedUseSlots = ref<InventorySlotDefinition[]>([]);
+  const showcases = ref<ShowcaseDefinition[]>([]);
   let requestedTooltipSlot: InventorySlotDefinition | undefined;
 
   const updateSlot = (payload: ClientNetworkPayload) => {
@@ -92,11 +103,36 @@ export const createInventoryStore = (network: NetworkApi): InventoryStore => {
 
   network.onPayload('illarion:update_slot', updateSlot);
   network.onPayload('illarion:look_at_slot', updateTooltip);
+  network.onPayload('illarion:showcase', (payload) => {
+    const viewId = payload.viewId;
+    const slotCount = payload.slotCount;
+    const match = typeof viewId === 'string' ? /^showcase:(\d+)$/.exec(viewId) : undefined;
+    const showcaseId = match ? Number(match[1]) : undefined;
+    if (
+      typeof showcaseId !== 'number' ||
+      !Number.isInteger(showcaseId) ||
+      showcaseId < 0 ||
+      typeof slotCount !== 'number' ||
+      !Number.isInteger(slotCount) ||
+      slotCount < 0
+    ) {
+      return;
+    }
+    for (const key of Object.keys(items)) {
+      if (key.startsWith(`${viewId}:`)) {
+        delete items[key];
+      }
+    }
+    const next = showcases.value.filter((showcase) => showcase.id !== showcaseId);
+    next.push({ id: showcaseId, slotCount });
+    showcases.value = next.sort((left, right) => left.id - right.id);
+  });
 
   return {
     tooltipResponse: readonly(tooltipResponse),
     counter: readonly(counter),
     selectedUseSlots: readonly(selectedUseSlots),
+    showcases: readonly(showcases),
     getItem(viewId, slotId) {
       return items[slotKey(viewId, slotId)];
     },
@@ -144,6 +180,16 @@ export const createInventoryStore = (network: NetworkApi): InventoryStore => {
     },
     openContainer(viewId, slotId, count) {
       network.sendToServer('illarion:open_container_slot', { viewId, slotId, count });
+    },
+    closeShowcase(showcaseId) {
+      const viewId = `showcase:${showcaseId}`;
+      showcases.value = showcases.value.filter((showcase) => showcase.id !== showcaseId);
+      for (const key of Object.keys(items)) {
+        if (key.startsWith(`${viewId}:`)) {
+          delete items[key];
+        }
+      }
+      network.sendToServer('illarion:close_showcase', { showcaseId });
     },
     use(viewId, slotId, count) {
       network.sendToServer('illarion:use_slot', count === undefined ? { viewId, slotId } : { viewId, slotId, count });

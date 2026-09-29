@@ -1,4 +1,5 @@
-export type InventoryViewId = 'equipment' | 'belt';
+export type ShowcaseViewId = `showcase:${number}`;
+export type InventoryViewId = 'equipment' | 'belt' | ShowcaseViewId;
 
 export interface InventorySlotDefinition {
   viewId: InventoryViewId;
