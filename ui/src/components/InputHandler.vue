@@ -4,9 +4,10 @@ import { type InventoryDragStartDetail, type InventoryItem, type InventorySlotDe
 import type { Coordinate, SelenePointerEvent } from '../selene';
 import { useSelene } from '../selene';
 import { inventoryDragKey, type InventoryDropTarget } from '../inventoryDrag';
-import { useTooltip } from '../overlays';
+import { useMenu, useTooltip } from '../overlays';
 import { useInventoryStore } from '../stores/inventory';
 import SeleneVisual from './SeleneVisual.vue';
+import WorldContextMenu, { type WorldContextAction } from './WorldContextMenu.vue';
 
 interface InventoryPointer {
   slot: InventorySlotDefinition;
@@ -31,6 +32,7 @@ interface PendingWorldLookAt {
 const selene = useSelene();
 const inventory = useInventoryStore();
 const tooltip = useTooltip();
+const menu = useMenu();
 const previewElement = useTemplateRef<HTMLElement>('previewElement');
 const worldTooltipAnchor = useTemplateRef<HTMLElement>('worldTooltipAnchor');
 const preview = reactive({
@@ -45,6 +47,11 @@ let worldPointer: WorldPointer | undefined;
 let pendingWorldLookAt: PendingWorldLookAt | undefined;
 let pendingEntityTooltip: { networkId: number; tooltip: unknown } | undefined;
 let suppressedClick: { x: number; y: number; button: number } | undefined;
+let contextRequestId = 0;
+const pendingContextRequests = new Map<
+  number,
+  { clientX: number; clientY: number; coordinate: Coordinate; entityId?: number }
+>();
 const inputUnsubscribers: Array<() => void> = [];
 const networkUnsubscribers: Array<() => void> = [];
 
@@ -196,6 +203,32 @@ const onPointerDown = ({ button, shiftKey, clientX, clientY, coordinate }: Selen
   }
 };
 
+const requestWorldContextMenu = async (clientX: number, clientY: number, coordinate: Coordinate) => {
+  if (!isInWorldViewport(clientX, clientY)) {
+    return;
+  }
+  tooltip.hide();
+  const entities = await selene.world.getEntitiesAt(coordinate).catch(() => []);
+  const target = [...entities]
+    .reverse()
+    .find((entity) => entity.tags.includes('illarion:character') || entity.tags.includes('illarion:item'));
+  const requestId = ++contextRequestId;
+  pendingContextRequests.clear();
+  pendingContextRequests.set(requestId, {
+    clientX,
+    clientY,
+    coordinate,
+    entityId: target?.networkId,
+  });
+  selene.network.sendToServer('illarion:request_menu_at', {
+    requestId,
+    x: coordinate.x,
+    y: coordinate.y,
+    z: coordinate.z,
+    ...(target && { networkId: target.networkId }),
+  });
+};
+
 const resetPointers = () => {
   inventoryPointer = undefined;
   worldPointer = undefined;
@@ -219,6 +252,11 @@ const releaseOn = (target: InventoryDropTarget) => {
 provide(inventoryDragKey, { start: startInventoryDrag, releaseOn });
 
 const onPointerUp = ({ button, clientX, clientY, coordinate }: SelenePointerEvent) => {
+  if (button === 2) {
+    resetPointers();
+    void requestWorldContextMenu(clientX, clientY, coordinate);
+    return;
+  }
   if (inventoryPointer) {
     const { slot: source, dragged } = inventoryPointer;
     if (dragged) {
@@ -263,6 +301,86 @@ onMounted(() => {
       }
       pendingEntityTooltip = { networkId: payload.networkId, tooltip: payload.tooltip };
       resolvePendingEntityTooltip();
+    }),
+  );
+  networkUnsubscribers.push(
+    selene.network.onPayload('illarion:menu_at', (payload) => {
+      const requestId = typeof payload.requestId === 'number' ? payload.requestId : -1;
+      const pending = pendingContextRequests.get(requestId);
+      pendingContextRequests.delete(requestId);
+      if (!pending || !Array.isArray(payload.actions)) {
+        return;
+      }
+      const actions = payload.actions.filter((action): action is WorldContextAction =>
+        Boolean(
+          action &&
+          typeof action === 'object' &&
+          typeof (action as Record<string, unknown>).id === 'string' &&
+          typeof (action as Record<string, unknown>).label === 'string',
+        ),
+      );
+      if (!actions.length) {
+        return;
+      }
+      void menu
+        .open<string>(
+          WorldContextMenu,
+          { actions },
+          {
+            label: 'World actions',
+            position: { x: pending.clientX, y: pending.clientY },
+          },
+        )
+        .then((action) => {
+          if (!action) {
+            return;
+          }
+          const detail =
+            action === 'giveName'
+              ? window.prompt('Name this character:')
+              : action === 'report'
+                ? window.prompt('Describe the reason for the report:')
+                : undefined;
+          const normalizedDetail = detail?.trim();
+          if ((action === 'giveName' || action === 'report') && !normalizedDetail) {
+            return;
+          }
+          if (action === 'lookAt' || action === 'lookAtClose') {
+            tooltip.hide();
+            pendingEntityTooltip = undefined;
+            pendingWorldLookAt = {
+              coordinate: pending.coordinate,
+              entityId: pending.entityId ?? null,
+            };
+            updateWorldTooltipPosition(pending.clientX, pending.clientY);
+          }
+          selene.network.sendToServer('illarion:menu_action_at', {
+            action,
+            x: pending.coordinate.x,
+            y: pending.coordinate.y,
+            z: pending.coordinate.z,
+            ...(pending.entityId !== undefined && { networkId: pending.entityId }),
+            ...(normalizedDetail !== undefined && { detail: normalizedDetail }),
+          });
+        });
+    }),
+  );
+  networkUnsubscribers.push(
+    selene.network.onPayload('illarion:perform_menu_action', (payload) => {
+      if (payload.action === 'lookAt') {
+        if (typeof payload.networkId === 'number') {
+          selene.network.sendToServer('illarion:look_at_entity', {
+            networkId: payload.networkId,
+            mode: typeof payload.mode === 'number' ? payload.mode : 0,
+          });
+        } else {
+          selene.network.sendToServer('illarion:look_at', { x: payload.x, y: payload.y, z: payload.z });
+        }
+      } else if (payload.action === 'open') {
+        selene.network.sendToServer('illarion:open_container_at', { x: payload.x, y: payload.y, z: payload.z });
+      } else if (payload.action === 'use') {
+        selene.network.sendToServer('illarion:use_at', { x: payload.x, y: payload.y, z: payload.z });
+      }
     }),
   );
 });
