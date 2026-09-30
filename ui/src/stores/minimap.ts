@@ -8,6 +8,7 @@ const ZOOM_STORAGE_KEY = 'zoomMinimap';
 const ROTATION_STORAGE_KEY = 'rotateMinimap';
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 2;
+const REVEAL_RADIUS = 16;
 
 type StoredMinimapTile = [x: number, y: number, z: number, colorIndex: number];
 
@@ -120,9 +121,21 @@ export const createMinimapStore = (selene: SeleneUiApi): MinimapStore => {
     }, SAVE_DELAY_MS);
   };
 
-  const refresh = (coordinate?: ReturnType<SeleneUiApi['world']['getCameraCoordinate']>, width?: number, height?: number) => {
+  const refresh = (coordinate = cameraCoordinate.value) => {
+    const center = {
+      x: Math.round(coordinate.x),
+      y: Math.round(coordinate.y),
+      z: Math.round(coordinate.z),
+    };
+    const diameter = REVEAL_RADIUS * 2 + 1;
+    const topLeft = { x: center.x - REVEAL_RADIUS, y: center.y - REVEAL_RADIUS, z: center.z };
     let changed = false;
-    for (const tile of selene.world.getMapTiles(coordinate, width, height)) {
+    for (const tile of selene.world.getMapTiles(topLeft, diameter, diameter)) {
+      const dx = tile.x - center.x;
+      const dy = tile.y - center.y;
+      if (dx * dx + dy * dy > REVEAL_RADIUS * REVEAL_RADIUS) {
+        continue;
+      }
       const colorIndex = tile.visualMetadata.mapColorIndex;
       if (typeof colorIndex !== 'number') {
         continue;
@@ -191,11 +204,13 @@ export const createMinimapStore = (selene: SeleneUiApi): MinimapStore => {
         } catch (error) {
           console.warn('Could not load minimap data.', error);
         }
-        refresh();
+        cameraCoordinate.value = selene.world.getCameraCoordinate();
+        refresh(cameraCoordinate.value);
         revision.value += 1;
-        selene.world.onMapChanged(refresh);
+        selene.world.onMapChanged(() => refresh());
         selene.world.onCameraCoordinateChanged((coordinate) => {
           cameraCoordinate.value = coordinate;
+          refresh(coordinate);
         });
       })();
       return initialization;
