@@ -13,8 +13,40 @@ Cursor:spawn()
 local wasChar = false
 local useCursor = nil
 local useTarget = nil
+local attackCursor = nil
+local attackTargetId = nil
+
+Network.handlePayload("illarion:set_combat_target", function(payload)
+    if attackCursor then
+        attackCursor:despawn()
+        attackCursor = nil
+    end
+
+    attackTargetId = nil
+    if payload.networkId == -1 then
+        return
+    end
+
+    attackTargetId = payload.networkId
+end)
 
 Game.preTick:connect(function()
+    if attackTargetId then
+        local attackTarget = Entities.getEntityByNetworkId(attackTargetId)
+        if attackTarget then
+            if not attackCursor then
+                attackCursor = Entities.create("illarion:attack_cursor")
+                attackCursor:setCoordinate(attackTarget:getCoordinate())
+                attackCursor:spawn()
+            else
+                attackCursor:setCoordinate(attackTarget:getCoordinate())
+            end
+        elseif attackCursor then
+            attackCursor:despawn()
+            attackCursor = nil
+        end
+    end
+
     local mouseX, mouseY = Input.getMousePosition()
     local worldX, worldY = Camera.screenToWorld(mouseX, mouseY)
     local cameraCoordinate = Camera.getCoordinate()
