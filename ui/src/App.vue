@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, provide, ref, useTemplateRef } from 'vue';
+import { computed, onBeforeUnmount, onMounted, provide, ref, useTemplateRef } from 'vue';
 import BloodFog from './components/BloodFog.vue';
 import ChatPanel from './components/ChatPanel.vue';
+import SkillsPanel from './components/SkillsPanel.vue';
 import CounterPanel from './components/CounterPanel.vue';
 import InputHandler from './components/InputHandler.vue';
 import InventoryPanel from './components/InventoryPanel.vue';
@@ -18,6 +19,7 @@ import { createVitalsStore, vitalsStoreKey } from './stores/vitals';
 import { createInventoryStore, inventoryStoreKey } from './stores/inventory';
 import { createMinimapStore, minimapStoreKey } from './stores/minimap';
 import { chatStoreKey, createChatStore } from './stores/chat';
+import { createSkillsStore, skillsStoreKey } from './stores/skills';
 import { useUiAssetSrc } from './composables/useClientAsset';
 import { useLogger } from './composables/useLogger';
 
@@ -27,17 +29,44 @@ const inventory = createInventoryStore(selene.network);
 const showcases = computed(() => inventory.showcases.value);
 const minimap = createMinimapStore(selene);
 const chat = createChatStore(useLogger().log);
+const skills = createSkillsStore(selene.network);
 const worldMap = useTemplateRef<InstanceType<typeof WorldMap>>('worldMap');
 const openWorldMap = () => worldMap.value?.open();
 const bottomFrame = useUiAssetSrc('gui_bottom.png');
 const topFrame = useUiAssetSrc('gui_top.png');
 const characterSelected = ref(false);
+const skillsOpen = ref(false);
+const chatExpanded = ref(false);
+const openSkills = () => {
+  skillsOpen.value = true;
+  chatExpanded.value = false;
+};
 
 provide(vitalsStoreKey, vitals);
 provide(inventoryStoreKey, inventory);
 provide(minimapStoreKey, minimap);
 provide(chatStoreKey, chat);
+provide(skillsStoreKey, skills);
 void minimap.initialize();
+
+let releaseF8: (() => void) | undefined;
+const toggleSkills = (event: KeyboardEvent) => {
+  if (!characterSelected.value || event.key !== 'F8' || event.repeat) {
+    return;
+  }
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  skillsOpen.value = !skillsOpen.value;
+  chatExpanded.value = false;
+};
+onMounted(() => {
+  releaseF8 = selene.input.captureKeys('F8');
+  window.addEventListener('keydown', toggleSkills, true);
+});
+onBeforeUnmount(() => {
+  releaseF8?.();
+  window.removeEventListener('keydown', toggleSkills, true);
+});
 </script>
 
 <template>
@@ -51,7 +80,13 @@ void minimap.initialize();
           <img class="top-frame" :src="topFrame" alt="" />
           <MinimapPanel @open-world-map="openWorldMap" />
           <WorldMap ref="worldMap" />
-          <ChatPanel />
+          <ChatPanel
+            :expanded="chatExpanded || skillsOpen"
+            :hidden="skillsOpen"
+            @open-skills="openSkills"
+            @set-expanded="chatExpanded = $event"
+          />
+          <SkillsPanel :active="skillsOpen" @close="skillsOpen = false" />
           <CounterPanel />
           <StatusPanel />
           <InventoryPanel />

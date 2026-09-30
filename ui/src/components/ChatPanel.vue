@@ -6,8 +6,13 @@ import { useChatMacros } from '../composables/useChatMacros';
 import SpeechModeControl from './SpeechModeControl.vue';
 import { useUiAssetSrc } from '../composables/useClientAsset';
 import { useChatStore } from '../stores/chat';
+import { useMenu } from '../overlays';
+import TextPanelMenu from './TextPanelMenu.vue';
 
 const selene = useSelene();
+const props = defineProps<{ expanded: boolean; hidden: boolean }>();
+const emit = defineEmits<{ openSkills: []; setExpanded: [expanded: boolean] }>();
+const menu = useMenu();
 const { messages } = useChatStore();
 const chatMacros = useChatMacros();
 const chatBackgroundUrl = useUiAssetSrc('gui_chat.png');
@@ -18,7 +23,6 @@ const history = useTemplateRef<HTMLElement>('history');
 const input = useTemplateRef<HTMLTextAreaElement>('input');
 const message = ref('');
 const selectedMode = ref<SpeechModeId>('normal');
-const expanded = ref(false);
 // Promise queue for sending and saving macros
 let macroAction = Promise.resolve();
 
@@ -136,7 +140,19 @@ const onWheel = (event: WheelEvent) => {
   if (event.deltaY === 0) {
     return;
   }
-  expanded.value = event.deltaY < 0;
+  emit('setExpanded', event.deltaY < 0);
+};
+const openTextMenu = async (event: MouseEvent) => {
+  const action = await menu.open<'fold' | 'unfold' | 'skills'>(
+    TextPanelMenu,
+    { skillsOpen: false, expanded: props.expanded },
+    { label: 'Text box options', position: { x: event.clientX, y: event.clientY } },
+  );
+  if (action === 'skills') {
+    emit('openSkills');
+  } else if (action !== undefined) {
+    emit('setExpanded', action === 'unfold');
+  }
 };
 onMounted(() => {
   window.addEventListener('keydown', onWindowKeydown, true);
@@ -151,7 +167,14 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <section class="panel" :class="{ expanded }" aria-label="Chat" data-selene-interactive @wheel.prevent.stop="onWheel">
+  <section
+    class="panel"
+    :class="{ expanded: props.expanded, hidden: props.hidden }"
+    aria-label="Chat"
+    data-selene-interactive
+    @contextmenu.prevent.stop="openTextMenu"
+    @wheel.prevent.stop="onWheel"
+  >
     <div ref="history" class="history" role="log" aria-live="polite" aria-relevant="additions">
       <div class="history-content">
         <TransitionGroup name="line">
@@ -194,11 +217,17 @@ onBeforeUnmount(() => {
     1px 1px 2px #000,
     0 0 3px #000;
   pointer-events: auto;
-  transition: height 180ms ease-out;
+  transition:
+    height 180ms ease-out,
+    opacity 140ms ease-out;
 }
 
 .expanded {
   height: 590px;
+}
+.hidden {
+  opacity: 0;
+  pointer-events: none;
 }
 .panel::before {
   position: absolute;
