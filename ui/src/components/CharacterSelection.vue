@@ -21,6 +21,7 @@ type CharacterSummary = z.infer<typeof characterSchema>;
 
 const emit = defineEmits<{
   selected: [];
+  create: [];
 }>();
 
 const selene = useSelene();
@@ -72,6 +73,9 @@ const selectCharacter = (character: CharacterSummary) => {
           {{ character.name }}
         </button>
       </div>
+      <button type="button" class="create" :disabled="selectingId !== null" @click="emit('create')">
+        Create Character
+      </button>
     </div>
   </section>
 </template>
@@ -130,6 +134,10 @@ const selectCharacter = (character: CharacterSummary) => {
   display: grid;
   gap: 6px;
   overflow-y: auto;
+}
+
+.create {
+  margin-top: 14px;
 }
 
 button {

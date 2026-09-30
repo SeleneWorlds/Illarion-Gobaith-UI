@@ -14,6 +14,7 @@ import WorldMap from './components/WorldMap.vue';
 import StatusPanel from './components/StatusPanel.vue';
 import TooltipContainer from './components/TooltipContainer.vue';
 import CharacterSelection from './components/CharacterSelection.vue';
+import CharacterCreation from './components/CharacterCreation.vue';
 import { useSelene } from './selene';
 import { createVitalsStore, vitalsStoreKey } from './stores/vitals';
 import { createInventoryStore, inventoryStoreKey } from './stores/inventory';
@@ -35,6 +36,7 @@ const openWorldMap = () => worldMap.value?.open();
 const bottomFrame = useUiAssetSrc('gui_bottom.png');
 const topFrame = useUiAssetSrc('gui_top.png');
 const characterSelected = ref(false);
+const creatingCharacter = ref(false);
 const skillsOpen = ref(false);
 const chatExpanded = ref(false);
 const openSkills = () => {
@@ -70,7 +72,16 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <CharacterSelection v-if="!characterSelected" @selected="characterSelected = true" />
+  <CharacterCreation
+    v-if="!characterSelected && creatingCharacter"
+    @cancel="creatingCharacter = false"
+    @created="creatingCharacter = false"
+  />
+  <CharacterSelection
+    v-else-if="!characterSelected"
+    @create="creatingCharacter = true"
+    @selected="characterSelected = true"
+  />
   <main v-else class="hud" aria-label="Illarion game interface">
     <TooltipContainer>
       <MenuContainer>
