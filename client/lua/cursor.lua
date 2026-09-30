@@ -88,6 +88,7 @@ Input.bindAction(Input.MOUSE, "left", function(screenX, screenY)
     local coordinate = Grid.screenToCoordinate(worldX, worldY, cameraCoordinate:getZ())
 
     local isShiftPressed = Input.isKeyPressed("L-Shift") or Input.isKeyPressed("R-Shift")
+    local isCtrlPressed = Input.isKeyPressed("L-Ctrl") or Input.isKeyPressed("R-Ctrl")
     if isShiftPressed then
         if not useCursor then
             useCursor = Entities.create("illarion:use_cursor")
@@ -108,6 +109,17 @@ Input.bindAction(Input.MOUSE, "left", function(screenX, screenY)
         else
             useTarget.coordinate = coordinate
             useCursor:setCoordinate(coordinate)
+        end
+    elseif isCtrlPressed then
+        local entities = Entities.findEntitiesAt(coordinate, {
+            tag = "illarion:character"
+        })
+        local entity = entities[#entities]
+        if entity then
+            local networkId = entity:getNetworkId()
+            Network.sendToServer("illarion:set_combat_target", {
+                networkId = networkId == attackTargetId and -1 or networkId
+            })
         end
     else
         local entities = Entities.findEntitiesAt(coordinate, {
