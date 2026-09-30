@@ -17,17 +17,12 @@ const element = useTemplateRef<HTMLElement>('element');
 const component = ref<Component>();
 const componentProps = ref<Record<string, unknown>>({});
 const options = ref<MenuOptions>();
-const layout = ref<{ width: number; height: number; paddingX: number; paddingY: number; variant: 'short' | 'long' }>();
+const layout = ref<{ width: number; height: number; variant: 'short' | 'long' }>();
 const position = reactive({ left: 0, top: 0 });
 const frameSrc = useUiAssetSrc(() => layout.value?.variant === 'short' ? 'menu_short.png' : 'menu_long.png');
 const menuStyle = computed(() => ({
   left: `${position.left}px`,
   top: `${position.top}px`,
-  ...(layout.value && {
-    width: `${layout.value.width}px`,
-    height: `${layout.value.height}px`,
-    padding: `${layout.value.paddingY}px ${layout.value.paddingX}px`,
-  }),
 }));
 let resolveResult: ((result: unknown) => void) | undefined;
 const finish = (result?: unknown) => {
@@ -45,23 +40,9 @@ const measure = async () => {
   if (!options.value || !element.value) {
     return;
   }
-  let contentWidth = 0;
-  let contentHeight = 0;
-  for (const item of element.value.querySelectorAll<HTMLElement>(':scope > li')) {
-    if (getComputedStyle(item).display === 'none') {
-      continue;
-    }
-    const button = item.querySelector<HTMLElement>(':scope > button');
-    contentWidth = Math.max(contentWidth, button?.scrollWidth ?? item.scrollWidth);
-    contentHeight += button
-      ? Math.ceil(button.getBoundingClientRect().height) + 5
-      : Math.ceil(item.getBoundingClientRect().height);
-  }
-  const paddingX = Math.floor(contentWidth * 0.3);
-  const paddingY = Math.floor(contentHeight * 0.3);
-  const width = contentWidth + 2 * paddingX;
-  const height = contentHeight + 2 * paddingY;
-  layout.value = { width, height, paddingX, paddingY, variant: width / height > 1.1 ? 'short' : 'long' };
+  const width = element.value.offsetWidth;
+  const height = element.value.offsetHeight;
+  layout.value = { width, height, variant: width / height > 1.1 ? 'short' : 'long' };
   await nextTick();
   const container = element.value?.offsetParent;
   if (!(container instanceof HTMLElement) || !options.value) {
@@ -134,19 +115,17 @@ onBeforeUnmount(() => {
 .menu-overlay {
   position: absolute;
   z-index: 20;
+  display: grid;
+  width: max-content;
+  row-gap: 5px;
   box-sizing: border-box;
   margin: 0;
+  padding: 21px 33px 27px 27px;
   list-style: none;
   pointer-events: auto;
 }
 .measuring {
-  width: max-content;
-  height: auto;
-  padding: 0;
   visibility: hidden;
-}
-.measuring :deep(li > button) {
-  width: max-content;
 }
 .frame {
   position: absolute;
@@ -172,6 +151,7 @@ onBeforeUnmount(() => {
     14px/normal Georgia,
     serif;
   text-align: left;
+  white-space: nowrap;
   cursor: pointer;
 }
 .menu-overlay :deep(li > button:hover:not(:disabled)),
