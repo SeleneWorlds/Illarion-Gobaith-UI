@@ -48,10 +48,10 @@ export interface SeleneUiApi {
   };
   readonly world: {
     getCameraCoordinate(): Coordinate;
-    getMapTiles(): MapTile[];
+    getMapTiles(coordinate?: Coordinate, width?: number, height?: number): MapTile[];
     getEntitiesAt(coordinate: Coordinate): Promise<WorldEntity[]>;
     onCameraCoordinateChanged(callback: (coordinate: Coordinate) => void): () => void;
-    onMapChanged(callback: () => void): () => void;
+    onMapChanged(callback: (coordinate: Coordinate, width: number, height: number) => void): () => void;
   };
 }
 

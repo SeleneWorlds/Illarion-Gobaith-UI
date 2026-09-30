@@ -120,9 +120,9 @@ export const createMinimapStore = (selene: SeleneUiApi): MinimapStore => {
     }, SAVE_DELAY_MS);
   };
 
-  const refresh = () => {
+  const refresh = (coordinate?: ReturnType<SeleneUiApi['world']['getCameraCoordinate']>, width?: number, height?: number) => {
     let changed = false;
-    for (const tile of selene.world.getMapTiles()) {
+    for (const tile of selene.world.getMapTiles(coordinate, width, height)) {
       const colorIndex = tile.visualMetadata.mapColorIndex;
       if (typeof colorIndex !== 'number') {
         continue;
