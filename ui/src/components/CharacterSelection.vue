@@ -10,8 +10,16 @@ const characterSchema = z.object({
   id: z.number().int(),
   name: z.string().min(1),
 });
+// TODO not clean, but quick fix for empty arrays arriving as empty objects from Lua
+const characterListSchema = z.preprocess(
+  (value) =>
+    value !== null && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === 0
+      ? []
+      : value,
+  z.array(characterSchema),
+);
 const charactersPayloadSchema = z.object({
-  characters: z.array(characterSchema),
+  characters: characterListSchema,
 });
 const characterSelectedPayloadSchema = z.object({
   id: z.number().int(),
