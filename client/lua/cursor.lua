@@ -90,7 +90,11 @@ Game.preTick:connect(function()
     local worldX, worldY = Camera.screenToWorld(mouseX, mouseY)
     local cameraCoordinate = Camera.getCoordinate()
     local coordinate = Grid.screenToCoordinate(worldX, worldY, cameraCoordinate:getZ())
-    if (Cursor:getCoordinate() ~= coordinate) then
+    local cursorCoordinate = Cursor:getCoordinate()
+    local cursorMoved = cursorCoordinate.x ~= coordinate.x
+        or cursorCoordinate.y ~= coordinate.y
+        or cursorCoordinate.z ~= coordinate.z
+    if cursorMoved then
         local cursorShadow = Entities.create("illarion:tile_cursor_shadow")
         if wasChar then
             cursorShadow:addComponent("illarion:visual", {
@@ -98,7 +102,7 @@ Game.preTick:connect(function()
                 visual = "illarion:char_cursor"
             })
         end
-        cursorShadow:setCoordinate(Cursor:getCoordinate())
+        cursorShadow:setCoordinate(cursorCoordinate)
         cursorShadow:spawn()
 
         Cursor:setCoordinate(coordinate)
