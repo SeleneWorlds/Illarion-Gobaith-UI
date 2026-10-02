@@ -5,14 +5,11 @@ local Game = require("selene.game")
 local Entities = require("selene.entities")
 local Network = require("selene.network")
 
-local UseManager = require("illarion-gobaith-ui.client.lua.lib.useManager")
-
 local Cursor = Entities.create("illarion:tile_cursor")
 Cursor:spawn()
 
 local wasChar = false
 local useCursor = nil
-local useTarget = nil
 local attackCursor = nil
 local attackTargetId = nil
 local magicMode = false
@@ -30,6 +27,16 @@ local function clearMagicTarget()
     end
     magicTargetId = nil
 end
+
+local function clearUseTarget()
+    if useCursor then
+        useCursor:despawn()
+        useCursor = nil
+    end
+end
+
+Input.bindReleaseAction(Input.KEYBOARD, "L-Shift", clearUseTarget)
+Input.bindReleaseAction(Input.KEYBOARD, "R-Shift", clearUseTarget)
 
 Network.handlePayload("illarion:set_combat_target", function(payload)
     if attackCursor then
@@ -142,20 +149,7 @@ Input.bindAction(Input.MOUSE, "left", function(screenX, screenY)
             useCursor = Entities.create("illarion:use_cursor")
             useCursor:setCoordinate(coordinate)
             useCursor:spawn()
-            useTarget = {
-                type = "coordinate",
-                coordinate = coordinate,
-                reset = function()
-                    if useCursor then
-                        useCursor:despawn()
-                    end
-                    useCursor = nil
-                    useTarget = nil
-                end
-            }
-            table.insert(UseManager.useTargets, useTarget)
         else
-            useTarget.coordinate = coordinate
             useCursor:setCoordinate(coordinate)
         end
     elseif isCtrlPressed then

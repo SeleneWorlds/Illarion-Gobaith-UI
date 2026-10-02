@@ -2,8 +2,6 @@ local Input = require("selene.input")
 local GridMovement = require("selene.movement.grid")
 local Grid = require("selene.grid")
 
-local UseManager = require("illarion-gobaith-ui.client.lua.lib.useManager")
-
 Input.bindContinuousAction("keyboard", "Up", function()
     local North = Grid.getDirectionByName("north")
     local isShiftPressed = Input.isKeyPressed("L-Shift") or Input.isKeyPressed("R-Shift")
@@ -43,5 +41,3 @@ Input.bindContinuousAction("keyboard", "Right", function()
         GridMovement.setMotion(East)
     end
 end)
-
-UseManager.RegisterInput()

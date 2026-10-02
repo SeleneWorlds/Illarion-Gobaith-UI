@@ -46,6 +46,7 @@ const preview = reactive({
 const worldTooltipPosition = reactive({ left: 0, top: 0 });
 let inventoryPointer: InventoryPointer | undefined;
 let worldPointer: WorldPointer | undefined;
+let pendingUseCoordinate: Coordinate | undefined;
 let pendingWorldLookAt: PendingWorldLookAt | undefined;
 let pendingEntityTooltip: { networkId: number; tooltip: unknown } | undefined;
 let suppressedClick: { x: number; y: number; button: number } | undefined;
@@ -127,6 +128,13 @@ const startInventoryDrag = ({ viewId, slotId, clientX, clientY }: InventoryDragS
 
 const finishUse = (event: KeyboardEvent) => {
   if (event.key === 'Shift') {
+    if (pendingUseCoordinate) {
+      selene.network.sendToServer('illarion:use_at', {
+        ...pendingUseCoordinate,
+        count: inventory.counter.value,
+      });
+      pendingUseCoordinate = undefined;
+    }
     inventory.finishUse();
   }
 };
@@ -190,6 +198,10 @@ const onPointerDown = ({ button, shiftKey, clientX, clientY, coordinate }: Selen
         }
       });
     }
+    return;
+  }
+  if (button === 0 && shiftKey && isInWorldViewport(clientX, clientY)) {
+    pendingUseCoordinate = coordinate;
     return;
   }
   if (button === 0 && !shiftKey && isInWorldViewport(clientX, clientY)) {
