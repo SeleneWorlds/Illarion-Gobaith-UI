@@ -21,6 +21,8 @@ import { createInventoryStore, inventoryStoreKey } from './stores/inventory';
 import { createMinimapStore, minimapStoreKey } from './stores/minimap';
 import { chatStoreKey, createChatStore } from './stores/chat';
 import { createSkillsStore, skillsStoreKey } from './stores/skills';
+import { createMagicStore, magicStoreKey } from './stores/magic';
+import MagicBook from './components/MagicBook.vue';
 import { useUiAssetSrc } from './composables/useClientAsset';
 import { useLogger } from './composables/useLogger';
 
@@ -31,6 +33,7 @@ const showcases = computed(() => inventory.showcases.value);
 const minimap = createMinimapStore(selene);
 const chat = createChatStore(useLogger().log);
 const skills = createSkillsStore(selene.network);
+const magic = createMagicStore(selene);
 const worldMap = useTemplateRef<InstanceType<typeof WorldMap>>('worldMap');
 const openWorldMap = () => worldMap.value?.open();
 const bottomFrame = useUiAssetSrc('gui_bottom.png');
@@ -49,9 +52,11 @@ provide(inventoryStoreKey, inventory);
 provide(minimapStoreKey, minimap);
 provide(chatStoreKey, chat);
 provide(skillsStoreKey, skills);
+provide(magicStoreKey, magic);
 const selectCharacter = (characterId: number) => {
   characterSelected.value = true;
   void minimap.initialize(characterId);
+  void magic.initialize(characterId);
 };
 
 let releaseF8: (() => void) | undefined;
@@ -80,11 +85,7 @@ onBeforeUnmount(() => {
     @cancel="creatingCharacter = false"
     @created="creatingCharacter = false"
   />
-  <CharacterSelection
-    v-else-if="!characterSelected"
-    @create="creatingCharacter = true"
-    @selected="selectCharacter"
-  />
+  <CharacterSelection v-else-if="!characterSelected" @create="creatingCharacter = true" @selected="selectCharacter" />
   <main v-else class="hud" aria-label="Illarion game interface">
     <TooltipContainer>
       <MenuContainer>
@@ -101,6 +102,7 @@ onBeforeUnmount(() => {
             @set-expanded="chatExpanded = $event"
           />
           <SkillsPanel :active="skillsOpen" @close="skillsOpen = false" />
+          <MagicBook />
           <CounterPanel />
           <StatusPanel />
           <InventoryPanel />

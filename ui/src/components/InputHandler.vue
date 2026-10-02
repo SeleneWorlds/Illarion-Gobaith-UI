@@ -6,6 +6,7 @@ import { useSelene } from '../selene';
 import { inventoryDragKey, type InventoryDropTarget } from '../inventoryDrag';
 import { useMenu, useTooltip } from '../overlays';
 import { useInventoryStore } from '../stores/inventory';
+import { useMagicStore } from '../stores/magic';
 import SeleneVisual from './SeleneVisual.vue';
 import WorldContextMenu, { type WorldContextAction } from './WorldContextMenu.vue';
 
@@ -31,6 +32,7 @@ interface PendingWorldLookAt {
 
 const selene = useSelene();
 const inventory = useInventoryStore();
+const magic = useMagicStore();
 const tooltip = useTooltip();
 const menu = useMenu();
 const previewElement = useTemplateRef<HTMLElement>('previewElement');
@@ -170,6 +172,26 @@ const onClick = (event: MouseEvent) => {
 };
 
 const onPointerDown = ({ button, shiftKey, clientX, clientY, coordinate }: SelenePointerEvent) => {
+  if (magic.active.value) {
+    if (button === 0 && isInWorldViewport(clientX, clientY)) {
+      void selene.world.getEntitiesAt(coordinate).then((entities) => {
+        const target = [...entities]
+          .reverse()
+          .find((entity) => entity.tags.includes('illarion:character') || entity.tags.includes('illarion:item'));
+        if (!magic.active.value) {
+          return;
+        }
+        if (target?.tags.includes('illarion:character')) {
+          magic.targetEntity('character', target.networkId);
+        } else if (target?.tags.includes('illarion:item')) {
+          magic.targetEntity('item', target.networkId);
+        } else {
+          magic.targetField(coordinate);
+        }
+      });
+    }
+    return;
+  }
   if (button === 0 && !shiftKey && isInWorldViewport(clientX, clientY)) {
     tooltip.hide();
     pendingEntityTooltip = undefined;
@@ -252,6 +274,9 @@ const releaseOn = (target: InventoryDropTarget) => {
 provide(inventoryDragKey, { start: startInventoryDrag, releaseOn });
 
 const onPointerUp = ({ button, clientX, clientY, coordinate }: SelenePointerEvent) => {
+  if (magic.active.value) {
+    return;
+  }
   if (button === 2) {
     resetPointers();
     void requestWorldContextMenu(clientX, clientY, coordinate);

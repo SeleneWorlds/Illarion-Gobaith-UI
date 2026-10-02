@@ -15,6 +15,21 @@ local useCursor = nil
 local useTarget = nil
 local attackCursor = nil
 local attackTargetId = nil
+local magicMode = false
+local magicTarget = nil
+local magicTargetId = nil
+
+local function isMagicPressed()
+    return Input.isKeyPressed("L-Alt") or Input.isKeyPressed("R-Alt")
+end
+
+local function clearMagicTarget()
+    if magicTarget then
+        magicTarget:despawn()
+        magicTarget = nil
+    end
+    magicTargetId = nil
+end
 
 Network.handlePayload("illarion:set_combat_target", function(payload)
     if attackCursor then
@@ -31,6 +46,14 @@ Network.handlePayload("illarion:set_combat_target", function(payload)
 end)
 
 Game.preTick:connect(function()
+    local magicPressed = isMagicPressed()
+    if magicPressed ~= magicMode then
+        magicMode = magicPressed
+        if not magicMode then
+            clearMagicTarget()
+        end
+    end
+
     if attackTargetId then
         local attackTarget = Entities.getEntityByNetworkId(attackTargetId)
         if attackTarget then
@@ -44,6 +67,15 @@ Game.preTick:connect(function()
         elseif attackCursor then
             attackCursor:despawn()
             attackCursor = nil
+        end
+    end
+
+    if magicTarget and magicTargetId then
+        local target = Entities.getEntityByNetworkId(magicTargetId)
+        if target then
+            magicTarget:setCoordinate(target:getCoordinate())
+        else
+            clearMagicTarget()
         end
     end
 
@@ -89,7 +121,23 @@ Input.bindAction(Input.MOUSE, "left", function(screenX, screenY)
 
     local isShiftPressed = Input.isKeyPressed("L-Shift") or Input.isKeyPressed("R-Shift")
     local isCtrlPressed = Input.isKeyPressed("L-Ctrl") or Input.isKeyPressed("R-Ctrl")
-    if isShiftPressed then
+    if isMagicPressed() then
+        clearMagicTarget()
+        magicTarget = Entities.create("illarion:magic_target")
+        magicTarget:setCoordinate(coordinate)
+        magicTarget:spawn()
+        local entities = Entities.findEntitiesAt(coordinate, {
+            tag = "illarion:character"
+        })
+        if #entities == 0 then
+            entities = Entities.findEntitiesAt(coordinate, {
+                tag = "illarion:item"
+            })
+        end
+        if #entities > 0 then
+            magicTargetId = entities[#entities]:getNetworkId()
+        end
+    elseif isShiftPressed then
         if not useCursor then
             useCursor = Entities.create("illarion:use_cursor")
             useCursor:setCoordinate(coordinate)

@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { computed, inject, useTemplateRef, watch } from 'vue';
-import { useClientAssetSrc, useClientAssetStyle } from '../composables/useClientAsset';
+import { useClientAssetSrc, useClientAssetStyle, useUiAssetSrc } from '../composables/useClientAsset';
 import { sameInventorySlot, type InventoryViewId } from '../inventory';
 import { inventoryDragKey } from '../inventoryDrag';
 import { useMenu, useTooltip } from '../overlays';
 import { useInventoryStore } from '../stores/inventory';
+import { useMagicStore } from '../stores/magic';
 import InventoryItemMenu from './InventoryItemMenu.vue';
 import SeleneVisual from './SeleneVisual.vue';
 
@@ -15,8 +16,10 @@ const props = withDefaults(defineProps<{ viewId: InventoryViewId; slotId: number
 const slotBackground = useClientAssetStyle('client/textures/illarion/ui/inv_slot-0.png');
 const hoverBackground = useClientAssetStyle('client/textures/illarion/ui/inv_slot-7.png');
 const markUseSrc = useClientAssetSrc('client/textures/illarion/ui/mark_use.png');
+const magicCursorSrc = useUiAssetSrc('cursor_magic.png');
 
 const inventory = useInventoryStore();
+const magic = useMagicStore();
 const slotElement = useTemplateRef<HTMLElement>('slotElement');
 const inventoryDrag = inject(inventoryDragKey);
 if (!inventoryDrag) {
@@ -28,6 +31,10 @@ const tooltip = useTooltip();
 const item = computed(() => inventory.getItem(props.viewId, props.slotId));
 const isUsing = computed(() =>
   inventory.selectedUseSlots.value.some((slot) => slot.viewId === props.viewId && slot.slotId === props.slotId),
+);
+const isMagicTarget = computed(() => magic.isTargetSlot({ viewId: props.viewId, slotId: props.slotId }));
+const slotCursor = computed(() =>
+  magic.active.value && magicCursorSrc.value ? `url("${magicCursorSrc.value}"), auto` : undefined,
 );
 
 const hitBands = Array.from({ length: 20 }, (_, index) => {
@@ -60,6 +67,10 @@ const onMouseDown = (event: MouseEvent) => {
   if (!item.value) {
     return;
   }
+  if (magic.active.value) {
+    magic.targetSlot({ viewId: props.viewId, slotId: props.slotId });
+    return;
+  }
   if (event.shiftKey) {
     inventory.selectUseSlot(props.viewId, props.slotId);
     return;
@@ -72,11 +83,14 @@ const onMouseDown = (event: MouseEvent) => {
   });
 };
 const onClick = (event: MouseEvent) => {
-  if (!event.shiftKey) {
+  if (!event.shiftKey && !magic.active.value) {
     lookAt();
   }
 };
 const onMouseUp = (event: MouseEvent) => {
+  if (magic.active.value) {
+    return;
+  }
   const target = { viewId: props.viewId, slotId: props.slotId };
   inventoryDrag.releaseOn({
     clientX: event.clientX,
@@ -133,6 +147,7 @@ const onScrollSlot = (event: WheelEvent) => {
       :data-view-id="viewId"
       :data-slot-id="slotId"
       :aria-label="`${viewId} slot ${slotId}`"
+      :style="{ cursor: slotCursor }"
       @mousedown.left.prevent="onMouseDown"
       @mouseup.left.prevent.stop="onMouseUp"
       @click="onClick"
@@ -149,7 +164,12 @@ const onScrollSlot = (event: WheelEvent) => {
       <SeleneVisual v-if="item" class="item" :identifier="item.visual" :seed="`${viewId}:${slotId}`" without-offset />
       <span v-if="item && item.count > 1" class="count">{{ item.count }}</span>
     </button>
-    <img v-if="isUsing" class="using" :src="markUseSrc" alt="Item currently being used" />
+    <img
+      v-if="isUsing || isMagicTarget"
+      class="using"
+      :src="markUseSrc"
+      :alt="isMagicTarget ? 'Magic target' : 'Item currently being used'"
+    />
   </div>
 </template>
 
