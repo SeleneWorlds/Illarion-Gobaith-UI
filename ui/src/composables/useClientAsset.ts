@@ -2,7 +2,10 @@ import { computed, readonly, ref, toValue, watchEffect, type MaybeRefOrGetter } 
 import { resolveClientAsset } from '../clientAssets';
 import { useSelene } from '../selene';
 
-export const useClientAssetSrc = (path: MaybeRefOrGetter<string>) => {
+export const useClientAssetSrc = (
+  path: MaybeRefOrGetter<string>,
+  fallbackPath?: MaybeRefOrGetter<string>,
+) => {
   const selene = useSelene();
   const url = ref<string>();
 
@@ -10,6 +13,10 @@ export const useClientAssetSrc = (path: MaybeRefOrGetter<string>) => {
     let active = true;
     onCleanup(() => { active = false; });
     void resolveClientAsset(selene, toValue(path))
+      .catch((error: unknown) => {
+        if (fallbackPath) return resolveClientAsset(selene, toValue(fallbackPath));
+        throw error;
+      })
       .then((value) => {
         if (active) url.value = value;
       })
@@ -20,7 +27,10 @@ export const useClientAssetSrc = (path: MaybeRefOrGetter<string>) => {
 };
 
 export const useUiAssetSrc = (fileName: MaybeRefOrGetter<string>) =>
-  useClientAssetSrc(() => `client/ui/dist/assets/${toValue(fileName)}`);
+  useClientAssetSrc(
+    () => `client/textures/illarion/ui/${toValue(fileName)}`,
+    () => `client/ui/dist/assets/${toValue(fileName)}`,
+  );
 
 export const useClientAssetStyle = (path: string) => {
   const url = useClientAssetSrc(path);
