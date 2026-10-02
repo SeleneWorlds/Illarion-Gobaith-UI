@@ -39,8 +39,8 @@ const runeNames: ReadonlyArray<ReadonlyArray<string | undefined>> = [
     'KAH',
     'ANTH',
     'DUN',
-    'PHERCC',
-    'BHONAA',
+    'PHERC',
+    'BHONA',
     'SUL',
   ],
   [
