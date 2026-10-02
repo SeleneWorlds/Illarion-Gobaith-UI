@@ -59,7 +59,7 @@ const payloadSlot = (payload: ClientNetworkPayload): InventorySlotDefinition | u
 export const createInventoryStore = (network: NetworkApi): InventoryStore => {
   const items = reactive<Record<string, InventoryItem>>({});
   const tooltipResponse = ref<InventoryTooltipResponse>();
-  const counter = ref(1);
+  const counter = ref(250);
   const selectedUseSlots = ref<InventorySlotDefinition[]>([]);
   const showcases = ref<ShowcaseDefinition[]>([]);
   let requestedTooltipSlot: InventorySlotDefinition | undefined;
