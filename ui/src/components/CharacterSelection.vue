@@ -28,7 +28,7 @@ const characterSelectedPayloadSchema = z.object({
 type CharacterSummary = z.infer<typeof characterSchema>;
 
 const emit = defineEmits<{
-  selected: [];
+  selected: [characterId: number];
   create: [];
 }>();
 
@@ -44,7 +44,7 @@ usePayload('illarion:characters', charactersPayloadSchema, (payload) => {
 
 usePayload('illarion:character_selected', characterSelectedPayloadSchema, (payload) => {
   if (payload.id === selectingId.value) {
-    emit('selected');
+    emit('selected', payload.id);
   }
 });
 

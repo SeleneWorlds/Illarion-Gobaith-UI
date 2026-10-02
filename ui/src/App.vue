@@ -49,7 +49,10 @@ provide(inventoryStoreKey, inventory);
 provide(minimapStoreKey, minimap);
 provide(chatStoreKey, chat);
 provide(skillsStoreKey, skills);
-void minimap.initialize();
+const selectCharacter = (characterId: number) => {
+  characterSelected.value = true;
+  void minimap.initialize(characterId);
+};
 
 let releaseF8: (() => void) | undefined;
 const toggleSkills = (event: KeyboardEvent) => {
@@ -80,7 +83,7 @@ onBeforeUnmount(() => {
   <CharacterSelection
     v-else-if="!characterSelected"
     @create="creatingCharacter = true"
-    @selected="characterSelected = true"
+    @selected="selectCharacter"
   />
   <main v-else class="hud" aria-label="Illarion game interface">
     <TooltipContainer>

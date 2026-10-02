@@ -1,7 +1,7 @@
 import { computed, inject, readonly, ref, type ComputedRef, type InjectionKey, type Ref } from 'vue';
 import type { SeleneUiApi } from '../selene';
 
-const STORAGE_KEY = 'player';
+const storageKey = (characterId: number) => `player.${characterId}`;
 const STORAGE_VERSION = 1;
 const SAVE_DELAY_MS = 500;
 const ZOOM_STORAGE_KEY = 'zoomMinimap';
@@ -55,7 +55,7 @@ export interface MinimapStore {
   readonly canZoomIn: ComputedRef<boolean>;
   readonly canZoomOut: ComputedRef<boolean>;
   getColorIndex(x: number, y: number, z: number): number;
-  initialize(): Promise<void>;
+  initialize(characterId: number): Promise<void>;
   toggleZoom(): void;
   adjustZoom(amount: number): void;
   toggleRotation(): void;
@@ -88,12 +88,14 @@ export const createMinimapStore = (selene: SeleneUiApi): MinimapStore => {
     return pendingSave;
   };
 
+  let activeStorageKey: string | undefined;
+
   const flush = async () => {
     if (saveTimer !== undefined) {
       clearTimeout(saveTimer);
     }
     saveTimer = undefined;
-    if (!mapDirty) {
+    if (!mapDirty || activeStorageKey === undefined) {
       return;
     }
     mapDirty = false;
@@ -105,7 +107,7 @@ export const createMinimapStore = (selene: SeleneUiApi): MinimapStore => {
       }
     }
     try {
-      await save(STORAGE_KEY, JSON.stringify(data));
+      await save(activeStorageKey, JSON.stringify(data));
     } catch (error) {
       mapDirty = true;
       throw error;
@@ -185,11 +187,12 @@ export const createMinimapStore = (selene: SeleneUiApi): MinimapStore => {
     getColorIndex(x, y, z) {
       return tiles.get(tileKey(x, y, z)) ?? 0;
     },
-    initialize() {
+    initialize(characterId) {
       initialization ??= (async () => {
+        activeStorageKey = storageKey(characterId);
         try {
           const [storedTiles, storedZoom, storedRotation] = await Promise.all([
-            load(STORAGE_KEY),
+            load(activeStorageKey),
             load(ZOOM_STORAGE_KEY),
             load(ROTATION_STORAGE_KEY),
           ]);
