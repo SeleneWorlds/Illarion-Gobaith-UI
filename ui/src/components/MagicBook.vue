@@ -287,7 +287,7 @@ onBeforeUnmount(() => {
   position: absolute;
   left: 0;
   bottom: -20px;
-  z-index: 8;
+  z-index: 9;
   /* The source image has a transparent tail after the book artwork. */
   width: 805px;
   height: 320px;
