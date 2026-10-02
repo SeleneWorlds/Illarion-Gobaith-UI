@@ -9,7 +9,7 @@ const emit = defineEmits<{ result: [selection: { mode: SpeechModeId } | { langua
       {{ item.name === 'Normal' ? 'Speak' : item.name }}
     </button>
   </li>
-  <li class="separator" role="separator" />
+  <li v-if="languages.length" class="separator" role="separator" />
   <li v-for="language in languages" :key="language">
     <button type="button" @click="emit('result', { language })">{{ language }}</button>
   </li>

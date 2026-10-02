@@ -1,22 +1,18 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import { useMenu } from '../overlays';
 import { speechModes, type SpeechModeId } from '../chatModes';
 import SpeechOptionsMenu from './SpeechOptionsMenu.vue';
 import { useUiAssetSrc } from '../composables/useClientAsset';
+import { useSkillsStore } from '../stores/skills';
 
-const languages = [
-  'Common',
-  'Ancient',
-  'Halfling',
-  'Dwarf',
-  'Elf',
-  'Human',
-  'Lizard',
-  'Orc',
-  'Fairy',
-  'Gnoll',
-  'Goblin',
-] as const;
+const { groups } = useSkillsStore();
+const languages = computed(
+  () =>
+    groups.value
+      .find((group) => group.id === 0)
+      ?.skills.map((skill) => skill.name.replace(/Language$/, '').replace(/^./, (first) => first.toUpperCase())) ?? [],
+);
 const menu = useMenu();
 const selectedMode = defineModel<SpeechModeId>({ required: true });
 const emit = defineEmits<{
@@ -33,7 +29,7 @@ type SpeechSelection = { mode: SpeechModeId } | { language: string };
 const openMenu = async (event: MouseEvent) => {
   const selection = await menu.open<SpeechSelection>(
     SpeechOptionsMenu,
-    { selectedMode: selectedMode.value, languages },
+    { selectedMode: selectedMode.value, languages: languages.value },
     { label: 'Speech options', anchor: event.currentTarget as HTMLElement },
   );
   if (!selection) {
