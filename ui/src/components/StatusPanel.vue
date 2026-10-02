@@ -188,7 +188,7 @@ const temperatureOffset = computed(() => ((clock.value.temperature + 15) * 280) 
 }
 .bar {
   position: absolute;
-  bottom: 28px;
+  bottom: 31px;
   width: 12px;
   height: 80px;
   overflow: hidden;
