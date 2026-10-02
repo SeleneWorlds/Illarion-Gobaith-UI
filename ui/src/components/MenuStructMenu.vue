@@ -15,6 +15,7 @@ const selene = useSelene();
 const tooltip = useTooltip();
 const selectionBackground = useClientAssetStyle('client/textures/illarion/ui/menu_select.png');
 const frameSrc = useClientAssetSrc('client/textures/illarion/ui/menu_short.png');
+const closeIcon = useClientAssetSrc('client/textures/illarion/ui/menu_close.png');
 const menuId = ref<number>();
 const items = ref<Array<MenuStructItem | undefined>>([]);
 const hoveredSlot = ref<number>();
@@ -134,6 +135,9 @@ onBeforeUnmount(() => {
         <SeleneVisual v-if="item" :identifier="item.visual" :seed="String(item.id)" without-offset />
       </button>
     </div>
+    <button class="close" type="button" title="Close menu" aria-label="Close menu" @click="hide">
+      <img :src="closeIcon" alt="" />
+    </button>
   </section>
 </template>
 
@@ -179,5 +183,27 @@ onBeforeUnmount(() => {
 }
 .slot.empty {
   visibility: hidden;
+}
+.close {
+  position: absolute;
+  left: 267px;
+  bottom: 24px;
+  width: 40px;
+  height: 95px;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.close:focus-visible {
+  outline: 1px solid #7a3d27;
+}
+.close img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  user-select: none;
 }
 </style>
