@@ -112,8 +112,25 @@ const onWindowKeydown = (event: KeyboardEvent) => {
   if (useDescriptionMacro(event)) {
     return;
   }
+  if ((event.ctrlKey || event.metaKey) && !event.altKey && event.key.toLowerCase() === 'a') {
+    event.preventDefault();
+    event.stopPropagation();
+    input.value?.focus();
+    input.value?.select();
+    return;
+  }
   const root = input.value?.getRootNode();
   const activeElement = root instanceof Document || root instanceof ShadowRoot ? root.activeElement : null;
+  if (
+    event.shiftKey &&
+    ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End', 'PageUp', 'PageDown'].includes(event.key) &&
+    !isEditable(activeElement) &&
+    !isEditable(event.target as Element | null)
+  ) {
+    event.preventDefault();
+    event.stopPropagation();
+    return;
+  }
   if (event.defaultPrevented || isEditable(activeElement) || isEditable(event.target as Element | null)) {
     return;
   }
