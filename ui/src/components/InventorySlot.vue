@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, inject, useTemplateRef, watch } from 'vue';
-import { useClientAssetSrc, useClientAssetStyle, useUiAssetSrc } from '../composables/useClientAsset';
+import { useClientAssetStyle, useUiAssetSrc } from '../composables/useClientAsset';
 import { sameInventorySlot, type InventoryViewId } from '../inventory';
 import { inventoryDragKey } from '../inventoryDrag';
 import { useMenu, useTooltip } from '../overlays';
@@ -15,7 +15,6 @@ const props = withDefaults(defineProps<{ viewId: InventoryViewId; slotId: number
 
 const slotBackground = useClientAssetStyle('client/textures/illarion/ui/inv_slot-0.png');
 const hoverBackground = useClientAssetStyle('client/textures/illarion/ui/inv_slot-7.png');
-const markUseSrc = useClientAssetSrc('client/textures/illarion/ui/mark_use.png');
 const magicCursorSrc = useUiAssetSrc('cursor_magic.png');
 
 const inventory = useInventoryStore();
@@ -164,11 +163,11 @@ const onScrollSlot = (event: WheelEvent) => {
       <SeleneVisual v-if="item" class="item" :identifier="item.visual" :seed="`${viewId}:${slotId}`" without-offset />
       <span v-if="item && item.count > 1" class="count">{{ item.count }}</span>
     </button>
-    <img
+    <SeleneVisual
       v-if="isUsing || isMagicTarget"
       class="using"
-      :src="markUseSrc"
-      :alt="isMagicTarget ? 'Magic target' : 'Item currently being used'"
+      identifier="illarion:use_cursor"
+      without-offset
     />
   </div>
 </template>
