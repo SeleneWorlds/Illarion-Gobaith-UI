@@ -1,22 +1,25 @@
 local Registries = require("selene.registries")
 local Network = require("selene.network")
 local Sounds = require("selene.sounds")
+local Game = require("selene.game")
 
 local OverrideTrack = nil
 local CombatTrack = nil
 local CurrentDefaultTrack = nil
 
 local CurrentTrack = nil
+local IsInCombat = false
 
 local function SetSoundTrack(sound)
     if CurrentTrack == sound then
         return
     end
 
+    if CurrentTrack ~= nil then
+        Sounds.stopSound(CurrentTrack)
+    end
     if sound ~= nil then
         Sounds.playLocalSound(sound)
-    else
-        Sounds.stopSound(CurrentTrack)
     end
     CurrentTrack = sound
 end
@@ -25,7 +28,7 @@ Network.handlePayload("illarion:music", function(payload)
     if payload.musicId == 0 then
         OverrideTrack = nil
     else
-        local sound = Registries.findByMetadata("sounds", "musicId", payload.musicId)
+        local sound = Registries.findByMetadata("sounds", "songId", payload.musicId)
         if sound then
             OverrideTrack = sound
         else
@@ -35,11 +38,14 @@ Network.handlePayload("illarion:music", function(payload)
     end
 end)
 
+Network.handlePayload("illarion:set_combat_target", function(payload)
+    IsInCombat = payload.networkId ~= -1
+end)
+
 Game.preTick:connect(function()
-    local isInCombat = false
-    if isInCombat then
+    if IsInCombat then
         if CombatTrack == nil then
-            CombatTrack = Registries.findByMetadata("sounds", "musicId", 1)
+            CombatTrack = Registries.findByMetadata("sounds", "songId", 1)
         end
         SetSoundTrack(CombatTrack)
     elseif OverrideTrack ~= nil then
