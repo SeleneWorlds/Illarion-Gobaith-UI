@@ -404,7 +404,12 @@ onMounted(() => {
       } else if (payload.action === 'open') {
         selene.network.sendToServer('illarion:open_container_at', { x: payload.x, y: payload.y, z: payload.z });
       } else if (payload.action === 'use') {
-        selene.network.sendToServer('illarion:use_at', { x: payload.x, y: payload.y, z: payload.z });
+        selene.network.sendToServer('illarion:use_at', {
+          x: payload.x,
+          y: payload.y,
+          z: payload.z,
+          count: inventory.counter.value,
+        });
       }
     }),
   );

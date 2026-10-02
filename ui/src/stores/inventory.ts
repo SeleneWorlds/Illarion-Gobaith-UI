@@ -34,7 +34,7 @@ export interface InventoryStore {
   moveCoordinateToCoordinate(from: Coordinate, to: Coordinate, count: number): void;
   openContainer(viewId: InventorySlotDefinition['viewId'], slotId: number, count: number): void;
   closeShowcase(showcaseId: number): void;
-  use(viewId: InventorySlotDefinition['viewId'], slotId: number, count?: number): void;
+  use(viewId: InventorySlotDefinition['viewId'], slotId: number, count: number): void;
   selectUseSlot(viewId: InventorySlotDefinition['viewId'], slotId: number): void;
   finishUse(): void;
   dropInFront(viewId: InventorySlotDefinition['viewId'], slotId: number, count: number): void;
@@ -202,7 +202,7 @@ export const createInventoryStore = (network: NetworkApi): InventoryStore => {
       network.sendToServer('illarion:close_showcase', { showcaseId });
     },
     use(viewId, slotId, count) {
-      network.sendToServer('illarion:use_slot', count === undefined ? { viewId, slotId } : { viewId, slotId, count });
+      network.sendToServer('illarion:use_slot', { viewId, slotId, count });
     },
     selectUseSlot(viewId, slotId) {
       const slot = { viewId, slotId };
@@ -215,7 +215,11 @@ export const createInventoryStore = (network: NetworkApi): InventoryStore => {
     },
     finishUse() {
       for (const slot of selectedUseSlots.value) {
-        network.sendToServer('illarion:use_slot', { viewId: slot.viewId, slotId: slot.slotId });
+        network.sendToServer('illarion:use_slot', {
+          viewId: slot.viewId,
+          slotId: slot.slotId,
+          count: counter.value,
+        });
       }
       selectedUseSlots.value = [];
     },
