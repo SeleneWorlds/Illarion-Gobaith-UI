@@ -64,6 +64,16 @@ export const createInventoryStore = (network: NetworkApi): InventoryStore => {
   const showcases = ref<ShowcaseDefinition[]>([]);
   let requestedTooltipSlot: InventorySlotDefinition | undefined;
 
+  const removeShowcase = (showcaseId: number) => {
+    const viewId = `showcase:${showcaseId}`;
+    showcases.value = showcases.value.filter((showcase) => showcase.id !== showcaseId);
+    for (const key of Object.keys(items)) {
+      if (key.startsWith(`${viewId}:`)) {
+        delete items[key];
+      }
+    }
+  };
+
   const updateSlot = (payload: ClientNetworkPayload) => {
     const slot = payloadSlot(payload);
     if (!slot) {
@@ -103,6 +113,12 @@ export const createInventoryStore = (network: NetworkApi): InventoryStore => {
 
   network.onPayload('illarion:update_slot', updateSlot);
   network.onPayload('illarion:look_at_slot', updateTooltip);
+  network.onPayload('illarion:close_showcase', (payload) => {
+    const showcaseId = payload.showcaseId;
+    if (typeof showcaseId === 'number' && Number.isInteger(showcaseId) && showcaseId >= 0) {
+      removeShowcase(showcaseId);
+    }
+  });
   network.onPayload('illarion:showcase', (payload) => {
     const viewId = payload.viewId;
     const slotCount = payload.slotCount;
@@ -182,13 +198,7 @@ export const createInventoryStore = (network: NetworkApi): InventoryStore => {
       network.sendToServer('illarion:open_container_slot', { viewId, slotId, count });
     },
     closeShowcase(showcaseId) {
-      const viewId = `showcase:${showcaseId}`;
-      showcases.value = showcases.value.filter((showcase) => showcase.id !== showcaseId);
-      for (const key of Object.keys(items)) {
-        if (key.startsWith(`${viewId}:`)) {
-          delete items[key];
-        }
-      }
+      removeShowcase(showcaseId);
       network.sendToServer('illarion:close_showcase', { showcaseId });
     },
     use(viewId, slotId, count) {
