@@ -42,6 +42,7 @@ const runeNames: ReadonlyArray<ReadonlyArray<string | undefined>> = [
     'PHERC',
     'BHONA',
     'SUL',
+    'LHOR'
   ],
   [
     'BROCH',
