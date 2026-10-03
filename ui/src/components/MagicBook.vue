@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, watchEffect } from 'vue';
+import { computed, onBeforeUnmount, onMounted } from 'vue';
 import { useUiAssetSrc } from '../composables/useClientAsset';
 import { useMagicStore } from '../stores/magic';
 import { useSelene } from '../selene';
@@ -111,7 +111,6 @@ const selection = useUiAssetSrc('mark_magic-0.png');
 const storeButton = useUiAssetSrc('spellbook_store.png');
 const clearButton = useUiAssetSrc('spellbook_close.png');
 const hoverSelection = useUiAssetSrc('magic_select.png');
-const magicCursor = useUiAssetSrc('cursor_magic.png');
 const runePrefix = computed(() => runePrefixes[magic.type.value] ?? runePrefixes[0]);
 const isOpen = computed(() => magic.active.value);
 const runeName = (rune: number) => runeNames[magic.type.value]?.[rune] ?? `Rune ${rune + 1}`;
@@ -181,11 +180,6 @@ const onKeyUp = (event: KeyboardEvent) => {
 };
 
 let releaseAlt: (() => void) | undefined;
-const originalCursor = document.documentElement.style.cursor;
-watchEffect(() => {
-  document.documentElement.style.cursor =
-    magic.active.value && magicCursor.value ? `url("${magicCursor.value}"), auto` : originalCursor;
-});
 onMounted(() => {
   releaseAlt = selene.input.captureKeys('Alt');
   window.addEventListener('keydown', onKeyDown, true);
@@ -193,7 +187,6 @@ onMounted(() => {
   window.addEventListener('blur', magic.cancel);
 });
 onBeforeUnmount(() => {
-  document.documentElement.style.cursor = originalCursor;
   releaseAlt?.();
   window.removeEventListener('keydown', onKeyDown, true);
   window.removeEventListener('keyup', onKeyUp, true);

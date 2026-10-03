@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { nextTick, onMounted, onUnmounted, provide, reactive, useTemplateRef } from 'vue';
+import { nextTick, onMounted, onUnmounted, provide, reactive, ref, useTemplateRef, watchEffect } from 'vue';
+import { useUiAssetSrc } from '../composables/useClientAsset';
 import { type InventoryDragStartDetail, type InventoryItem, type InventorySlotDefinition } from '../inventory';
 import type { Coordinate, SelenePointerEvent, WorldEntity } from '../selene';
 import { useSelene } from '../selene';
@@ -36,6 +37,10 @@ const inventory = useInventoryStore();
 const magic = useMagicStore();
 const tooltip = useTooltip();
 const menu = useMenu();
+const magicCursor = useUiAssetSrc('cursor_magic.png');
+const combatCursor = useUiAssetSrc('cursor_combat.png');
+const combatCursorActive = ref(false);
+const originalCursor = document.documentElement.style.cursor;
 const previewElement = useTemplateRef<HTMLElement>('previewElement');
 const worldTooltipAnchor = useTemplateRef<HTMLElement>('worldTooltipAnchor');
 const preview = reactive({
@@ -58,6 +63,25 @@ const pendingContextRequests = new Map<
 >();
 const inputUnsubscribers: Array<() => void> = [];
 const networkUnsubscribers: Array<() => void> = [];
+
+watchEffect(() => {
+  if (magic.active.value && magicCursor.value) {
+    document.documentElement.style.cursor = `url("${magicCursor.value}"), auto`;
+  } else if (combatCursorActive.value && combatCursor.value) {
+    document.documentElement.style.cursor = `url("${combatCursor.value}"), auto`;
+  } else {
+    document.documentElement.style.cursor = originalCursor;
+  }
+});
+
+const updateCombatCursor = (event: KeyboardEvent) => {
+  if (event.key === 'Control') {
+    combatCursorActive.value = event.type === 'keydown';
+  }
+};
+const resetCombatCursor = () => {
+  combatCursorActive.value = false;
+};
 
 const isInWorldViewport = (clientX: number, clientY: number) => {
   const container = worldTooltipAnchor.value?.offsetParent;
@@ -342,11 +366,15 @@ const onPointerUp = ({ button, clientX, clientY, coordinate }: SelenePointerEven
 };
 
 onMounted(() => {
+  window.addEventListener('keydown', updateCombatCursor, true);
+  window.addEventListener('keyup', updateCombatCursor, true);
+  window.addEventListener('blur', resetCombatCursor);
   window.addEventListener('mousemove', onMouseMove, true);
   window.addEventListener('click', onClick, true);
   window.addEventListener('keyup', finishUse, true);
   inputUnsubscribers.push(selene.input.onPointerDown(onPointerDown));
   inputUnsubscribers.push(selene.input.onPointerUp(onPointerUp));
+  inputUnsubscribers.push(selene.input.captureKeys('Control'));
   networkUnsubscribers.push(
     selene.network.onPayload('illarion:look_at', (payload) => {
       const pending = pendingWorldLookAt;
@@ -463,6 +491,10 @@ onMounted(() => {
   );
 });
 onUnmounted(() => {
+  document.documentElement.style.cursor = originalCursor;
+  window.removeEventListener('keydown', updateCombatCursor, true);
+  window.removeEventListener('keyup', updateCombatCursor, true);
+  window.removeEventListener('blur', resetCombatCursor);
   window.removeEventListener('mousemove', onMouseMove, true);
   window.removeEventListener('click', onClick, true);
   window.removeEventListener('keyup', finishUse, true);
