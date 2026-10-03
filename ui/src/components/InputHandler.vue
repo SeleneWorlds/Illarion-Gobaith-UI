@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { nextTick, onMounted, onUnmounted, provide, reactive, useTemplateRef } from 'vue';
 import { type InventoryDragStartDetail, type InventoryItem, type InventorySlotDefinition } from '../inventory';
-import type { Coordinate, SelenePointerEvent } from '../selene';
+import type { Coordinate, SelenePointerEvent, WorldEntity } from '../selene';
 import { useSelene } from '../selene';
 import { inventoryDragKey, type InventoryDropTarget } from '../inventoryDrag';
 import { useMenu, useTooltip } from '../overlays';
@@ -20,6 +20,7 @@ interface InventoryPointer {
 
 interface WorldPointer {
   coordinate: Coordinate;
+  entity: Promise<WorldEntity | undefined>;
   downX: number;
   downY: number;
   dragged: boolean;
@@ -219,11 +220,17 @@ const onPointerDown = ({ button, shiftKey, clientX, clientY, coordinate }: Selen
     pendingEntityTooltip = undefined;
     pendingWorldLookAt = { coordinate };
     updateWorldTooltipPosition(clientX, clientY);
-    worldPointer = { coordinate, downX: clientX, downY: clientY, dragged: false };
+    const entities = selene.world.getEntitiesAt(coordinate);
+    const entity = entities.then((result) =>
+      [...result]
+        .reverse()
+        .find((candidate) => candidate.tags.includes('illarion:character') || candidate.tags.includes('illarion:item')),
+    );
+    worldPointer = { coordinate, entity, downX: clientX, downY: clientY, dragged: false };
     const source = worldPointer;
-    void selene.world
-      .getEntitiesAt(coordinate)
-      .then((entities) => {
+    void Promise.all([entity, entities])
+      .then(([draggedEntity, result]) => {
+        const entities = result;
         const reversedEntities = [...entities].reverse();
         const lookAtEntity = reversedEntities.find((entity) => entity.tags.includes('illarion:supports_look_at'));
         if (pendingWorldLookAt && pendingWorldLookAt.coordinate === coordinate) {
@@ -233,12 +240,11 @@ const onPointerDown = ({ button, shiftKey, clientX, clientY, coordinate }: Selen
         if (worldPointer !== source) {
           return;
         }
-        const item = reversedEntities.find((entity) => entity.tags.includes('illarion:item') && entity.visual);
-        if (!item?.visual) {
+        if (!draggedEntity?.visual || draggedEntity.tags.includes('illarion:character')) {
           return;
         }
-        preview.visual = item.visual;
-        preview.seed = String(item.networkId);
+        preview.visual = draggedEntity.visual;
+        preview.seed = String(draggedEntity.networkId);
         preview.left = clientX;
         preview.top = clientY;
         void nextTick(() => updatePreviewPosition(clientX, clientY));
@@ -313,9 +319,23 @@ const onPointerUp = ({ button, clientX, clientY, coordinate }: SelenePointerEven
       }
     }
   } else if (worldPointer?.dragged) {
+    const source = worldPointer;
     suppressedClick = { x: clientX, y: clientY, button };
     if (isInWorldViewport(clientX, clientY)) {
-      inventory.moveCoordinateToCoordinate(worldPointer.coordinate, coordinate, inventory.counter.value);
+      void source.entity
+        .then((entity) => {
+          if (entity?.tags.includes('illarion:character')) {
+            selene.network.sendToServer('illarion:push_character', {
+              networkId: entity.networkId,
+              x: coordinate.x,
+              y: coordinate.y,
+              z: coordinate.z,
+            });
+          } else {
+            inventory.moveCoordinateToCoordinate(source.coordinate, coordinate, inventory.counter.value);
+          }
+        })
+        .catch(() => undefined);
     }
   }
   resetPointers();
