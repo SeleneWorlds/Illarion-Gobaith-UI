@@ -91,6 +91,16 @@ const updateWorldTooltipPosition = (clientX: number, clientY: number) => {
   worldTooltipPosition.top = (clientY - rect.top) / scale;
 };
 
+const anchorWorldTooltipToEntity = (networkId: number) => {
+  const anchor = selene.world.projectEntity(networkId);
+  if (!anchor) {
+    return false;
+  }
+  worldTooltipPosition.left = anchor.x;
+  worldTooltipPosition.top = anchor.y;
+  return true;
+};
+
 const showWorldTooltip = (value: unknown) => {
   const anchor = worldTooltipAnchor.value;
   if (!anchor || !value || typeof value !== 'object') {
@@ -333,7 +343,13 @@ onMounted(() => {
   );
   networkUnsubscribers.push(
     selene.network.onPayload('illarion:look_at_entity', (payload) => {
-      if (!pendingWorldLookAt || typeof payload.networkId !== 'number') {
+      if (typeof payload.networkId !== 'number') {
+        return;
+      }
+      if (!pendingWorldLookAt) {
+        if (anchorWorldTooltipToEntity(payload.networkId)) {
+          showWorldTooltip(payload.tooltip);
+        }
         return;
       }
       pendingEntityTooltip = { networkId: payload.networkId, tooltip: payload.tooltip };

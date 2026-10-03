@@ -49,7 +49,9 @@ export interface SeleneUiApi {
   readonly world: {
     getCameraCoordinate(): Coordinate;
     getMapTiles(coordinate?: Coordinate, width?: number, height?: number): MapTile[];
+    projectCoordinate(coordinate: Coordinate): { x: number; y: number };
     getEntitiesAt(coordinate: Coordinate): Promise<WorldEntity[]>;
+    projectEntity(networkId: number): { x: number; y: number } | null;
     onCameraCoordinateChanged(callback: (coordinate: Coordinate) => void): () => void;
     onMapChanged(callback: (coordinate: Coordinate, width: number, height: number) => void): () => void;
   };
@@ -144,7 +146,9 @@ export const createMockSeleneUiApi = (): SeleneUiApi => {
     world: {
       getCameraCoordinate: () => ({ x: 0, y: 0, z: 0 }),
       getMapTiles: () => [],
+      projectCoordinate: () => ({ x: 0, y: 0 }),
       getEntitiesAt: async () => [],
+      projectEntity: () => null,
       onCameraCoordinateChanged: () => () => undefined,
       onMapChanged: () => () => undefined,
     },
