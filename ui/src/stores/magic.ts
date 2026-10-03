@@ -9,6 +9,10 @@ const magicSchema = z.object({
   flags: z.number().int().min(0).max(0xffffffff),
 });
 
+const combatTargetSchema = z.object({
+  networkId: z.number().int(),
+});
+
 export interface MagicStore {
   readonly type: Readonly<Ref<number>>;
   readonly flags: Readonly<Ref<number>>;
@@ -41,6 +45,7 @@ export const createMagicStore = (selene: SeleneUiApi): MagicStore => {
   const selected = ref<number[]>([]);
   const bookmarks = ref<number[]>(Array(8).fill(0));
   const target = ref<Record<string, unknown>>();
+  const combatTargetId = ref<number>();
   let characterId: number | undefined;
 
   const bookmarkKey = (index: number) => `player.${characterId}.spell${index}`;
@@ -57,6 +62,14 @@ export const createMagicStore = (selene: SeleneUiApi): MagicStore => {
     }
     type.value = result.data.type;
     flags.value = result.data.flags;
+  });
+
+  network.onPayload('illarion:set_combat_target', (payload) => {
+    const result = combatTargetSchema.safeParse(payload);
+    if (!result.success) {
+      return;
+    }
+    combatTargetId.value = result.data.networkId === -1 ? undefined : result.data.networkId;
   });
 
   const runes = computed(() => {
@@ -153,9 +166,14 @@ export const createMagicStore = (selene: SeleneUiApi): MagicStore => {
     },
     cast() {
       if (selected.value.length > 0) {
+        const castTarget =
+          target.value ??
+          (combatTargetId.value === undefined
+            ? undefined
+            : { kind: 'character', networkId: combatTargetId.value });
         network.sendToServer('illarion:cast', {
           spell: selected.value.reduce((value, rune) => value + 2 ** rune, 0),
-          ...target.value,
+          ...castTarget,
         });
       }
       clear();
