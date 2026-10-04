@@ -46,6 +46,7 @@ const worldTooltipAnchor = useTemplateRef<HTMLElement>('worldTooltipAnchor');
 const preview = reactive({
   visual: undefined as string | undefined,
   seed: undefined as string | undefined,
+  count: undefined as number | undefined,
   left: 0,
   top: 0,
 });
@@ -195,6 +196,7 @@ const onMouseMove = (event: MouseEvent) => {
     if (!wasDragged && inventoryPointer.dragged) {
       preview.visual = inventoryPointer.item.visual;
       preview.seed = `${inventoryPointer.slot.viewId}:${inventoryPointer.slot.slotId}`;
+      preview.count = Math.min(inventory.counter.value, inventoryPointer.item.count);
       void nextTick(() => updatePreviewPosition(event.clientX, event.clientY));
     }
   }
@@ -279,6 +281,7 @@ const onPointerDown = ({ button, shiftKey, clientX, clientY, coordinate }: Selen
         }
         preview.visual = draggedEntity.visual;
         preview.seed = String(draggedEntity.networkId);
+        preview.count = undefined;
         preview.left = clientX;
         preview.top = clientY;
         void nextTick(() => updatePreviewPosition(clientX, clientY));
@@ -318,6 +321,7 @@ const resetPointers = () => {
   worldPointer = undefined;
   preview.visual = undefined;
   preview.seed = undefined;
+  preview.count = undefined;
 };
 
 const releaseOn = (target: InventoryDropTarget) => {
@@ -536,6 +540,7 @@ onUnmounted(() => {
     :style="{ left: `${preview.left}px`, top: `${preview.top}px` }"
   >
     <SeleneVisual :identifier="preview.visual" :seed="preview.seed" without-offset />
+    <span v-if="preview.count !== undefined && preview.count > 1" class="drag-preview-count">{{ preview.count }}</span>
   </span>
 </template>
 
@@ -550,10 +555,27 @@ onUnmounted(() => {
   position: absolute;
   z-index: 10;
   display: block;
-  width: 0;
-  height: 0;
+  width: 78px;
+  height: 39px;
+  transform: translate(-50%, -50%);
   opacity: 0.85;
   user-select: none;
   pointer-events: none;
+}
+.drag-preview-count {
+  position: absolute;
+  z-index: 1;
+  right: 17px;
+  bottom: 7px;
+  color: white;
+  font:
+    bold 12px Arial,
+    sans-serif;
+  line-height: 1;
+  text-shadow:
+    -1px -1px #000,
+    1px -1px #000,
+    -1px 1px #000,
+    1px 1px #000;
 }
 </style>
