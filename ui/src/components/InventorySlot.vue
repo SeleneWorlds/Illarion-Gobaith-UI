@@ -186,20 +186,30 @@ const onScrollSlot = (event: WheelEvent) => {
   height: 39px;
   margin: 0;
   padding: 0;
-  overflow: hidden;
+  overflow: visible;
   border: 0;
-  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
-  background: v-bind(slotBackground) no-repeat;
+  background: transparent;
   cursor: grab;
   pointer-events: none;
 }
-.button:has(.hit:hover) {
+.button::before {
+  position: absolute;
+  inset: 0;
+  content: '';
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+  background: v-bind(slotBackground) no-repeat;
+  pointer-events: none;
+}
+.button:has(.hit:hover)::before {
   background-image: v-bind(hoverBackground);
 }
 .button:active {
   cursor: grabbing;
 }
 .button:focus-visible {
+  outline: none;
+}
+.button:focus-visible::before {
   outline: 1px solid #b7d9ba;
   outline-offset: -2px;
 }
@@ -211,6 +221,7 @@ const onScrollSlot = (event: WheelEvent) => {
 }
 .item {
   position: absolute;
+  z-index: 1;
   inset: 0;
   display: block;
   user-select: none;
