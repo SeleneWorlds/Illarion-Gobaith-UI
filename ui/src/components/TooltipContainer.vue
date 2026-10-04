@@ -46,8 +46,17 @@ const show = async (options: TooltipOptions) => {
   const halfHeight = (tooltipElement.value.offsetHeight * scale) / 2;
   const desiredX = anchorRect.left + anchorRect.width / 2;
   const desiredY = anchorRect.top - halfHeight - (options.offset ?? 4) * scale;
-  const boundedX = Math.min(window.innerWidth - halfWidth, Math.max(halfWidth, desiredX));
-  const boundedY = Math.min(window.innerHeight - halfHeight, Math.max(halfHeight, desiredY));
+  const visibleLeft = Math.max(0, containerRect.left);
+  const visibleTop = Math.max(0, containerRect.top);
+  const visibleRight = Math.min(window.innerWidth, containerRect.right);
+  const visibleBottom = Math.min(window.innerHeight, containerRect.bottom);
+  const boundCenter = (desired: number, start: number, end: number, halfSize: number) => {
+    const minimum = start + halfSize;
+    const maximum = end - halfSize;
+    return minimum <= maximum ? Math.min(maximum, Math.max(minimum, desired)) : (start + end) / 2;
+  };
+  const boundedX = boundCenter(desiredX, visibleLeft, visibleRight, halfWidth);
+  const boundedY = boundCenter(desiredY, visibleTop, visibleBottom, halfHeight);
   tooltip.left = (boundedX - containerRect.left) / scale;
   tooltip.top = (boundedY - containerRect.top) / scale;
   requestAnimationFrame(() => {
