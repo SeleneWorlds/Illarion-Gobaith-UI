@@ -105,6 +105,26 @@ const isNextToControlledCharacter = (coordinate: Coordinate) => {
   return Math.floor(Math.hypot(dx, dy)) <= 1;
 };
 
+const getWorldItemCount = (entity: WorldEntity) => {
+  const component = entity.getComponent('illarion:item_count');
+  if (!component || typeof component !== 'object') {
+    return undefined;
+  }
+  const overrides = (component as Record<string, unknown>).overrides;
+  if (!overrides || typeof overrides !== 'object') {
+    return undefined;
+  }
+  const text = (overrides as Record<string, unknown>).text;
+  if (text === '') {
+    return 1;
+  }
+  if (typeof text !== 'string' || !/^\d+$/.test(text)) {
+    return undefined;
+  }
+  const count = Number.parseInt(text, 10);
+  return count > 0 ? count : undefined;
+};
+
 const updatePreviewPosition = (clientX: number, clientY: number) => {
   const container = previewElement.value?.offsetParent;
   if (!(container instanceof HTMLElement)) {
@@ -281,7 +301,10 @@ const onPointerDown = ({ button, shiftKey, clientX, clientY, coordinate }: Selen
         }
         preview.visual = draggedEntity.visual;
         preview.seed = String(draggedEntity.networkId);
-        preview.count = undefined;
+        const itemCount = draggedEntity.tags.includes('illarion:item') ? getWorldItemCount(draggedEntity) : undefined;
+        preview.count = itemCount !== undefined
+          ? Math.min(inventory.counter.value, itemCount)
+          : undefined;
         preview.left = clientX;
         preview.top = clientY;
         void nextTick(() => updatePreviewPosition(clientX, clientY));
