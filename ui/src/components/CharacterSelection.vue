@@ -102,7 +102,7 @@ const selectCharacter = (character: CharacterSummary) => {
 .panel {
   display: flex;
   width: 300px;
-  height: 220px;
+  min-height: 220px;
   padding: 48px 48px 42px;
   flex-direction: column;
   justify-content: center;
@@ -141,7 +141,6 @@ const selectCharacter = (character: CharacterSummary) => {
 .characters {
   display: grid;
   gap: 6px;
-  overflow-y: auto;
 }
 
 .create {
