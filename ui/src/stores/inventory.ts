@@ -206,18 +206,24 @@ export const createInventoryStore = (network: NetworkApi): InventoryStore => {
     },
     selectUseSlot(viewId, slotId) {
       const slot = { viewId, slotId };
-      if (
-        items[slotKey(viewId, slotId)] &&
-        !selectedUseSlots.value.some((selectedSlot) => sameSlot(selectedSlot, slot))
-      ) {
-        selectedUseSlots.value.push(slot);
+      if (!items[slotKey(viewId, slotId)]) {
+        return;
+      }
+      const source = selectedUseSlots.value[0];
+      if (!source) {
+        selectedUseSlots.value = [slot];
+      } else if (!sameSlot(source, slot)) {
+        selectedUseSlots.value = [source, slot];
       }
     },
     finishUse() {
-      for (const slot of selectedUseSlots.value) {
+      const source = selectedUseSlots.value[0];
+      const target = selectedUseSlots.value[1];
+      if (source) {
         network.sendToServer('illarion:use_slot', {
-          viewId: slot.viewId,
-          slotId: slot.slotId,
+          viewId: source.viewId,
+          slotId: source.slotId,
+          ...(target && { targetViewId: target.viewId, targetSlotId: target.slotId }),
           count: counter.value,
         });
       }

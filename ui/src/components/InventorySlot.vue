@@ -26,6 +26,7 @@ if (!inventoryDrag) {
 }
 const menu = useMenu();
 const tooltip = useTooltip();
+let suppressLookAt = false;
 
 const item = computed(() => inventory.getItem(props.viewId, props.slotId));
 const isUsing = computed(() =>
@@ -70,7 +71,8 @@ const onMouseDown = (event: MouseEvent) => {
     magic.targetSlot({ viewId: props.viewId, slotId: props.slotId });
     return;
   }
-  if (event.shiftKey) {
+  if (event.shiftKey || inventory.selectedUseSlots.value.length > 0) {
+    suppressLookAt = true;
     inventory.selectUseSlot(props.viewId, props.slotId);
     return;
   }
@@ -82,6 +84,10 @@ const onMouseDown = (event: MouseEvent) => {
   });
 };
 const onClick = (event: MouseEvent) => {
+  if (suppressLookAt) {
+    suppressLookAt = false;
+    return;
+  }
   if (!event.shiftKey && !magic.active.value) {
     lookAt();
   }
@@ -163,12 +169,7 @@ const onScrollSlot = (event: WheelEvent) => {
       <SeleneVisual v-if="item" class="item" :identifier="item.visual" :seed="`${viewId}:${slotId}`" without-offset />
       <span v-if="item && item.count > 1" class="count">{{ item.count }}</span>
     </button>
-    <SeleneVisual
-      v-if="isUsing || isMagicTarget"
-      class="using"
-      identifier="illarion:use_cursor"
-      without-offset
-    />
+    <SeleneVisual v-if="isUsing || isMagicTarget" class="using" identifier="illarion:use_cursor" without-offset />
   </div>
 </template>
 
