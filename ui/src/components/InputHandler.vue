@@ -94,6 +94,16 @@ const isInWorldViewport = (clientX: number, clientY: number) => {
   return x >= 0 && x < 839 && y >= 0 && y < 419;
 };
 
+const isNextToControlledCharacter = (coordinate: Coordinate) => {
+  const controlled = selene.world.getControlledEntity()?.coordinate;
+  if (!controlled || controlled.z !== coordinate.z) {
+    return false;
+  }
+  const dx = controlled.x - coordinate.x;
+  const dy = controlled.y - coordinate.y;
+  return Math.floor(Math.hypot(dx, dy)) <= 1;
+};
+
 const updatePreviewPosition = (clientX: number, clientY: number) => {
   const container = previewElement.value?.offsetParent;
   if (!(container instanceof HTMLElement)) {
@@ -264,7 +274,7 @@ const onPointerDown = ({ button, shiftKey, clientX, clientY, coordinate }: Selen
         if (worldPointer !== source) {
           return;
         }
-        if (!draggedEntity?.visual || !draggedEntity.draggable) {
+        if (!draggedEntity?.visual || !draggedEntity.draggable || !isNextToControlledCharacter(coordinate)) {
           return;
         }
         preview.visual = draggedEntity.visual;
@@ -322,7 +332,7 @@ const releaseOn = (target: InventoryDropTarget) => {
     const count = inventory.counter.value;
     void source.entity
       .then((entity) => {
-        if (entity?.draggable) {
+        if (entity?.draggable && isNextToControlledCharacter(source.coordinate)) {
           target.acceptCoordinate?.(source.coordinate, count);
         }
       })
@@ -363,7 +373,7 @@ const onPointerUp = ({ button, clientX, clientY, coordinate }: SelenePointerEven
               y: coordinate.y,
               z: coordinate.z,
             });
-          } else if (entity?.draggable) {
+          } else if (entity?.draggable && isNextToControlledCharacter(source.coordinate)) {
             suppressedClick = { x: clientX, y: clientY, button };
             inventory.moveCoordinateToCoordinate(source.coordinate, coordinate, inventory.counter.value);
           }
