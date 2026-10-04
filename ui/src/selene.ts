@@ -14,6 +14,7 @@ export interface WorldEntity {
   networkId: number;
   tags: readonly string[];
   visual?: string;
+  draggable: boolean;
 }
 export interface SelenePointerEvent {
   clientX: number;

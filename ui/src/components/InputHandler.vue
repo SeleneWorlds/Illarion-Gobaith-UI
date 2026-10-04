@@ -264,7 +264,7 @@ const onPointerDown = ({ button, shiftKey, clientX, clientY, coordinate }: Selen
         if (worldPointer !== source) {
           return;
         }
-        if (!draggedEntity?.visual || draggedEntity.tags.includes('illarion:character')) {
+        if (!draggedEntity?.visual || !draggedEntity.draggable) {
           return;
         }
         preview.visual = draggedEntity.visual;
@@ -318,7 +318,15 @@ const releaseOn = (target: InventoryDropTarget) => {
       target.acceptSlot(source, item, inventory.counter.value);
     }
   } else if (worldPointer?.dragged && target.acceptCoordinate) {
-    target.acceptCoordinate(worldPointer.coordinate, inventory.counter.value);
+    const source = worldPointer;
+    const count = inventory.counter.value;
+    void source.entity
+      .then((entity) => {
+        if (entity?.draggable) {
+          target.acceptCoordinate?.(source.coordinate, count);
+        }
+      })
+      .catch(() => undefined);
   }
   resetPointers();
 };
@@ -344,18 +352,19 @@ const onPointerUp = ({ button, clientX, clientY, coordinate }: SelenePointerEven
     }
   } else if (worldPointer?.dragged) {
     const source = worldPointer;
-    suppressedClick = { x: clientX, y: clientY, button };
     if (isInWorldViewport(clientX, clientY)) {
       void source.entity
         .then((entity) => {
           if (entity?.tags.includes('illarion:character')) {
+            suppressedClick = { x: clientX, y: clientY, button };
             selene.network.sendToServer('illarion:push_character', {
               networkId: entity.networkId,
               x: coordinate.x,
               y: coordinate.y,
               z: coordinate.z,
             });
-          } else {
+          } else if (entity?.draggable) {
+            suppressedClick = { x: clientX, y: clientY, button };
             inventory.moveCoordinateToCoordinate(source.coordinate, coordinate, inventory.counter.value);
           }
         })
