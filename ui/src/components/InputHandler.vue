@@ -538,6 +538,22 @@ onMounted(() => {
           z: payload.z,
           count: inventory.counter.value,
         });
+      } else if (payload.action === 'useWith') {
+        const coordinate =
+          typeof payload.x === 'number' && typeof payload.y === 'number' && typeof payload.z === 'number'
+            ? { x: payload.x, y: payload.y, z: payload.z }
+            : undefined;
+        if (!coordinate) {
+          return;
+        }
+        if (inventory.selectedUseSlots.value.length > 0) {
+          inventory.finishUse(coordinate);
+        } else {
+          selene.network.sendToServer('illarion:use_at', {
+            ...coordinate,
+            count: inventory.counter.value,
+          });
+        }
       }
     }),
   );

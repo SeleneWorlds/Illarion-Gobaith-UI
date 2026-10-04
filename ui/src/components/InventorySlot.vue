@@ -130,6 +130,9 @@ const onContextMenu = async (event: MouseEvent) => {
     inventory.use(props.viewId, props.slotId, inventory.counter.value);
   } else if (action === 'useWith') {
     inventory.selectUseSlot(props.viewId, props.slotId);
+    if (inventory.selectedUseSlots.value.length === 2) {
+      inventory.finishUse();
+    }
   } else if (action === 'drop') {
     inventory.dropInFront(props.viewId, props.slotId, inventory.counter.value);
   }
