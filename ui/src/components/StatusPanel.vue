@@ -50,29 +50,21 @@ const monthNames = [
   'Chos',
   'Mas',
 ] as const;
-const secondsPerMinute = 60;
-const secondsPerHour = 60 * secondsPerMinute;
-const secondsPerDay = 24 * secondsPerHour;
-const secondsPerYear = 365 * secondsPerDay;
-const daysPerMonth = 24;
-
-const syncedTime = ref(0);
-const timeFactor = ref(3);
-const syncedAt = ref(performance.now());
-const now = ref(syncedAt.value);
+const clock = ref({ year: 0, month: 1, day: 1, hour: 0, minute: 0 });
 const temperature = ref(15);
 
 const unsubscribeTime = selene.network.onPayload('illarion:time', (payload) => {
-  if (typeof payload.illarionTime !== 'number' || !Number.isFinite(payload.illarionTime)) {
+  const values = [payload.year, payload.month, payload.day, payload.hour, payload.minute];
+  if (!values.every((value) => typeof value === 'number' && Number.isFinite(value))) {
     return;
   }
-  syncedTime.value = payload.illarionTime;
-  timeFactor.value =
-    typeof payload.timeFactor === 'number' && Number.isFinite(payload.timeFactor) && payload.timeFactor > 0
-      ? payload.timeFactor
-      : 3;
-  syncedAt.value = performance.now();
-  now.value = syncedAt.value;
+  clock.value = {
+    year: payload.year as number,
+    month: payload.month as number,
+    day: payload.day as number,
+    hour: payload.hour as number,
+    minute: payload.minute as number,
+  };
 });
 
 const unsubscribeWeather = selene.network.onPayload('illarion:weather', (payload) => {
@@ -85,44 +77,23 @@ onConnected(() => {
   selene.network.sendToServer('illarion:request_weather');
 });
 
-const timer = window.setInterval(() => {
-  now.value = performance.now();
-}, 1000);
-
 onUnmounted(() => {
-  window.clearInterval(timer);
   unsubscribeTime();
   unsubscribeWeather();
 });
 
-const clock = computed(() => {
-  let illarionTime = syncedTime.value + ((now.value - syncedAt.value) / 1000) * timeFactor.value;
-  const year = Math.floor(illarionTime / secondsPerYear);
-  illarionTime -= year * secondsPerYear;
-
-  let day = Math.floor(illarionTime / secondsPerDay) + 1;
-  illarionTime %= secondsPerDay;
-  let month = Math.floor(day / daysPerMonth);
-  day -= month * daysPerMonth;
-  if (day === 0) {
-    day = month > 0 && month < monthNames.length ? daysPerMonth : 5;
-  } else {
-    month += 1;
-  }
-
-  const hour = Math.floor(illarionTime / secondsPerHour);
-  const minute = Math.floor((illarionTime % secondsPerHour) / secondsPerMinute);
+const displayClock = computed(() => {
   return {
-    day: `${day}.`,
-    month: monthNames[month - 1] ?? monthNames[0],
-    year,
-    hour,
-    minute,
+    day: `${clock.value.day}.`,
+    month: monthNames[clock.value.month - 1] ?? monthNames[0],
+    year: clock.value.year,
+    hour: clock.value.hour,
+    minute: clock.value.minute,
     temperature: temperature.value,
   };
 });
-const timeOffset = computed(() => ((clock.value.hour * 60 + clock.value.minute) * 329) / 1440);
-const temperatureOffset = computed(() => ((clock.value.temperature + 15) * 280) / 60);
+const timeOffset = computed(() => ((displayClock.value.hour * 60 + displayClock.value.minute) * 329) / 1440);
+const temperatureOffset = computed(() => ((displayClock.value.temperature + 15) * 280) / 60);
 </script>
 
 <template>
@@ -154,9 +125,9 @@ const temperatureOffset = computed(() => ((clock.value.temperature + 15) * 280) 
         <img :src="clockTemperatureSrc" alt="" :style="{ left: `${67 - temperatureOffset}px` }" />
       </span>
       <img class="dragon" :src="clockDragonSrc" alt="" />
-      <span class="day">{{ clock.day }}</span>
-      <span class="month">{{ clock.month }}</span>
-      <span class="year">{{ clock.year }}</span>
+      <span class="day">{{ displayClock.day }}</span>
+      <span class="month">{{ displayClock.month }}</span>
+      <span class="year">{{ displayClock.year }}</span>
     </span>
   </button>
 </template>
