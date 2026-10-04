@@ -12,6 +12,7 @@ export interface MapTile extends Coordinate {
 }
 export interface WorldEntity {
   networkId: number;
+  coordinate: Coordinate;
   tags: readonly string[];
   visual?: string;
   draggable: boolean;
@@ -49,6 +50,7 @@ export interface SeleneUiApi {
   };
   readonly world: {
     getCameraCoordinate(): Coordinate;
+    getControlledEntity(): WorldEntity | null;
     getMapTiles(coordinate?: Coordinate, width?: number, height?: number): MapTile[];
     projectCoordinate(coordinate: Coordinate): { x: number; y: number };
     getEntitiesAt(coordinate: Coordinate): Promise<WorldEntity[]>;
@@ -146,6 +148,7 @@ export const createMockSeleneUiApi = (): SeleneUiApi => {
     },
     world: {
       getCameraCoordinate: () => ({ x: 0, y: 0, z: 0 }),
+      getControlledEntity: () => null,
       getMapTiles: () => [],
       projectCoordinate: () => ({ x: 0, y: 0 }),
       getEntitiesAt: async () => [],
