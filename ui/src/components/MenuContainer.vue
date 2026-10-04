@@ -146,7 +146,7 @@ onBeforeUnmount(() => {
   padding: 0;
   border: 0;
   background: transparent;
-  color: #342515;
+  color: #000;
   font:
     14px/normal Georgia,
     serif;
@@ -156,11 +156,11 @@ onBeforeUnmount(() => {
 }
 .menu-overlay :deep(li > button:hover:not(:disabled)),
 .menu-overlay :deep(li > button:focus-visible) {
-  color: #8d1e18;
+  color: #03c;
   outline: 0;
 }
 .menu-overlay :deep(li > button:disabled) {
-  color: #8b7c68;
+  color: #999;
   cursor: default;
 }
 .menu-overlay :deep(.separator) {
