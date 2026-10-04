@@ -16,6 +16,7 @@ export interface WorldEntity {
   tags: readonly string[];
   visual?: string;
   draggable: boolean;
+  getComponent(name: string): unknown;
 }
 export interface SelenePointerEvent {
   clientX: number;
