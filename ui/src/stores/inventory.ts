@@ -36,7 +36,7 @@ export interface InventoryStore {
   closeShowcase(showcaseId: number): void;
   use(viewId: InventorySlotDefinition['viewId'], slotId: number, count: number): void;
   selectUseSlot(viewId: InventorySlotDefinition['viewId'], slotId: number): void;
-  finishUse(): void;
+  finishUse(target?: Coordinate): void;
   dropInFront(viewId: InventorySlotDefinition['viewId'], slotId: number, count: number): void;
 }
 
@@ -216,14 +216,14 @@ export const createInventoryStore = (network: NetworkApi): InventoryStore => {
         selectedUseSlots.value = [source, slot];
       }
     },
-    finishUse() {
+    finishUse(coordinate) {
       const source = selectedUseSlots.value[0];
       const target = selectedUseSlots.value[1];
       if (source) {
-        network.sendToServer('illarion:use_slot', {
+        network.sendToServer(coordinate ? 'illarion:use_slot_at' : 'illarion:use_slot', {
           viewId: source.viewId,
           slotId: source.slotId,
-          ...(target && { targetViewId: target.viewId, targetSlotId: target.slotId }),
+          ...(coordinate ?? (target && { targetViewId: target.viewId, targetSlotId: target.slotId })),
           count: counter.value,
         });
       }

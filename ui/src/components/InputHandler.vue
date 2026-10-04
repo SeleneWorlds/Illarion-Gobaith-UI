@@ -195,13 +195,19 @@ const startInventoryDrag = ({ viewId, slotId, clientX, clientY }: InventoryDragS
 const finishUse = (event: KeyboardEvent) => {
   if (event.key === 'Shift') {
     if (pendingUseCoordinate) {
-      selene.network.sendToServer('illarion:use_at', {
-        ...pendingUseCoordinate,
-        count: inventory.counter.value,
-      });
+      if (inventory.selectedUseSlots.value.length > 0) {
+        inventory.finishUse(pendingUseCoordinate);
+      } else {
+        selene.network.sendToServer('illarion:use_at', {
+          ...pendingUseCoordinate,
+          count: inventory.counter.value,
+        });
+      }
       pendingUseCoordinate = undefined;
     }
-    inventory.finishUse();
+    if (inventory.selectedUseSlots.value.length > 0) {
+      inventory.finishUse();
+    }
   }
 };
 
