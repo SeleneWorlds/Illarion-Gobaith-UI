@@ -3,6 +3,9 @@
     "illarion:visual": {
       "type": "visual",
       "visual": "illarion:tile_cursor"
+    },
+    "illarion:ignores_elevation": {
+      "type": "ignores_elevation"
     }
   }
 }

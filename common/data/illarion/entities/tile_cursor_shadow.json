@@ -7,6 +7,9 @@
     "illarion:script": {
       "type": "client_script",
       "script": "illarion-gobaith-ui.client.lua.entities.cursor_shadow"
+    },
+    "illarion:ignores_elevation": {
+      "type": "ignores_elevation"
     }
   }
 }
