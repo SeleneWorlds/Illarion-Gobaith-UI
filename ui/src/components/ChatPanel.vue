@@ -109,6 +109,9 @@ const isEditable = (element: Element | null): boolean =>
   element instanceof HTMLTextAreaElement ||
   (element instanceof HTMLElement && element.isContentEditable);
 const onWindowKeydown = (event: KeyboardEvent) => {
+  if (selene.input.hasEditableFocus()) {
+    return;
+  }
   if (useDescriptionMacro(event)) {
     return;
   }
