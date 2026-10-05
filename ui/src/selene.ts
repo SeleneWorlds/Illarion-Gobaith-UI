@@ -41,6 +41,7 @@ export interface SeleneUiApi {
     captureText(): () => void;
     passThroughKeys(...keys: string[]): () => void;
     isPassthroughKey(key: string): boolean;
+    hasEditableFocus(): boolean;
     onPointerDown(callback: (event: SelenePointerEvent) => void): () => void;
     onPointerUp(callback: (event: SelenePointerEvent) => void): () => void;
   };
@@ -96,7 +97,7 @@ export const createMockSeleneUiApi = (): SeleneUiApi => {
   const passthroughKeys = new Map<string, number>();
 
   return {
-    apiVersion: 6,
+    apiVersion: 8,
     resolveAsset: async (path) => `/${path.replace(/^client\/ui\/dist\//, '')}`,
     visuals: {
       getDefinition: async (identifier) => {
@@ -136,6 +137,15 @@ export const createMockSeleneUiApi = (): SeleneUiApi => {
         };
       },
       isPassthroughKey: (key) => passthroughKeys.has(key),
+      hasEditableFocus: () => {
+        const active = document.activeElement;
+        return (
+          active instanceof HTMLInputElement ||
+          active instanceof HTMLTextAreaElement ||
+          active instanceof HTMLSelectElement ||
+          (active instanceof HTMLElement && active.isContentEditable)
+        );
+      },
       onPointerDown: () => () => undefined,
       onPointerUp: () => () => undefined,
     },
