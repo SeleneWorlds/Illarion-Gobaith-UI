@@ -11,14 +11,20 @@ export const useClientAssetSrc = (
 
   watchEffect((onCleanup) => {
     let active = true;
-    onCleanup(() => { active = false; });
+    onCleanup(() => {
+      active = false;
+    });
     void resolveClientAsset(selene, toValue(path))
       .catch((error: unknown) => {
-        if (fallbackPath) return resolveClientAsset(selene, toValue(fallbackPath));
+        if (fallbackPath) {
+          return resolveClientAsset(selene, toValue(fallbackPath));
+        }
         throw error;
       })
       .then((value) => {
-        if (active) url.value = value;
+        if (active) {
+          url.value = value;
+        }
       })
       .catch((error) => console.warn(`[Client asset] ${path}`, error));
   });
