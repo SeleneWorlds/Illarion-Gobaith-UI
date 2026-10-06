@@ -39,7 +39,7 @@ const hide = () => {
   tooltip.hide();
 };
 
-const lookAt = (item: MenuStructItem, slotIndex: number, event: Event) => {
+const lookAt = (slotIndex: number, event: Event) => {
   if (menuId.value === undefined || !(event.currentTarget instanceof HTMLElement)) {
     return;
   }
@@ -52,7 +52,6 @@ const lookAt = (item: MenuStructItem, slotIndex: number, event: Event) => {
   selene.network.sendToServer('illarion:look_at_menu_item', {
     id: menuId.value,
     slotIndex,
-    itemId: item.id,
   });
 };
 
@@ -65,11 +64,11 @@ const leaveItem = (slotIndex: number) => {
   tooltip.hide();
 };
 
-const select = (item: MenuStructItem, slotIndex: number) => {
+const select = (slotIndex: number) => {
   if (menuId.value === undefined) {
     return;
   }
-  selene.network.sendToServer('illarion:menu_struct', { id: menuId.value, itemId: item.id, slotIndex });
+  selene.network.sendToServer('illarion:menu_struct', { id: menuId.value, slotIndex });
   hide();
 };
 
@@ -92,7 +91,7 @@ const unsubscribeLookAt = selene.network.onPayload('illarion:look_at_menu_item',
     return;
   }
   const item = items.value[payload.slotIndex - 1];
-  if (!item || payload.itemId !== item.id || !payload.tooltip || typeof payload.tooltip !== 'object') {
+  if (!item || !payload.tooltip || typeof payload.tooltip !== 'object') {
     return;
   }
   const value = payload.tooltip as ClientNetworkPayload;
@@ -126,11 +125,11 @@ onBeforeUnmount(() => {
         type="button"
         :aria-label="item ? `Select item ${item.id}` : undefined"
         :disabled="!item"
-        @mouseenter="item && lookAt(item, index + 1, $event)"
+        @mouseenter="item && lookAt(index + 1, $event)"
         @mouseleave="leaveItem(index + 1)"
-        @focus="item && lookAt(item, index + 1, $event)"
+        @focus="item && lookAt(index + 1, $event)"
         @blur="leaveItem(index + 1)"
-        @click="item && select(item, index + 1)"
+        @click="item && select(index + 1)"
       >
         <SeleneVisual v-if="item" :identifier="item.visual" :seed="String(item.id)" without-offset />
       </button>
