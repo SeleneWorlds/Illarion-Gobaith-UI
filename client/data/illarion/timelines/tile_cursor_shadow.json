@@ -1,0 +1,16 @@
+{
+  "events": [
+    {
+      "type": "visual_animation",
+      "visual": "illarion:tile_cursor",
+      "duration": 0.1,
+      "ignoresElevation": true,
+      "keys": {
+        "alpha": [
+          { "time": 0, "value": 1 },
+          { "time": 0.1, "value": 0 }
+        ]
+      }
+    }
+  ]
+}

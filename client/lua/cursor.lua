@@ -4,6 +4,7 @@ local Grid = require("selene.grid")
 local Game = require("selene.game")
 local Entities = require("selene.entities")
 local Network = require("selene.network")
+local Timelines = require("selene.timelines")
 
 local Cursor = Entities.create("illarion:tile_cursor")
 Cursor:spawn()
@@ -95,15 +96,10 @@ Game.preTick:connect(function()
         or cursorCoordinate.y ~= coordinate.y
         or cursorCoordinate.z ~= coordinate.z
     if cursorMoved then
-        local cursorShadow = Entities.create("illarion:tile_cursor_shadow")
-        if wasChar then
-            cursorShadow:addComponent("illarion:visual", {
-                type = "visual",
-                visual = "illarion:char_cursor"
-            })
-        end
-        cursorShadow:setCoordinate(cursorCoordinate)
-        cursorShadow:spawn()
+        Timelines.playAt(
+            cursorCoordinate,
+            wasChar and "illarion:char_cursor_shadow" or "illarion:tile_cursor_shadow"
+        )
 
         Cursor:setCoordinate(coordinate)
 
