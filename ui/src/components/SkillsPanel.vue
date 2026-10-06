@@ -4,18 +4,21 @@ import { useUiAssetSrc } from '../composables/useClientAsset';
 import { useSkillsStore, type Skill } from '../stores/skills';
 import { useMenu } from '../overlays';
 import TextPanelMenu from './TextPanelMenu.vue';
+import { useSelene } from '../selene';
 
 defineProps<{ active: boolean }>();
 const emit = defineEmits<{ close: [] }>();
 
 const { groups } = useSkillsStore();
 const menu = useMenu();
+const { i18n } = useSelene();
 const backgroundUrl = useUiAssetSrc('gui_chat.png');
 const scaleUrl = useUiAssetSrc('skill_scale.png');
 const background = computed(() => (backgroundUrl.value ? `url(${backgroundUrl.value})` : 'none'));
-const groupNames = ['Languages', 'Craftsmanship', 'General', 'Magic', 'Fighting', 'Druid', 'Priest', 'Bard'];
 const displayName = (name: string) =>
+  i18n.get(`skills.${name}`) ??
   name.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/^./, (first) => first.toUpperCase());
+const groupName = (id: number) => i18n.get(`skills.group.${id}`) ?? `Group ${id + 1}`;
 const skillColor = (skill: Skill) => {
   const stops = [
     [36, 36, 255],
@@ -47,14 +50,14 @@ const onWheel = (event: WheelEvent) => {
   <section
     class="skills-panel"
     :class="{ active }"
-    aria-label="Skills"
+    :aria-label="i18n.get('skills.title') ?? 'Skills'"
     data-selene-interactive
     @contextmenu.prevent.stop="openTextMenu"
     @wheel.prevent.stop="onWheel"
   >
     <div class="groups">
       <section v-for="group in groups" :key="group.id" class="group">
-        <h2>{{ groupNames[group.id] ?? `Group ${group.id + 1}` }}</h2>
+        <h2>{{ groupName(group.id) }}</h2>
         <div
           v-for="skill in group.skills"
           :key="skill.id"
@@ -66,7 +69,7 @@ const onWheel = (event: WheelEvent) => {
         </div>
       </section>
     </div>
-    <img class="scale" :src="scaleUrl" alt="Skill scale from low to high" />
+    <img class="scale" :src="scaleUrl" :alt="i18n.get('skills.scale') ?? 'Skill scale from low to high'" />
   </section>
 </template>
 
