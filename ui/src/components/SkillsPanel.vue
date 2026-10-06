@@ -13,7 +13,7 @@ const menu = useMenu();
 const backgroundUrl = useUiAssetSrc('gui_chat.png');
 const scaleUrl = useUiAssetSrc('skill_scale.png');
 const background = computed(() => (backgroundUrl.value ? `url(${backgroundUrl.value})` : 'none'));
-const groupNames = ['Languages', 'Craftsmanship', 'Magic', 'General', 'Fighting', 'Druid', 'Priest', 'Bard'];
+const groupNames = ['Languages', 'Craftsmanship', 'General', 'Magic', 'Fighting', 'Druid', 'Priest', 'Bard'];
 const displayName = (name: string) =>
   name.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/^./, (first) => first.toUpperCase());
 const skillColor = (skill: Skill) => {
