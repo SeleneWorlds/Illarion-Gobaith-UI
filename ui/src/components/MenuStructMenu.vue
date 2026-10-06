@@ -65,11 +65,11 @@ const leaveItem = (slotIndex: number) => {
   tooltip.hide();
 };
 
-const select = (item: MenuStructItem) => {
+const select = (item: MenuStructItem, slotIndex: number) => {
   if (menuId.value === undefined) {
     return;
   }
-  selene.network.sendToServer('illarion:menu_struct', { id: menuId.value, itemId: item.id });
+  selene.network.sendToServer('illarion:menu_struct', { id: menuId.value, itemId: item.id, slotIndex });
   hide();
 };
 
@@ -130,7 +130,7 @@ onBeforeUnmount(() => {
         @mouseleave="leaveItem(index + 1)"
         @focus="item && lookAt(item, index + 1, $event)"
         @blur="leaveItem(index + 1)"
-        @click="item && select(item)"
+        @click="item && select(item, index + 1)"
       >
         <SeleneVisual v-if="item" :identifier="item.visual" :seed="String(item.id)" without-offset />
       </button>
