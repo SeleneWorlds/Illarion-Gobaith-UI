@@ -41,6 +41,9 @@ export interface SeleneUiApi {
     load(key: string): Promise<string | null>;
     save(key: string, value: string): Promise<void>;
   };
+  readonly ui: {
+    setBundleVisible(bundle: string, visible: boolean): void;
+  };
   readonly input: {
     captureKeys(...keys: string[]): () => void;
     captureText(): () => void;
@@ -60,6 +63,7 @@ export interface SeleneUiApi {
     getCameraCoordinate(): Coordinate;
     getCameraPosition(): Promise<{ x: number; y: number }>;
     setCameraPosition(position: { x: number; y: number }): Promise<Coordinate>;
+    setViewport?(x: number, y: number, width: number, height: number): void;
     getControlledEntity(): WorldEntity | null;
     getMapTiles(coordinate?: Coordinate, width?: number, height?: number): MapTile[];
     projectCoordinate(coordinate: Coordinate): { x: number; y: number };
@@ -127,6 +131,9 @@ export const createMockSeleneUiApi = (): SeleneUiApi => {
       load: async (key) => window.localStorage.getItem(`selene.bundle.dev.${key}`),
       save: async (key, value) => window.localStorage.setItem(`selene.bundle.dev.${key}`, value),
     },
+    ui: {
+      setBundleVisible: () => undefined,
+    },
     input: {
       captureKeys: () => () => undefined,
       captureText: () => () => undefined,
@@ -175,6 +182,7 @@ export const createMockSeleneUiApi = (): SeleneUiApi => {
       getCameraCoordinate: () => ({ x: 0, y: 0, z: 0 }),
       getCameraPosition: async () => ({ x: 0, y: 0 }),
       setCameraPosition: async () => ({ x: 0, y: 0, z: 0 }),
+      setViewport: () => undefined,
       getControlledEntity: () => null,
       getMapTiles: () => [],
       projectCoordinate: () => ({ x: 0, y: 0 }),
