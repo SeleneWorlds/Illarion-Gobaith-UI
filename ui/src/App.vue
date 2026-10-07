@@ -60,6 +60,7 @@ const selectCharacter = (characterId: number) => {
 };
 
 let releaseF8: (() => void) | undefined;
+let releaseEditorState: (() => void) | undefined;
 const toggleSkills = (event: KeyboardEvent) => {
   if (!characterSelected.value || event.key !== 'F8' || event.repeat) {
     return;
@@ -72,8 +73,15 @@ const toggleSkills = (event: KeyboardEvent) => {
 onMounted(() => {
   releaseF8 = selene.input.captureKeys('F8');
   window.addEventListener('keydown', toggleSkills, true);
+  releaseEditorState = selene.network.onPayload('moonlight-editor:editor-state', (payload) => {
+    const editorEnabled = payload.enabled === true;
+    selene.world.setViewport?.(0, 0, editorEnabled ? 1024 : 839, editorEnabled ? 768 : 419);
+    selene.ui.setBundleVisible('illarion-gobaith-ui', !editorEnabled);
+  });
 });
 onBeforeUnmount(() => {
+  selene.ui.setBundleVisible('illarion-gobaith-ui', true);
+  releaseEditorState?.();
   releaseF8?.();
   window.removeEventListener('keydown', toggleSkills, true);
 });
