@@ -92,7 +92,9 @@ const displayClock = computed(() => {
     temperature: temperature.value,
   };
 });
-const timeOffset = computed(() => ((displayClock.value.hour * 60 + displayClock.value.minute) * 329) / 1440);
+const timeOffset = computed(() =>
+  Math.floor(((displayClock.value.hour * 60 + displayClock.value.minute) * 329) / 1440),
+);
 const temperatureOffset = computed(() => {
   const clampedTemperature = Math.max(-15, Math.min(45, displayClock.value.temperature));
   return Math.floor(((clampedTemperature + 15) * 280) / 60);
@@ -122,7 +124,7 @@ const temperatureOffset = computed(() => {
     </template>
     <span v-else class="clock" aria-hidden="true">
       <span class="time-strip">
-        <img :src="clockTimeSrc" alt="" :style="{ left: `${32 - timeOffset}px` }" />
+        <img :src="clockTimeSrc" alt="" :style="{ left: `${-10 - timeOffset}px` }" />
       </span>
       <span class="temperature-strip">
         <img :src="clockTemperatureSrc" alt="" :style="{ left: `${-temperatureOffset}px` }" />
