@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, provide, ref, useTemplateRef } fr
 import { adminRequestStoreKey, createAdminRequestStore } from './stores/adminRequest';
 import BloodFog from './components/BloodFog.vue';
 import ChatPanel from './components/ChatPanel.vue';
+import ChatBubbles from './components/ChatBubbles.vue';
 import EscapeMenu from './components/EscapeMenu.vue';
 import SkillsPanel from './components/SkillsPanel.vue';
 import CounterPanel from './components/CounterPanel.vue';
@@ -109,6 +110,7 @@ onBeforeUnmount(() => {
       <MenuContainer>
         <InputHandler>
           <BloodFog />
+          <ChatBubbles />
           <img class="bottom-frame" :src="bottomFrame" alt="" />
           <img class="top-frame" :src="topFrame" alt="" />
           <MinimapPanel @open-world-map="openWorldMap" />
