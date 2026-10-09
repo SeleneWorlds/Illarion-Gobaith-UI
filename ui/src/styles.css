@@ -6,6 +6,8 @@
   font-family: Arial, Helvetica, sans-serif;
   font-size: 14px;
   pointer-events: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 *,
@@ -18,4 +20,13 @@ body {
   height: 100%;
   margin: 0;
   overflow: hidden;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+input,
+textarea,
+[contenteditable]:not([contenteditable='false']) {
+  -webkit-user-select: text;
+  user-select: text;
 }

@@ -266,6 +266,8 @@ onBeforeUnmount(() => {
   bottom: 32px;
   left: 12px;
   overflow: hidden;
+  -webkit-user-select: text;
+  user-select: text;
 }
 .history-content {
   position: absolute;
