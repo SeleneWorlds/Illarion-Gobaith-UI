@@ -33,12 +33,47 @@ const emit = defineEmits<{
 }>();
 
 const selene = useSelene();
+const launchCoordinateSchema = z.string().regex(/^-?\d+$/).transform(Number)
+  .pipe(z.number().int().min(-2147483647).max(2147483647));
+const launchParameters = selene.launch?.getParameters() ?? {};
+const launchCharacter = launchParameters.character;
+const headlessCoordinates = z.object({
+  x: launchCoordinateSchema,
+  y: launchCoordinateSchema,
+  z: launchCoordinateSchema,
+}).safeParse(launchParameters);
+const hasHeadlessCoordinates = ['x', 'y', 'z'].some(key => launchParameters[key] !== undefined);
+const headlessFollow = z.string().regex(/^\d+$/).transform(Number)
+  .pipe(z.number().int().min(1).max(2147483647)).safeParse(launchParameters.follow);
+const hasHeadlessFollow = launchParameters.follow !== undefined;
+let deeplinkRequested = false;
 const characters = ref<CharacterSummary[] | null>(null);
 const selectingId = ref<number | null>(null);
 
 usePayload('illarion:characters', charactersPayloadSchema, (payload) => {
   characters.value = payload.characters;
-  selectingId.value = null;
+  if (selectingId.value !== null) return;
+  if (!launchCharacter || deeplinkRequested) return;
+  const headless = launchCharacter === 'headless';
+  const selected = payload.characters.find(character => headless
+    ? character.id === 0
+    : character.id !== 0 && character.name === launchCharacter);
+  if (!selected || (headless && (
+    (hasHeadlessCoordinates && !headlessCoordinates.success) ||
+    (hasHeadlessFollow && !headlessFollow.success)
+  ))) return;
+
+  deeplinkRequested = true;
+  selectingId.value = selected.id;
+  selene.network.sendToServer('illarion:select_character', {
+    id: selected.id,
+    ...(headless && (headlessCoordinates.success || headlessFollow.success) ? {
+      headless: {
+        ...(headlessCoordinates.success ? headlessCoordinates.data : {}),
+        ...(headlessFollow.success ? { follow: headlessFollow.data } : {}),
+      },
+    } : {}),
+  });
 });
 
 usePayload('illarion:character_selected', characterSelectedPayloadSchema, (payload) => {
@@ -50,6 +85,7 @@ usePayload('illarion:character_selected', characterSelectedPayloadSchema, (paylo
 onConnected(() => {
   characters.value = null;
   selectingId.value = null;
+  deeplinkRequested = false;
   selene.network.sendToServer('illarion:request_characters');
 });
 

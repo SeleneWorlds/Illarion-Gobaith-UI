@@ -28,6 +28,7 @@ export interface SelenePointerEvent {
 
 export interface SeleneUiApi {
   readonly apiVersion: number;
+  readonly launch?: { getParameters(): Readonly<Record<string, string>> };
   readonly resolveAsset: (path: string) => Promise<string>;
   readonly i18n: {
     get(key: string, locale?: string): string | null;
