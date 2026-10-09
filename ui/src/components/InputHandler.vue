@@ -8,6 +8,7 @@ import { inventoryDragKey, type InventoryDropTarget } from '../inventoryDrag';
 import { useMenu, useTooltip } from '../overlays';
 import { useInventoryStore } from '../stores/inventory';
 import { useMagicStore } from '../stores/magic';
+import { useAdminRequestStore } from '../stores/adminRequest';
 import SeleneVisual from './SeleneVisual.vue';
 import WorldContextMenu, { type WorldContextAction } from './WorldContextMenu.vue';
 
@@ -37,6 +38,7 @@ const inventory = useInventoryStore();
 const magic = useMagicStore();
 const tooltip = useTooltip();
 const menu = useMenu();
+const adminRequest = useAdminRequestStore();
 const magicCursor = useUiAssetSrc('cursor_magic.png');
 const combatCursor = useUiAssetSrc('cursor_combat.png');
 const combatCursorActive = ref(false);
@@ -308,9 +310,7 @@ const onPointerDown = ({ button, shiftKey, clientX, clientY, coordinate }: Selen
         preview.visual = draggedEntity.visual;
         preview.seed = String(draggedEntity.networkId);
         const itemCount = draggedEntity.tags.includes('illarion:item') ? getWorldItemCount(draggedEntity) : undefined;
-        preview.count = itemCount !== undefined
-          ? Math.min(inventory.counter.value, itemCount)
-          : undefined;
+        preview.count = itemCount !== undefined ? Math.min(inventory.counter.value, itemCount) : undefined;
         preview.left = clientX;
         preview.top = clientY;
         void nextTick(() => updatePreviewPosition(clientX, clientY));
@@ -488,14 +488,16 @@ onMounted(() => {
           if (!action) {
             return;
           }
-          const detail =
-            action === 'giveName'
-              ? window.prompt('Name this character:')
-              : action === 'report'
-                ? window.prompt('Describe the reason for the report:')
-                : undefined;
+          if (action === 'report') {
+            const target = actions.find((item) => item.id === action)?.target;
+            if (target && typeof target.name === 'string' && Number.isSafeInteger(target.characterId)) {
+              adminRequest.open({ name: target.name, characterId: target.characterId });
+            }
+            return;
+          }
+          const detail = action === 'giveName' ? window.prompt('Name this character:') : undefined;
           const normalizedDetail = detail?.trim();
-          if ((action === 'giveName' || action === 'report') && !normalizedDetail) {
+          if (action === 'giveName' && !normalizedDetail) {
             return;
           }
           if (action === 'lookAt' || action === 'lookAtClose') {

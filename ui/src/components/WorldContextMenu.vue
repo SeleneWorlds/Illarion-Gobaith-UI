@@ -1,7 +1,9 @@
 <script setup lang="ts">
+import type { AdminRequestTarget } from '../stores/adminRequest';
 export interface WorldContextAction {
   id: string;
   label: string;
+  target?: AdminRequestTarget;
 }
 
 defineProps<{ actions: WorldContextAction[] }>();

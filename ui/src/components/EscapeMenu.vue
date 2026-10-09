@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, onMounted, ref, shallowRef, useTemplateRef } from 'vue';
+import { nextTick, onBeforeUnmount, onMounted, ref, shallowRef, useTemplateRef, watch } from 'vue';
 import { useSelene } from '../selene';
+import { useAdminRequestStore } from '../stores/adminRequest';
 import GameModal from './GameModal.vue';
 import RequestAdminForm from './RequestAdminForm.vue';
 import SettingsPanel from './SettingsPanel.vue';
@@ -9,6 +10,7 @@ import { useI18n } from '../composables/useI18n';
 const selene = useSelene();
 const { t } = useI18n();
 const isOpen = ref(false);
+const adminRequest = useAdminRequestStore();
 const menuItems = [
   { id: 'request-admin', title: 'Request Admin', titleKey: 'menu.requestAdmin', component: RequestAdminForm },
   { id: 'settings', title: 'Settings', titleKey: 'menu.settings', component: SettingsPanel },
@@ -24,11 +26,25 @@ const focusMenu = async () => {
 };
 const back = () => {
   activeItem.value = null;
+  adminRequest.close();
   void focusMenu();
 };
 const close = () => {
+  adminRequest.close();
   isOpen.value = false;
   activeItem.value = null;
+};
+watch(adminRequest.isOpen, (open) => {
+  if (open) {
+    activeItem.value = menuItems[0]!;
+    isOpen.value = true;
+  }
+});
+const selectItem = (item: (typeof menuItems)[number]) => {
+  if (item.id === 'request-admin') {
+    adminRequest.open();
+  }
+  activeItem.value = item;
 };
 const onEscape = (event: KeyboardEvent) => {
   if (event.key !== 'Escape' || event.repeat || event.defaultPrevented) {
@@ -70,7 +86,7 @@ onBeforeUnmount(() => {
     @close="close"
   >
     <div v-show="!activeItem" ref="menuElement" class="menu-actions">
-      <button v-for="item in menuItems" :key="item.id" type="button" @click="activeItem = item">
+      <button v-for="item in menuItems" :key="item.id" type="button" @click="selectItem(item)">
         {{ t(item.titleKey, item.title) }}
       </button>
     </div>

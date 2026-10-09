@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { onActivated, onMounted, ref, useTemplateRef } from 'vue';
+import { useAdminRequestStore } from '../stores/adminRequest';
 import { useSelene } from '../selene';
 import { useI18n } from '../composables/useI18n';
 
 const { t } = useI18n();
 const selene = useSelene();
 const emit = defineEmits<{ close: [] }>();
+const adminRequest = useAdminRequestStore();
 const message = ref('');
 const input = useTemplateRef<HTMLTextAreaElement>('input');
 const focus = () => input.value?.focus();
@@ -16,7 +18,10 @@ const submit = () => {
   if (!text) {
     return;
   }
-  selene.network.sendToServer('illarion:chat', { mode: 'normal', message: `!gm ${text}` });
+  const target = adminRequest.target.value;
+  const suffix = target ? ` (Report concerning ${target.name} (${target.characterId}))` : '';
+  selene.network.sendToServer('illarion:chat', { mode: 'normal', message: `!gm ${text}${suffix}` });
+  adminRequest.close();
   message.value = '';
   emit('close');
 };

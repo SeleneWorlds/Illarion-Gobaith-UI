@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, provide, ref, useTemplateRef } from 'vue';
+import { adminRequestStoreKey, createAdminRequestStore } from './stores/adminRequest';
 import BloodFog from './components/BloodFog.vue';
 import ChatPanel from './components/ChatPanel.vue';
 import EscapeMenu from './components/EscapeMenu.vue';
@@ -34,6 +35,7 @@ const books = createBookStore(originalSelene.network);
 const selene = { ...originalSelene, network: books.network };
 provide(seleneKey, selene);
 provide(bookStoreKey, books);
+provide(adminRequestStoreKey, createAdminRequestStore());
 const vitals = createVitalsStore(selene.network);
 const inventory = createInventoryStore(selene.network);
 const showcases = computed(() => inventory.showcases.value);
