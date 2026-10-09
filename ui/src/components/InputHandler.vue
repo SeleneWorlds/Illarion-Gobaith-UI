@@ -10,6 +10,7 @@ import { useInventoryStore } from '../stores/inventory';
 import { useMagicStore } from '../stores/magic';
 import { useAdminRequestStore } from '../stores/adminRequest';
 import SeleneVisual from './SeleneVisual.vue';
+import GiveNameModal from './GiveNameModal.vue';
 import WorldContextMenu, { type WorldContextAction } from './WorldContextMenu.vue';
 
 interface InventoryPointer {
@@ -39,6 +40,20 @@ const magic = useMagicStore();
 const tooltip = useTooltip();
 const menu = useMenu();
 const adminRequest = useAdminRequestStore();
+const namingTarget = ref<{ coordinate: Coordinate; entityId?: number }>();
+const confirmName = (detail: string) => {
+  const target = namingTarget.value;
+  namingTarget.value = undefined;
+  if (!target) {
+    return;
+  }
+  selene.network.sendToServer('illarion:menu_action_at', {
+    action: 'giveName',
+    ...target.coordinate,
+    ...(target.entityId !== undefined && { networkId: target.entityId }),
+    detail,
+  });
+};
 const magicCursor = useUiAssetSrc('cursor_magic.png');
 const combatCursor = useUiAssetSrc('cursor_combat.png');
 const combatCursorActive = ref(false);
@@ -495,9 +510,8 @@ onMounted(() => {
             }
             return;
           }
-          const detail = action === 'giveName' ? window.prompt('Name this character:') : undefined;
-          const normalizedDetail = detail?.trim();
-          if (action === 'giveName' && !normalizedDetail) {
+          if (action === 'giveName') {
+            namingTarget.value = { coordinate: pending.coordinate, entityId: pending.entityId };
             return;
           }
           if (action === 'lookAt' || action === 'lookAtClose') {
@@ -515,7 +529,6 @@ onMounted(() => {
             y: pending.coordinate.y,
             z: pending.coordinate.z,
             ...(pending.entityId !== undefined && { networkId: pending.entityId }),
-            ...(normalizedDetail !== undefined && { detail: normalizedDetail }),
           });
         });
     }),
@@ -575,6 +588,7 @@ onUnmounted(() => {
 
 <template>
   <slot />
+  <GiveNameModal v-if="namingTarget" @confirm="confirmName" @cancel="namingTarget = undefined" />
   <span
     ref="worldTooltipAnchor"
     class="world-tooltip-anchor"
