@@ -4,6 +4,7 @@ import { useSelene } from '../selene';
 import { useAdminRequestStore } from '../stores/adminRequest';
 import GameModal from './GameModal.vue';
 import RequestAdminForm from './RequestAdminForm.vue';
+import ReportBugForm from './ReportBugForm.vue';
 import SettingsPanel from './SettingsPanel.vue';
 import { useI18n } from '../composables/useI18n';
 
@@ -12,8 +13,9 @@ const { t } = useI18n();
 const isOpen = ref(false);
 const adminRequest = useAdminRequestStore();
 const menuItems = [
-  { id: 'request-admin', title: 'Request Admin', titleKey: 'menu.requestAdmin', component: RequestAdminForm },
-  { id: 'settings', title: 'Settings', titleKey: 'menu.settings', component: SettingsPanel },
+  { id: 'request-admin', title: '❔ Request Admin', titleKey: 'menu.requestAdmin', component: RequestAdminForm },
+  { id: 'report-bug', title: '🪲 Report a Bug', titleKey: 'menu.reportBug', component: ReportBugForm },
+  { id: 'settings', title: '⚙️ Settings', titleKey: 'menu.settings', component: SettingsPanel },
 ];
 const activeItem = shallowRef<(typeof menuItems)[number] | null>(null);
 const menuElement = useTemplateRef<HTMLDivElement>('menuElement');
