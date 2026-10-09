@@ -16,7 +16,9 @@ import StatusPanel from './components/StatusPanel.vue';
 import TooltipContainer from './components/TooltipContainer.vue';
 import CharacterSelection from './components/CharacterSelection.vue';
 import CharacterCreation from './components/CharacterCreation.vue';
-import { useSelene } from './selene';
+import { seleneKey, useSelene } from './selene';
+import { bookStoreKey, createBookStore } from './stores/books';
+import TextBook from './components/TextBook.vue';
 import { createVitalsStore, vitalsStoreKey } from './stores/vitals';
 import { createInventoryStore, inventoryStoreKey } from './stores/inventory';
 import { createMinimapStore, minimapStoreKey } from './stores/minimap';
@@ -27,12 +29,16 @@ import MagicBook from './components/MagicBook.vue';
 import { useUiAssetSrc } from './composables/useClientAsset';
 import { useLogger } from './composables/useLogger';
 
-const selene = useSelene();
+const originalSelene = useSelene();
+const books = createBookStore(originalSelene.network);
+const selene = { ...originalSelene, network: books.network };
+provide(seleneKey, selene);
+provide(bookStoreKey, books);
 const vitals = createVitalsStore(selene.network);
 const inventory = createInventoryStore(selene.network);
 const showcases = computed(() => inventory.showcases.value);
 const minimap = createMinimapStore(selene);
-const chat = createChatStore(useLogger().log);
+const chat = createChatStore(useLogger().log, books.receive);
 const skills = createSkillsStore(selene.network);
 const magic = createMagicStore(selene);
 const worldMap = useTemplateRef<InstanceType<typeof WorldMap>>('worldMap');
@@ -113,6 +119,7 @@ onBeforeUnmount(() => {
           />
           <SkillsPanel :active="skillsOpen" @close="skillsOpen = false" />
           <MagicBook />
+          <TextBook />
           <CounterPanel />
           <StatusPanel />
           <InventoryPanel />

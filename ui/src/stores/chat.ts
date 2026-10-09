@@ -37,7 +37,10 @@ export interface ChatStore {
 
 export const chatStoreKey: InjectionKey<ChatStore> = Symbol('chat-store');
 
-export const createChatStore = (log: (message: LogMessage) => void): ChatStore => {
+export const createChatStore = (
+  log: (message: LogMessage) => void,
+  receiveBook: (message: string) => boolean,
+): ChatStore => {
   const messages = ref<ChatMessage[]>([]);
   let nextMessageId = 0;
 
@@ -54,7 +57,9 @@ export const createChatStore = (log: (message: LogMessage) => void): ChatStore =
   };
 
   usePayload('illarion:inform', informPayloadSchema, (payload) => {
-    addMessage(payload.Message, 'inform');
+    if (!receiveBook(payload.Message)) {
+      addMessage(payload.Message, 'inform');
+    }
   });
   usePayload('illarion:chat', chatPayloadSchema, (payload) => {
     if (payload.showInChat !== false) {
