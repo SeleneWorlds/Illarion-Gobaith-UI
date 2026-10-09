@@ -11,7 +11,7 @@ const languages = computed(
   () =>
     groups.value
       .find((group) => group.id === 0)
-      ?.skills.map((skill) => skill.name.replace(/Language$/, '').replace(/^./, (first) => first.toUpperCase())) ?? [],
+      ?.skills.map((skill) => skill.name.trim().replace(/\s*language$/i, '').replace(/^./, (first) => first.toUpperCase())) ?? [],
 );
 const menu = useMenu();
 const selectedMode = defineModel<SpeechModeId>({ required: true });
