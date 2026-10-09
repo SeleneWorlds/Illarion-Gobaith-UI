@@ -2,7 +2,7 @@
 import { ref } from 'vue';
 import { z } from 'zod';
 import { onConnected } from '../composables/onConnected';
-import { useUiAssetSrc } from '../composables/useClientAsset';
+import GameModal from './GameModal.vue';
 import { usePayload } from '../composables/usePayload';
 import { useSelene } from '../selene';
 
@@ -35,7 +35,6 @@ const emit = defineEmits<{
 const selene = useSelene();
 const characters = ref<CharacterSummary[] | null>(null);
 const selectingId = ref<number | null>(null);
-const scrollBackground = useUiAssetSrc('menu_short.png');
 
 usePayload('illarion:characters', charactersPayloadSchema, (payload) => {
   characters.value = payload.characters;
@@ -64,11 +63,11 @@ const selectCharacter = (character: CharacterSummary) => {
 </script>
 
 <template>
-  <section class="selection" aria-label="Character selection">
+  <GameModal title="Character selection" :dismissible="false">
     <div v-if="characters === null" class="loading" role="status" aria-label="Loading characters">
       <span class="spinner" aria-hidden="true" />
     </div>
-    <div v-else class="panel" :style="scrollBackground ? { backgroundImage: `url(${scrollBackground})` } : undefined">
+    <div v-else class="panel">
       <p v-if="characters.length === 0">You do not have any characters yet.</p>
       <div v-else class="characters">
         <button
@@ -85,36 +84,19 @@ const selectCharacter = (character: CharacterSummary) => {
         Create Character
       </button>
     </div>
-  </section>
+  </GameModal>
 </template>
 
 <style scoped>
-.selection {
-  position: fixed;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  color: #3d2a16;
-  background: rgb(8 7 5 / 60%);
-  pointer-events: auto;
-}
-
 .panel {
   display: flex;
-  width: 300px;
-  min-height: 220px;
-  padding: 48px 48px 42px;
   flex-direction: column;
-  justify-content: center;
-  text-align: center;
-  background-position: center;
-  background-size: 100% 100%;
-  filter: drop-shadow(0 8px 16px rgb(0 0 0 / 50%));
 }
 
 .loading {
   display: grid;
   place-items: center;
+  padding: 24px;
 }
 
 .spinner {
@@ -140,31 +122,10 @@ const selectCharacter = (character: CharacterSummary) => {
 
 .characters {
   display: grid;
-  gap: 6px;
+  gap: 8px;
 }
 
 .create {
   margin-top: 14px;
-}
-
-button {
-  padding: 7px 14px;
-  border: 1px solid #8b6a3e;
-  border-radius: 2px;
-  color: #3d2a16;
-  font: inherit;
-  font-size: 14px;
-  background: rgb(151 113 62 / 15%);
-  cursor: pointer;
-}
-
-button:hover:not(:disabled),
-button:focus-visible {
-  background: rgb(151 113 62 / 35%);
-}
-
-button:disabled {
-  cursor: wait;
-  opacity: 0.65;
 }
 </style>

@@ -2,7 +2,7 @@
 import { computed, onScopeDispose, reactive, ref, watch } from 'vue';
 import { z } from 'zod';
 import { usePayload } from '../composables/usePayload';
-import { useUiAssetSrc } from '../composables/useClientAsset';
+import GameModal from './GameModal.vue';
 import { useSelene } from '../selene';
 
 const rangeSchema = z.object({ min: z.number().int(), max: z.number().int() });
@@ -64,7 +64,6 @@ const attributeNames: AttributeName[] = [
 ];
 const emit = defineEmits<{ cancel: []; created: [] }>();
 const selene = useSelene();
-const scrollBackground = useUiAssetSrc('menu_short.png');
 const options = ref<Options | null>(null);
 const submitting = ref(false);
 const error = ref('');
@@ -170,21 +169,18 @@ const submit = () => {
 </script>
 
 <template>
-  <section class="creation" aria-label="Create character">
+  <GameModal
+    title="Create Character"
+    show-back
+    back-label="Back to character selection"
+    :dismissible="false"
+    wide
+    @back="emit('cancel')"
+  >
     <div v-if="!options" class="loading" role="status">
       {{ error || 'Loading character options…' }}
     </div>
-    <form
-      v-else
-      class="sheet"
-      :style="scrollBackground ? { backgroundImage: `url(${scrollBackground})` } : undefined"
-      @submit.prevent="submit"
-    >
-      <header>
-        <button type="button" class="text-button" @click="emit('cancel')">← Back</button>
-        <h1>Create Character</h1>
-      </header>
-
+    <form v-else @submit.prevent="submit">
       <div class="columns">
         <fieldset>
           <legend>Identity</legend>
@@ -262,46 +258,10 @@ const submit = () => {
         {{ submitting ? 'Creating…' : 'Create Character' }}
       </button>
     </form>
-  </section>
+  </GameModal>
 </template>
 
 <style scoped>
-.creation {
-  position: fixed;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  padding: 24px;
-  color: #3d2a16;
-  background: rgb(8 7 5 / 75%);
-  pointer-events: auto;
-}
-.sheet {
-  box-sizing: border-box;
-  width: min(900px, calc(100vw - 48px));
-  max-height: calc(100vh - 48px);
-  padding: 50px 88px;
-  overflow: auto;
-  background-position: center;
-  background-size: 100% 100%;
-  filter: drop-shadow(0 8px 16px rgb(0 0 0 / 55%));
-}
-header {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-}
-h1 {
-  margin: 0 0 18px;
-  font:
-    700 26px Georgia,
-    serif;
-}
-.text-button {
-  justify-self: start;
-  border: 0;
-  background: transparent;
-}
 .columns {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -311,7 +271,6 @@ h1 {
 fieldset {
   min-width: 0;
   padding: 12px;
-  border: 1px solid #9b784a;
 }
 legend {
   padding: 0 6px;
@@ -325,14 +284,9 @@ label {
   margin: 7px 0;
   text-transform: capitalize;
 }
-input:not([type='range']),
+input,
 select {
-  box-sizing: border-box;
   width: 132px;
-  padding: 4px 6px;
-  border: 1px solid #8b6a3e;
-  color: #3d2a16;
-  background: #ead9b7;
 }
 .attribute input {
   width: 58px;
@@ -344,26 +298,13 @@ select {
 .starter-items li + li {
   margin-top: 3px;
 }
-.create,
-.text-button {
-  padding: 7px 14px;
-  color: #3d2a16;
-  font: inherit;
-  cursor: pointer;
-}
 .create {
   display: block;
   margin: 16px auto 0;
-  border: 1px solid #6f5534;
-  background: rgb(151 113 62 / 25%);
-}
-.create:disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
 }
 .invalid,
 .error {
-  color: #8c211c;
+  color: #f2a59d;
 }
 .error {
   margin: 12px 0 0;
@@ -372,13 +313,9 @@ select {
 .loading {
   color: #ead9b7;
 }
-@media (max-width: 760px) {
+@media (max-width: 860px) {
   .columns {
     grid-template-columns: 1fr;
-  }
-  .sheet {
-    padding-inline: 40px;
-    background: #dfc99d;
   }
 }
 </style>
