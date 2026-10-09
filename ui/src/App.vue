@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, provide, ref, useTemplateRef } from 'vue';
 import BloodFog from './components/BloodFog.vue';
 import ChatPanel from './components/ChatPanel.vue';
+import EscapeMenu from './components/EscapeMenu.vue';
 import SkillsPanel from './components/SkillsPanel.vue';
 import CounterPanel from './components/CounterPanel.vue';
 import InputHandler from './components/InputHandler.vue';
@@ -42,6 +43,7 @@ const characterSelected = ref(false);
 const creatingCharacter = ref(false);
 const skillsOpen = ref(false);
 const chatExpanded = ref(false);
+const editorEnabled = ref(false);
 const openSkills = () => {
   skillsOpen.value = true;
   chatExpanded.value = false;
@@ -74,9 +76,9 @@ onMounted(() => {
   releaseF8 = selene.input.captureKeys('F8');
   window.addEventListener('keydown', toggleSkills, true);
   releaseEditorState = selene.network.onPayload('moonlight-editor:editor-state', (payload) => {
-    const editorEnabled = payload.enabled === true;
-    selene.world.setViewport?.(0, 0, editorEnabled ? 1024 : 839, editorEnabled ? 768 : 419);
-    selene.ui.setBundleVisible('illarion-gobaith-ui', !editorEnabled);
+    editorEnabled.value = payload.enabled === true;
+    selene.world.setViewport?.(0, 0, editorEnabled.value ? 1024 : 839, editorEnabled.value ? 768 : 419);
+    selene.ui.setBundleVisible('illarion-gobaith-ui', !editorEnabled.value);
   });
 });
 onBeforeUnmount(() => {
@@ -116,6 +118,7 @@ onBeforeUnmount(() => {
           <InventoryPanel />
           <ShowcasePanel v-for="showcase in showcases" :key="showcase.id" :showcase="showcase" />
           <MenuStructMenu />
+          <EscapeMenu v-if="!editorEnabled" />
         </InputHandler>
       </MenuContainer>
     </TooltipContainer>

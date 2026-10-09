@@ -59,6 +59,7 @@ defineExpose({ open });
 const onKeydown = (event: KeyboardEvent) => {
   if (event.key === 'Escape') {
     if (visible.value) {
+      event.preventDefault();
       close();
     }
     return;

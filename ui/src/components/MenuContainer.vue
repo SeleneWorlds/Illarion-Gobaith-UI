@@ -19,7 +19,7 @@ const componentProps = ref<Record<string, unknown>>({});
 const options = ref<MenuOptions>();
 const layout = ref<{ width: number; height: number; variant: 'short' | 'long' }>();
 const position = reactive({ left: 0, top: 0 });
-const frameSrc = useUiAssetSrc(() => layout.value?.variant === 'short' ? 'menu_short.png' : 'menu_long.png');
+const frameSrc = useUiAssetSrc(() => (layout.value?.variant === 'short' ? 'menu_short.png' : 'menu_long.png'));
 const menuStyle = computed(() => ({
   left: `${position.left}px`,
   top: `${position.top}px`,
@@ -76,6 +76,7 @@ const closeOnEscape = (event: KeyboardEvent) => {
     return;
   }
   event.stopImmediatePropagation();
+  event.preventDefault();
   close();
 };
 provide(menuControllerKey, {
