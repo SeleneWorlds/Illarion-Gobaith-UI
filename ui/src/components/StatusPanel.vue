@@ -93,7 +93,10 @@ const displayClock = computed(() => {
   };
 });
 const timeOffset = computed(() => ((displayClock.value.hour * 60 + displayClock.value.minute) * 329) / 1440);
-const temperatureOffset = computed(() => ((displayClock.value.temperature + 15) * 280) / 60);
+const temperatureOffset = computed(() => {
+  const clampedTemperature = Math.max(-15, Math.min(45, displayClock.value.temperature));
+  return Math.floor(((clampedTemperature + 15) * 280) / 60);
+});
 </script>
 
 <template>
@@ -122,7 +125,7 @@ const temperatureOffset = computed(() => ((displayClock.value.temperature + 15) 
         <img :src="clockTimeSrc" alt="" :style="{ left: `${32 - timeOffset}px` }" />
       </span>
       <span class="temperature-strip">
-        <img :src="clockTemperatureSrc" alt="" :style="{ left: `${67 - temperatureOffset}px` }" />
+        <img :src="clockTemperatureSrc" alt="" :style="{ left: `${-temperatureOffset}px` }" />
       </span>
       <img class="dragon" :src="clockDragonSrc" alt="" />
       <span class="day">{{ displayClock.day }}</span>
