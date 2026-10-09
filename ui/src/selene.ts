@@ -34,6 +34,11 @@ export interface SeleneUiApi {
     format(key: string, parameters?: Record<string, unknown>, locale?: string): string | null;
     hasKey(key: string, locale?: string): boolean;
   };
+  readonly preferences: {
+    getLocale(): string;
+    setLocale(locale: string): void;
+    onLocaleChanged(listener: (locale: string) => void): () => void;
+  };
   readonly visuals: {
     getDefinition(identifier: string): Promise<VisualDefinition>;
   };
@@ -106,6 +111,8 @@ export interface VisualDefinition extends VisualFrameDefinition {
 }
 
 export const createMockSeleneUiApi = (): SeleneUiApi => {
+  let locale = navigator.language.replace(/-/g, '_');
+  const localeListeners = new Set<(locale: string) => void>();
   const passthroughKeys = new Map<string, number>();
 
   return {
@@ -115,6 +122,19 @@ export const createMockSeleneUiApi = (): SeleneUiApi => {
       get: () => null,
       format: () => null,
       hasKey: () => false,
+    },
+    preferences: {
+      getLocale: () => locale,
+      setLocale: (value) => {
+        locale = value;
+        for (const listener of localeListeners) {
+          listener(locale);
+        }
+      },
+      onLocaleChanged: (listener) => {
+        localeListeners.add(listener);
+        return () => localeListeners.delete(listener);
+      },
     },
     visuals: {
       getDefinition: async (identifier) => {

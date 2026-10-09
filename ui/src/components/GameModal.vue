@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import { useId } from 'vue';
+import { useI18n } from '../composables/useI18n';
+
+const { t } = useI18n();
 
 defineProps<{ title: string; showBack?: boolean }>();
 const emit = defineEmits<{ back: []; close: [] }>();
@@ -18,11 +21,19 @@ const titleId = useId();
       @keyup.stop
     >
       <header>
-        <button v-if="showBack" class="icon-button" type="button" aria-label="Back to menu" @click="emit('back')">
+        <button
+          v-if="showBack"
+          class="icon-button"
+          type="button"
+          :aria-label="t('menu.back', 'Back to menu')"
+          @click="emit('back')"
+        >
           ‹
         </button>
         <h2 :id="titleId">{{ title }}</h2>
-        <button class="icon-button" type="button" aria-label="Close menu" @click="emit('close')">×</button>
+        <button class="icon-button" type="button" :aria-label="t('menu.close', 'Close menu')" @click="emit('close')">
+          ×
+        </button>
       </header>
       <slot />
     </section>

@@ -2,11 +2,17 @@
 import { nextTick, onBeforeUnmount, onMounted, ref, shallowRef, useTemplateRef } from 'vue';
 import { useSelene } from '../selene';
 import GameModal from './GameModal.vue';
-import GmRequestForm from './GmRequestForm.vue';
+import RequestAdminForm from './RequestAdminForm.vue';
+import SettingsPanel from './SettingsPanel.vue';
+import { useI18n } from '../composables/useI18n';
 
 const selene = useSelene();
+const { t } = useI18n();
 const isOpen = ref(false);
-const menuItems = [{ id: 'request-admin', title: 'Request Admin', component: GmRequestForm }];
+const menuItems = [
+  { id: 'request-admin', title: 'Request Admin', titleKey: 'menu.requestAdmin', component: RequestAdminForm },
+  { id: 'settings', title: 'Settings', titleKey: 'menu.settings', component: SettingsPanel },
+];
 const activeItem = shallowRef<(typeof menuItems)[number] | null>(null);
 const menuElement = useTemplateRef<HTMLDivElement>('menuElement');
 let releaseKeys: (() => void) | undefined;
@@ -58,18 +64,18 @@ onBeforeUnmount(() => {
 <template>
   <GameModal
     v-if="isOpen"
-    :title="activeItem?.title ?? 'Menu'"
+    :title="activeItem ? t(activeItem.titleKey, activeItem.title) : t('menu.title', 'Menu')"
     :show-back="Boolean(activeItem)"
     @back="back"
     @close="close"
   >
     <div v-show="!activeItem" ref="menuElement" class="menu-actions">
       <button v-for="item in menuItems" :key="item.id" type="button" @click="activeItem = item">
-        {{ item.title }}
+        {{ t(item.titleKey, item.title) }}
       </button>
     </div>
     <KeepAlive>
-      <component :is="activeItem.component" v-if="activeItem" @close="close" />
+      <component :is="activeItem.component" v-if="activeItem" :key="activeItem.id" @close="close" />
     </KeepAlive>
   </GameModal>
 </template>

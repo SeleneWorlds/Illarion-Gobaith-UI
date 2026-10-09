@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { onActivated, onMounted, ref, useTemplateRef } from 'vue';
 import { useSelene } from '../selene';
+import { useI18n } from '../composables/useI18n';
 
+const { t } = useI18n();
 const selene = useSelene();
 const emit = defineEmits<{ close: [] }>();
 const message = ref('');
@@ -26,12 +28,14 @@ const submit = () => {
       ref="input"
       v-model="message"
       rows="3"
-      aria-label="What do you need help with?"
-      placeholder="What do you need help with?"
+      :aria-label="t('request.help', 'What do you need help with?')"
+      :placeholder="t('request.help', 'What do you need help with?')"
       autocomplete="off"
     />
     <div class="form-actions">
-      <button class="submit-button" type="submit" :disabled="!message.trim()">Submit</button>
+      <button class="submit-button" type="submit" :disabled="!message.trim()">
+        {{ t('request.submit', 'Submit') }}
+      </button>
     </div>
   </form>
 </template>
