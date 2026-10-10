@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { onBeforeUnmount, ref } from 'vue';
+import { computed, onBeforeUnmount, ref } from 'vue';
+import { usePopupEscape } from '../composables/usePopupEscape';
 import { useClientAssetSrc, useClientAssetStyle } from '../composables/useClientAsset';
 import { useTooltip } from '../overlays';
 import { useSelene, type ClientNetworkPayload } from '../selene';
@@ -38,6 +39,8 @@ const hide = () => {
   tooltipAnchor = undefined;
   tooltip.hide();
 };
+
+usePopupEscape(computed(() => menuId.value !== undefined), hide);
 
 const lookAt = (slotIndex: number, event: Event) => {
   if (menuId.value === undefined || !(event.currentTarget instanceof HTMLElement)) {
@@ -185,8 +188,8 @@ onBeforeUnmount(() => {
 }
 .close {
   position: absolute;
-  left: 267px;
-  bottom: 24px;
+  left: 263px;
+  top: calc(100% - 35px);
   width: 40px;
   height: 95px;
   padding: 0;

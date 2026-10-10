@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, watch } from 'vue';
+import { usePopupEscape } from '../composables/usePopupEscape';
 import { useBookStore } from '../stores/books';
-import { useUiAssetSrc } from '../composables/useClientAsset';
+import { useClientAssetSrc, useUiAssetSrc } from '../composables/useClientAsset';
 import { useI18n } from '../composables/useI18n';
 import { useSelene } from '../selene';
 import SeleneVisual from './SeleneVisual.vue';
@@ -10,14 +11,14 @@ const books = useBookStore();
 const selene = useSelene();
 const { t } = useI18n();
 const background = useUiAssetSrc('menu_book.png');
+const closeIcon = useClientAssetSrc('client/textures/illarion/ui/menu_close.png');
+usePopupEscape(computed(() => Boolean(books.current.value)), books.close);
 let releaseKeys: (() => void) | undefined;
 const onKeyDown = (event: KeyboardEvent) => {
   if (!books.current.value || event.defaultPrevented || selene.input.hasEditableFocus()) {
     return;
   }
-  if (event.key === 'Escape') {
-    books.close();
-  } else if (event.key === 'ArrowLeft') {
+  if (event.key === 'ArrowLeft') {
     books.turn(-1);
   } else if (event.key === 'ArrowRight') {
     books.turn(1);
@@ -31,7 +32,7 @@ watch(
   () => Boolean(books.current.value),
   (open) => {
     releaseKeys?.();
-    releaseKeys = open ? selene.input.captureKeys('Escape', 'ArrowLeft', 'ArrowRight') : undefined;
+    releaseKeys = open ? selene.input.captureKeys('ArrowLeft', 'ArrowRight') : undefined;
   },
 );
 onMounted(() => {
@@ -80,7 +81,9 @@ onBeforeUnmount(() => {
       <span class="text">{{ books.current.value.text }}</span>
       <span class="page-number">{{ books.current.value.page }}</span>
     </button>
-    <button class="close" type="button" :aria-label="t('book.close', 'Close book')" @click="books.close">×</button>
+    <button class="close" type="button" :aria-label="t('book.close', 'Close book')" @click="books.close">
+      <img :src="closeIcon" alt="" />
+    </button>
   </section>
 </template>
 
@@ -149,12 +152,20 @@ button:disabled {
 }
 .close {
   position: absolute;
-  right: 75px;
-  bottom: 14px;
+  left: 366px;
+  top: 320px;
+  width: 40px;
+  height: 95px;
+  padding: 0;
   border: 0;
   background: transparent;
-  color: inherit;
-  font-size: 24px;
   cursor: pointer;
+}
+.close img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  user-select: none;
 }
 </style>
