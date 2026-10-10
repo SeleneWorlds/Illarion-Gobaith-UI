@@ -40,7 +40,7 @@ const magic = useMagicStore();
 const tooltip = useTooltip();
 const menu = useMenu();
 const adminRequest = useAdminRequestStore();
-const namingTarget = ref<{ coordinate: Coordinate; entityId?: number }>();
+const namingTarget = ref<{ coordinate: Coordinate; entityId?: number; middleClick?: boolean }>();
 const confirmName = (detail: string) => {
   const target = namingTarget.value;
   namingTarget.value = undefined;
@@ -77,7 +77,7 @@ let suppressedClick: { x: number; y: number; button: number } | undefined;
 let contextRequestId = 0;
 const pendingContextRequests = new Map<
   number,
-  { clientX: number; clientY: number; coordinate: Coordinate; entityId?: number }
+  { clientX: number; clientY: number; coordinate: Coordinate; entityId?: number; middleClick?: boolean }
 >();
 const inputUnsubscribers: Array<() => void> = [];
 const networkUnsubscribers: Array<() => void> = [];
@@ -255,6 +255,16 @@ const onMouseMove = (event: MouseEvent) => {
   updatePreviewPosition(event.clientX, event.clientY);
 };
 
+const preventMiddleClickScroll = (event: MouseEvent) => {
+  if (
+    event.button === 1 &&
+    isInWorldViewport(event.clientX, event.clientY) &&
+    !(event.target instanceof Element && event.target.closest('[data-selene-interactive]'))
+  ) {
+    event.preventDefault();
+  }
+};
+
 const onClick = (event: MouseEvent) => {
   const suppressed = suppressedClick;
   suppressedClick = undefined;
@@ -367,6 +377,32 @@ const requestWorldContextMenu = async (clientX: number, clientY: number, coordin
   });
 };
 
+const walkTo = (coordinate: Coordinate) => {
+  tooltip.hide();
+  pendingWorldLookAt = undefined;
+  pendingEntityTooltip = undefined;
+  selene.network.sendToServer('illarion:walk_to', { ...coordinate });
+};
+
+const middleClick = async (coordinate: Coordinate) => {
+  // Use the same authoritative container availability as the context menu.
+  const entities = await selene.world.getEntitiesAt(coordinate).catch(() => []);
+  const target = selectWorldTarget(entities);
+  const requestId = ++contextRequestId;
+  pendingContextRequests.set(requestId, {
+    clientX: 0,
+    clientY: 0,
+    coordinate,
+    entityId: target?.networkId,
+    middleClick: true,
+  });
+  selene.network.sendToServer('illarion:request_menu_at', {
+    requestId,
+    ...coordinate,
+    ...(target && { networkId: target.networkId }),
+  });
+};
+
 const resetPointers = () => {
   inventoryPointer = undefined;
   worldPointer = undefined;
@@ -405,6 +441,13 @@ provide(inventoryDragKey, { start: startInventoryDrag, releaseOn });
 
 const onPointerUp = ({ button, clientX, clientY, coordinate }: SelenePointerEvent) => {
   if (magic.active.value) {
+    return;
+  }
+  if (button === 1) {
+    resetPointers();
+    if (isInWorldViewport(clientX, clientY)) {
+      void middleClick(coordinate);
+    }
     return;
   }
   if (button === 2) {
@@ -454,6 +497,7 @@ onMounted(() => {
   window.addEventListener('blur', resetCombatCursor);
   window.addEventListener('mousemove', onMouseMove, true);
   window.addEventListener('click', onClick, true);
+  window.addEventListener('mousedown', preventMiddleClickScroll, true);
   window.addEventListener('keyup', finishUse, true);
   inputUnsubscribers.push(selene.input.onPointerDown(onPointerDown));
   inputUnsubscribers.push(selene.input.onPointerUp(onPointerUp));
@@ -503,6 +547,14 @@ onMounted(() => {
           typeof (action as Record<string, unknown>).label === 'string',
         ),
       );
+      if (pending.middleClick) {
+        if (isNextToControlledCharacter(pending.coordinate) && actions.some((action) => action.id === 'open')) {
+          selene.network.sendToServer('illarion:open_container_at', { ...pending.coordinate });
+        } else {
+          walkTo(pending.coordinate);
+        }
+        return;
+      }
       if (!actions.length) {
         return;
       }
@@ -517,6 +569,10 @@ onMounted(() => {
         )
         .then((action) => {
           if (!action) {
+            return;
+          }
+          if (action === 'goTo') {
+            walkTo(pending.coordinate);
             return;
           }
           if (action === 'report') {
@@ -596,6 +652,7 @@ onUnmounted(() => {
   window.removeEventListener('blur', resetCombatCursor);
   window.removeEventListener('mousemove', onMouseMove, true);
   window.removeEventListener('click', onClick, true);
+  window.removeEventListener('mousedown', preventMiddleClickScroll, true);
   window.removeEventListener('keyup', finishUse, true);
   inputUnsubscribers.splice(0).forEach((unsubscribe) => unsubscribe());
   networkUnsubscribers.splice(0).forEach((unsubscribe) => unsubscribe());
