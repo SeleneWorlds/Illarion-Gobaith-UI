@@ -36,6 +36,19 @@ const optionsSchema = z.object({
     z.object({
       id: z.number().int(),
       name: z.string(),
+      attributes: z
+        .object({
+          agility: z.number().int(),
+          constitution: z.number().int(),
+          dexterity: z.number().int(),
+          essence: z.number().int(),
+          intelligence: z.number().int(),
+          perception: z.number().int(),
+          strength: z.number().int(),
+          willpower: z.number().int(),
+        })
+        .partial()
+        .optional(),
       items: z.array(
         z.object({
           id: z.number().int(),
@@ -105,20 +118,43 @@ const resetForRace = () => {
   form.age = race.attributes.age.min;
   form.height = Math.round((race.attributes.height.min + race.attributes.height.max) / 2);
   form.weight = Math.round((race.attributes.weight.min + race.attributes.weight.max) / 2000) * 1000;
+  applySuggestedAttributes();
+};
+
+const applySuggestedAttributes = () => {
+  const race = selectedRace.value;
+  if (!race) {
+    return;
+  }
+  const suggestions = selectedStartPack.value?.attributes;
   let remaining = race.attributes.total;
   for (const name of attributeNames) {
-    form.attributes[name] = race.attributes[name].min;
+    const range = race.attributes[name];
+    form.attributes[name] = Math.max(range.min, Math.min(range.max, suggestions?.[name] ?? range.min));
     remaining -= form.attributes[name];
   }
-  for (const name of attributeNames) {
-    const room = race.attributes[name].max - form.attributes[name];
-    const addition = Math.min(room, remaining);
+  // Adjust the least important attributes first to preserve the profession's strengths.
+  const priority = [...attributeNames].sort((a, b) => (suggestions?.[a] ?? 0) - (suggestions?.[b] ?? 0));
+  for (const name of priority) {
+    if (remaining >= 0) {
+      break;
+    }
+    const reduction = Math.min(form.attributes[name] - race.attributes[name].min, -remaining);
+    form.attributes[name] -= reduction;
+    remaining += reduction;
+  }
+  for (const name of [...priority].reverse()) {
+    if (remaining <= 0) {
+      break;
+    }
+    const addition = Math.min(race.attributes[name].max - form.attributes[name], remaining);
     form.attributes[name] += addition;
     remaining -= addition;
   }
 };
 
 watch(() => form.race, resetForRace);
+watch(() => form.startPack, applySuggestedAttributes);
 
 const unsubscribeOptions = selene.network.onPayload('illarion:character_creation_options', (payload) => {
   const result = optionsSchema.safeParse(payload);
