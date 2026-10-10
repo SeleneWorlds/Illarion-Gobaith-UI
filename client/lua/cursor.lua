@@ -7,7 +7,12 @@ local Network = require("selene.network")
 local Timelines = require("selene.timelines")
 
 local Cursor = Entities.create("illarion:tile_cursor")
-Cursor:spawn()
+local characterSelected = false
+local cursorSpawned = false
+
+Network.handlePayload("illarion:character_selected", function()
+    characterSelected = true
+end)
 
 local wasChar = false
 local useCursor = nil
@@ -54,6 +59,10 @@ Network.handlePayload("illarion:set_combat_target", function(payload)
 end)
 
 Game.preTick:connect(function()
+    if not characterSelected then
+        return
+    end
+
     local magicPressed = isMagicPressed()
     if magicPressed ~= magicMode then
         magicMode = magicPressed
@@ -90,6 +99,11 @@ Game.preTick:connect(function()
     local worldX, worldY = Camera.screenToWorld(mouseX, mouseY)
     local cameraCoordinate = Camera.getCoordinate()
     local coordinate = Grid.screenToCoordinate(worldX, worldY, cameraCoordinate:getZ())
+    if not cursorSpawned then
+        Cursor:setCoordinate(coordinate)
+        Cursor:spawn()
+        cursorSpawned = true
+    end
     local cursorCoordinate = Cursor:getCoordinate()
     local cursorMoved = cursorCoordinate.x ~= coordinate.x
         or cursorCoordinate.y ~= coordinate.y
@@ -121,6 +135,10 @@ Game.preTick:connect(function()
 end)
 
 Input.bindAction(Input.MOUSE, "left", function(screenX, screenY)
+    if not characterSelected then
+        return
+    end
+
     local worldX, worldY = Camera.screenToWorld(screenX, screenY)
     local cameraCoordinate = Camera.getCoordinate()
     local coordinate = Grid.screenToCoordinate(worldX, worldY, cameraCoordinate:getZ())
