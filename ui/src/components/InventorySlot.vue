@@ -110,6 +110,12 @@ const onMouseUp = (event: MouseEvent) => {
     },
   });
 };
+const onMiddleMouseUp = () => {
+  if (item.value?.container) {
+    tooltip.hide();
+    inventory.openContainer(props.viewId, props.slotId, inventory.counter.value);
+  }
+};
 type ItemMenuAction = 'open' | 'lookAt' | 'use' | 'useWith' | 'drop';
 const onContextMenu = async (event: MouseEvent) => {
   if (!item.value) {
@@ -158,6 +164,9 @@ const onScrollSlot = (event: WheelEvent) => {
       :style="{ cursor: slotCursor }"
       @mousedown.left.prevent="onMouseDown"
       @mouseup.left.prevent.stop="onMouseUp"
+      @mousedown.middle.prevent.stop
+      @mouseup.middle.prevent.stop="onMiddleMouseUp"
+      @auxclick.middle.prevent.stop
       @click="onClick"
       @contextmenu.prevent.stop="onContextMenu"
       @wheel.prevent="onScrollSlot"
