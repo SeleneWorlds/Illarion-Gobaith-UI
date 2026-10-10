@@ -68,9 +68,8 @@ Game.preTick:connect(function()
             if not attackCursor then
                 attackCursor = Entities.create("illarion:attack_cursor")
                 attackCursor:setCoordinate(attackTarget:getCoordinate())
+                attackCursor:attachTo(attackTarget:getNetworkId())
                 attackCursor:spawn()
-            else
-                attackCursor:setCoordinate(attackTarget:getCoordinate())
             end
         elseif attackCursor then
             attackCursor:despawn()
@@ -81,7 +80,7 @@ Game.preTick:connect(function()
     if magicTarget and magicTargetId then
         local target = Entities.getEntityByNetworkId(magicTargetId)
         if target then
-            magicTarget:setCoordinate(target:getCoordinate())
+            magicTarget:attachTo(target:getNetworkId())
         else
             clearMagicTarget()
         end
