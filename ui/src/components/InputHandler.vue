@@ -300,11 +300,7 @@ const onPointerDown = ({ button, shiftKey, clientX, clientY, coordinate }: Selen
     pendingWorldLookAt = { coordinate };
     updateWorldTooltipPosition(clientX, clientY);
     const entities = selene.world.getEntitiesAt(coordinate);
-    const entity = entities.then((result) =>
-      [...result]
-        .reverse()
-        .find((candidate) => candidate.tags.includes('illarion:character') || candidate.tags.includes('illarion:item')),
-    );
+    const entity = entities.then(selectWorldTarget);
     worldPointer = { coordinate, entity, downX: clientX, downY: clientY, dragged: false };
     const source = worldPointer;
     void Promise.all([entity, entities])
@@ -334,15 +330,26 @@ const onPointerDown = ({ button, shiftKey, clientX, clientY, coordinate }: Selen
   }
 };
 
+const selectWorldTarget = (entities: WorldEntity[]) => {
+  const reversed = [...entities].reverse();
+  return (
+    reversed.find((entity) => entity.tags.includes('illarion:character')) ??
+    reversed.find((entity) => entity.tags.includes('illarion:item'))
+  );
+};
+
+const isWorldItemSourceAvailable = async (coordinate: Coordinate) => {
+  const entities = await selene.world.getEntitiesAt(coordinate);
+  return !entities.some((entity) => entity.tags.includes('illarion:character'));
+};
+
 const requestWorldContextMenu = async (clientX: number, clientY: number, coordinate: Coordinate) => {
   if (!isInWorldViewport(clientX, clientY)) {
     return;
   }
   tooltip.hide();
   const entities = await selene.world.getEntitiesAt(coordinate).catch(() => []);
-  const target = [...entities]
-    .reverse()
-    .find((entity) => entity.tags.includes('illarion:character') || entity.tags.includes('illarion:item'));
+  const target = selectWorldTarget(entities);
   const requestId = ++contextRequestId;
   pendingContextRequests.clear();
   pendingContextRequests.set(requestId, {
@@ -379,8 +386,13 @@ const releaseOn = (target: InventoryDropTarget) => {
     const source = worldPointer;
     const count = inventory.counter.value;
     void source.entity
-      .then((entity) => {
-        if (entity?.draggable && isNextToControlledCharacter(source.coordinate)) {
+      .then(async (entity) => {
+        if (
+          entity?.tags.includes('illarion:item') &&
+          entity.draggable &&
+          isNextToControlledCharacter(source.coordinate) &&
+          (await isWorldItemSourceAvailable(source.coordinate))
+        ) {
           target.acceptCoordinate?.(source.coordinate, count);
         }
       })
@@ -412,7 +424,7 @@ const onPointerUp = ({ button, clientX, clientY, coordinate }: SelenePointerEven
     const source = worldPointer;
     if (isInWorldViewport(clientX, clientY)) {
       void source.entity
-        .then((entity) => {
+        .then(async (entity) => {
           if (entity?.tags.includes('illarion:character')) {
             suppressedClick = { x: clientX, y: clientY, button };
             selene.network.sendToServer('illarion:push_character', {
@@ -421,7 +433,11 @@ const onPointerUp = ({ button, clientX, clientY, coordinate }: SelenePointerEven
               y: coordinate.y,
               z: coordinate.z,
             });
-          } else if (entity?.draggable && isNextToControlledCharacter(source.coordinate)) {
+          } else if (
+            entity?.draggable &&
+            isNextToControlledCharacter(source.coordinate) &&
+            (await isWorldItemSourceAvailable(source.coordinate))
+          ) {
             suppressedClick = { x: clientX, y: clientY, button };
             inventory.moveCoordinateToCoordinate(source.coordinate, coordinate, inventory.counter.value);
           }
