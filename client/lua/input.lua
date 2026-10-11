@@ -6,6 +6,15 @@ local Entities = require("selene.entities")
 local Network = require("selene.network")
 
 local autoWalk = nil
+Network.handlePayload("illarion:turn_to", function(payload)
+    local direction = Grid.getDirectionByName(payload.direction)
+    if not direction then
+        return
+    end
+    autoWalk = nil
+    GridMovement.setFacing(direction)
+end)
+
 local function keyboardMovementPressed()
     return Input.isKeyPressed("Up") or Input.isKeyPressed("Down")
         or Input.isKeyPressed("Left") or Input.isKeyPressed("Right")
