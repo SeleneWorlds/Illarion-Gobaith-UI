@@ -1,3 +1,4 @@
+import { MinimapTileIndex } from './MinimapTileIndex';
 import { computed, inject, readonly, ref, type ComputedRef, type InjectionKey, type Ref } from 'vue';
 import type { SeleneUiApi } from '../selene';
 
@@ -55,7 +56,9 @@ export interface MinimapStore {
   readonly canZoomIn: ComputedRef<boolean>;
   readonly canZoomOut: ComputedRef<boolean>;
   getColorIndex(x: number, y: number, z: number): number;
+  getTilesInRegion(x: number, y: number, z: number, width: number, height: number): Iterable<{ x: number; y: number; colorIndex: number }>;
   initialize(characterId: number): Promise<void>;
+  setActive(active: boolean): void;
   toggleZoom(): void;
   adjustZoom(amount: number): void;
   toggleRotation(): void;
@@ -73,6 +76,7 @@ export const useMinimapStore = (): MinimapStore => {
 
 export const createMinimapStore = (selene: SeleneUiApi): MinimapStore => {
   const tiles = new Map<string, number>();
+  const tileIndex = new MinimapTileIndex();
   const revision = ref(0);
   const cameraCoordinate = ref(selene.world.getCameraCoordinate());
   const zoom = ref(MIN_ZOOM);
@@ -81,6 +85,8 @@ export const createMinimapStore = (selene: SeleneUiApi): MinimapStore => {
   let initialization: Promise<void> | undefined;
   let saveQueue = Promise.resolve();
   let mapDirty = false;
+  let active = true;
+  let initialized = false;
 
   const save = (key: string, value: string) => {
     const pendingSave = saveQueue.then(() => selene.storage.save(key, value));
@@ -147,6 +153,7 @@ export const createMinimapStore = (selene: SeleneUiApi): MinimapStore => {
         continue;
       }
       tiles.set(key, colorIndex);
+      tileIndex.set(tile.x, tile.y, tile.z, colorIndex);
       changed = true;
     }
     if (changed) {
@@ -187,6 +194,17 @@ export const createMinimapStore = (selene: SeleneUiApi): MinimapStore => {
     getColorIndex(x, y, z) {
       return tiles.get(tileKey(x, y, z)) ?? 0;
     },
+    getTilesInRegion(x, y, z, width, height) {
+      return tileIndex.inRegion(x, y, z, width, height);
+    },
+    setActive(nextActive) {
+      if (active === nextActive) {return;}
+      active = nextActive;
+      if (active && initialized) {
+        cameraCoordinate.value = selene.world.getCameraCoordinate();
+        refresh(cameraCoordinate.value);
+      }
+    },
     initialize(characterId) {
       initialization ??= (async () => {
         activeStorageKey = storageKey(characterId);
@@ -198,6 +216,8 @@ export const createMinimapStore = (selene: SeleneUiApi): MinimapStore => {
           ]);
           for (const [key, colorIndex] of readTiles(storedTiles)) {
             tiles.set(key, colorIndex);
+            const [x, y, z] = key.split(':').map(Number);
+            tileIndex.set(x, y, z, colorIndex);
           }
           const legacyZoom = Number(storedZoom);
           if (storedZoom !== null && Number.isFinite(legacyZoom)) {
@@ -207,11 +227,15 @@ export const createMinimapStore = (selene: SeleneUiApi): MinimapStore => {
         } catch (error) {
           console.warn('Could not load minimap data.', error);
         }
+        initialized = true;
         cameraCoordinate.value = selene.world.getCameraCoordinate();
-        refresh(cameraCoordinate.value);
+        if (active) {refresh(cameraCoordinate.value);}
         revision.value += 1;
-        selene.world.onMapChanged(() => refresh());
+        selene.world.onMapChanged(() => {
+          if (active) {refresh();}
+        });
         selene.world.onCameraCoordinateChanged((coordinate) => {
+          if (!active) {return;}
           cameraCoordinate.value = coordinate;
           refresh(coordinate);
         });

@@ -52,16 +52,21 @@ const draw = () => {
     z: Math.round(camera.z),
   };
   const image = context.createImageData(SIZE, SIZE);
-  for (let y = 0; y < SIZE; y += 1) {
-    for (let x = 0; x < SIZE; x += 1) {
-      const colorIndex = minimap.getColorIndex(center.x + x - RADIUS, center.y + y - RADIUS, center.z);
-      const color = MAP_COLORS[colorIndex] ?? MAP_COLORS[0];
-      const offset = (y * SIZE + x) * 4;
-      image.data[offset] = color[0];
-      image.data[offset + 1] = color[1];
-      image.data[offset + 2] = color[2];
-      image.data[offset + 3] = 255;
-    }
+  const background = MAP_COLORS[0];
+  for (let offset = 0; offset < image.data.length; offset += 4) {
+    image.data[offset] = background[0];
+    image.data[offset + 1] = background[1];
+    image.data[offset + 2] = background[2];
+    image.data[offset + 3] = 255;
+  }
+  const left = center.x - RADIUS;
+  const top = center.y - RADIUS;
+  for (const tile of minimap.getTilesInRegion(left, top, center.z, SIZE, SIZE)) {
+    const color = MAP_COLORS[tile.colorIndex] ?? background;
+    const offset = ((tile.y - top) * SIZE + tile.x - left) * 4;
+    image.data[offset] = color[0];
+    image.data[offset + 1] = color[1];
+    image.data[offset + 2] = color[2];
   }
   context.putImageData(image, 0, 0);
 };
