@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, inject, useTemplateRef, watch } from 'vue';
-import { useClientAssetStyle, useUiAssetSrc } from '../composables/useClientAsset';
+import { useClientAssetStyle } from '../composables/useClientAsset';
+import { inputCursorKey } from '../cursor';
 import { sameInventorySlot, type InventoryViewId } from '../inventory';
 import { inventoryDragKey } from '../inventoryDrag';
 import { useMenu, useTooltip } from '../overlays';
@@ -15,7 +16,7 @@ const props = withDefaults(defineProps<{ viewId: InventoryViewId; slotId: number
 
 const slotBackground = useClientAssetStyle('client/textures/illarion/ui/inv_slot-0.png');
 const hoverBackground = useClientAssetStyle('client/textures/illarion/ui/inv_slot-7.png');
-const magicCursorSrc = useUiAssetSrc('cursor_magic.png');
+const slotCursor = inject(inputCursorKey);
 
 const inventory = useInventoryStore();
 const magic = useMagicStore();
@@ -33,9 +34,6 @@ const isUsing = computed(() =>
   inventory.selectedUseSlots.value.some((slot) => slot.viewId === props.viewId && slot.slotId === props.slotId),
 );
 const isMagicTarget = computed(() => magic.isTargetSlot({ viewId: props.viewId, slotId: props.slotId }));
-const slotCursor = computed(() =>
-  magic.active.value && magicCursorSrc.value ? `url("${magicCursorSrc.value}"), auto` : undefined,
-);
 
 const hitBands = Array.from({ length: 20 }, (_, index) => {
   const top = index * 2;

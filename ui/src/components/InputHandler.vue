@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { nextTick, onMounted, onUnmounted, provide, reactive, ref, useTemplateRef, watchEffect } from 'vue';
-import { useUiAssetSrc } from '../composables/useClientAsset';
+import { computed, nextTick, onMounted, onUnmounted, provide, reactive, ref, useTemplateRef, watchEffect } from 'vue';
+import { inputCursorKey } from '../cursor';
+import { useVisualCursor } from '../composables/useVisualCursor';
 import { type InventoryDragStartDetail, type InventoryItem, type InventorySlotDefinition } from '../inventory';
 import type { Coordinate, SelenePointerEvent, SeleneScrollEvent, WorldEntity } from '../selene';
 import { useSelene } from '../selene';
@@ -54,9 +55,21 @@ const confirmName = (detail: string) => {
     detail,
   });
 };
-const magicCursor = useUiAssetSrc('cursor_magic.png');
-const combatCursor = useUiAssetSrc('cursor_combat.png');
+const useCursorActive = ref(false);
 const combatCursorActive = ref(false);
+const standardCursor = useVisualCursor('illarion:cursor_standard');
+const activeCursor = useVisualCursor(() => {
+  if (magic.active.value) {
+    return 'illarion:cursor_magic';
+  }
+  if (useCursorActive.value) {
+    return 'illarion:cursor_use';
+  }
+  if (combatCursorActive.value) {
+    return 'illarion:cursor_combat';
+  }
+  return undefined;
+});
 const originalCursor = document.documentElement.style.cursor;
 const previewElement = useTemplateRef<HTMLElement>('previewElement');
 const worldTooltipAnchor = useTemplateRef<HTMLElement>('worldTooltipAnchor');
@@ -82,23 +95,23 @@ const pendingContextRequests = new Map<
 const inputUnsubscribers: Array<() => void> = [];
 const networkUnsubscribers: Array<() => void> = [];
 
+const inputCursor = computed(() => activeCursor.value ?? standardCursor.value);
+provide(inputCursorKey, inputCursor);
+
 watchEffect(() => {
-  if (magic.active.value && magicCursor.value) {
-    document.documentElement.style.cursor = `url("${magicCursor.value}"), auto`;
-  } else if (combatCursorActive.value && combatCursor.value) {
-    document.documentElement.style.cursor = `url("${combatCursor.value}"), auto`;
-  } else {
-    document.documentElement.style.cursor = originalCursor;
-  }
+  document.documentElement.style.cursor = inputCursor.value ?? originalCursor;
 });
 
-const updateCombatCursor = (event: KeyboardEvent) => {
+const updateCursorModifiers = (event: KeyboardEvent) => {
   if (event.key === 'Control') {
     combatCursorActive.value = event.type === 'keydown';
+  } else if (event.key === 'Shift') {
+    useCursorActive.value = event.type === 'keydown';
   }
 };
-const resetCombatCursor = () => {
+const resetCursorModifiers = () => {
   combatCursorActive.value = false;
+  useCursorActive.value = false;
 };
 
 const isInWorldViewport = (clientX: number, clientY: number) => {
@@ -503,9 +516,9 @@ const onPointerUp = ({ button, shiftKey, clientX, clientY, coordinate }: SeleneP
 };
 
 onMounted(() => {
-  window.addEventListener('keydown', updateCombatCursor, true);
-  window.addEventListener('keyup', updateCombatCursor, true);
-  window.addEventListener('blur', resetCombatCursor);
+  window.addEventListener('keydown', updateCursorModifiers, true);
+  window.addEventListener('keyup', updateCursorModifiers, true);
+  window.addEventListener('blur', resetCursorModifiers);
   window.addEventListener('mousemove', onMouseMove, true);
   window.addEventListener('click', onClick, true);
   window.addEventListener('mousedown', preventMiddleClickScroll, true);
@@ -659,9 +672,9 @@ onMounted(() => {
 });
 onUnmounted(() => {
   document.documentElement.style.cursor = originalCursor;
-  window.removeEventListener('keydown', updateCombatCursor, true);
-  window.removeEventListener('keyup', updateCombatCursor, true);
-  window.removeEventListener('blur', resetCombatCursor);
+  window.removeEventListener('keydown', updateCursorModifiers, true);
+  window.removeEventListener('keyup', updateCursorModifiers, true);
+  window.removeEventListener('blur', resetCursorModifiers);
   window.removeEventListener('mousemove', onMouseMove, true);
   window.removeEventListener('click', onClick, true);
   window.removeEventListener('mousedown', preventMiddleClickScroll, true);
