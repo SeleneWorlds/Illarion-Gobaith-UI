@@ -167,9 +167,9 @@ onUnmounted(() => {
 .close {
   position: absolute;
   left: 400px;
-  bottom: 40px;
-  width: 40px;
-  height: 95px;
+  top: 460px;
+  width: 80px;
+  height: 190px;
   padding: 0;
   border: 0;
   background: transparent;
