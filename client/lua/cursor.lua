@@ -115,23 +115,23 @@ Game.preTick:connect(function()
         )
 
         Cursor:setCoordinate(coordinate)
-
-        local isChar = #Entities.findEntitiesAt(coordinate, {
-            tag = "illarion:character"
-        }) > 0
-        if isChar and not wasChar then
-            Cursor:addComponent("illarion:visual", {
-                type = "visual",
-                visual = "illarion:char_cursor"
-            })
-        elseif not isChar and wasChar then
-            Cursor:addComponent("illarion:visual", {
-                type = "visual",
-                visual = "illarion:tile_cursor"
-            })
-        end
-        wasChar = isChar
     end
+
+    local isChar = #Entities.findEntitiesAt(coordinate, {
+        tag = "illarion:character"
+    }) > 0
+    if isChar and not wasChar then
+        Cursor:addComponent("illarion:visual", {
+            type = "visual",
+            visual = "illarion:char_cursor"
+        })
+    elseif not isChar and wasChar then
+        Cursor:addComponent("illarion:visual", {
+            type = "visual",
+            visual = "illarion:tile_cursor"
+        })
+    end
+    wasChar = isChar
 end)
 
 Input.bindAction(Input.MOUSE, "left", function(screenX, screenY)
