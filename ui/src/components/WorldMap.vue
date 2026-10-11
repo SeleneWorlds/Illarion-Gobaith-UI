@@ -23,9 +23,6 @@ const draw = () => {
     return;
   }
   const image = context.createImageData(WORLD_SIZE, WORLD_SIZE);
-  for (let offset = 3; offset < image.data.length; offset += 4) {
-    image.data[offset] = 255;
-  }
   const level = Math.round(minimap.cameraCoordinate.value.z);
   for (const [key, colorIndex] of minimap.tiles) {
     const [x, y, z] = key.split(':').map(Number);
@@ -43,6 +40,7 @@ const draw = () => {
     image.data[offset] = color[0];
     image.data[offset + 1] = color[1];
     image.data[offset + 2] = color[2];
+    image.data[offset + 3] = 255;
   }
   context.putImageData(image, 0, 0);
 };
@@ -137,7 +135,6 @@ onUnmounted(() => {
   width: 500px;
   height: 400px;
   overflow: hidden;
-  background: #000;
 }
 .surface {
   display: block;
