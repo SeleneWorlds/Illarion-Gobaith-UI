@@ -86,6 +86,7 @@ onMounted(() => {
   window.addEventListener('keydown', toggleSkills, true);
   releaseEditorState = selene.network.onPayload('moonlight-editor:editor-state', (payload) => {
     editorEnabled.value = payload.enabled === true;
+    minimap.setActive(!editorEnabled.value);
     selene.world.setViewport?.(0, 0, editorEnabled.value ? 1024 : 839, editorEnabled.value ? 768 : 419);
     selene.ui.setBundleVisible('illarion-gobaith-ui', !editorEnabled.value);
   });
@@ -113,7 +114,7 @@ onBeforeUnmount(() => {
           <ChatBubbles />
           <img class="bottom-frame" :src="bottomFrame" alt="" />
           <img class="top-frame" :src="topFrame" alt="" />
-          <MinimapPanel @open-world-map="openWorldMap" />
+          <MinimapPanel v-if="!editorEnabled" @open-world-map="openWorldMap" />
           <WorldMap ref="worldMap" />
           <ChatPanel
             :expanded="chatExpanded || skillsOpen"
