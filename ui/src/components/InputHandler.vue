@@ -2,7 +2,7 @@
 import { nextTick, onMounted, onUnmounted, provide, reactive, ref, useTemplateRef, watchEffect } from 'vue';
 import { useUiAssetSrc } from '../composables/useClientAsset';
 import { type InventoryDragStartDetail, type InventoryItem, type InventorySlotDefinition } from '../inventory';
-import type { Coordinate, SelenePointerEvent, WorldEntity } from '../selene';
+import type { Coordinate, SelenePointerEvent, SeleneScrollEvent, WorldEntity } from '../selene';
 import { useSelene } from '../selene';
 import { inventoryDragKey, type InventoryDropTarget } from '../inventoryDrag';
 import { useMenu, useTooltip } from '../overlays';
@@ -403,6 +403,13 @@ const middleClick = async (coordinate: Coordinate) => {
   });
 };
 
+const onWorldScroll = ({ amountY, clientX, clientY, coordinate }: SeleneScrollEvent) => {
+  if (magic.active.value || !amountY || !isInWorldViewport(clientX, clientY)) {
+    return;
+  }
+  selene.network.sendToServer('illarion:turn_to', { ...coordinate, delta: Math.sign(amountY) });
+};
+
 const resetPointers = () => {
   inventoryPointer = undefined;
   worldPointer = undefined;
@@ -439,14 +446,18 @@ const releaseOn = (target: InventoryDropTarget) => {
 
 provide(inventoryDragKey, { start: startInventoryDrag, releaseOn });
 
-const onPointerUp = ({ button, clientX, clientY, coordinate }: SelenePointerEvent) => {
+const onPointerUp = ({ button, shiftKey, clientX, clientY, coordinate }: SelenePointerEvent) => {
   if (magic.active.value) {
     return;
   }
   if (button === 1) {
     resetPointers();
     if (isInWorldViewport(clientX, clientY)) {
-      void middleClick(coordinate);
+      if (shiftKey) {
+        selene.network.sendToServer('illarion:turn_to', { ...coordinate });
+      } else {
+        void middleClick(coordinate);
+      }
     }
     return;
   }
@@ -499,6 +510,7 @@ onMounted(() => {
   window.addEventListener('click', onClick, true);
   window.addEventListener('mousedown', preventMiddleClickScroll, true);
   window.addEventListener('keyup', finishUse, true);
+  inputUnsubscribers.push(selene.input.onScroll(onWorldScroll));
   inputUnsubscribers.push(selene.input.onPointerDown(onPointerDown));
   inputUnsubscribers.push(selene.input.onPointerUp(onPointerUp));
   inputUnsubscribers.push(selene.input.captureKeys('Control'));
