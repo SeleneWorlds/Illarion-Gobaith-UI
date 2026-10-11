@@ -26,6 +26,13 @@ export interface SelenePointerEvent {
   coordinate: Coordinate;
 }
 
+export interface SeleneScrollEvent {
+  amountY: number;
+  clientX: number;
+  clientY: number;
+  coordinate: Coordinate;
+}
+
 export interface SeleneUiApi {
   readonly apiVersion: number;
   readonly launch?: { getParameters(): Readonly<Record<string, string>> };
@@ -56,6 +63,7 @@ export interface SeleneUiApi {
     passThroughKeys(...keys: string[]): () => void;
     isPassthroughKey(key: string): boolean;
     hasEditableFocus(): boolean;
+    onScroll(callback: (event: SeleneScrollEvent) => void): () => void;
     onPointerDown(callback: (event: SelenePointerEvent) => void): () => void;
     onPointerMove(callback: (event: SelenePointerEvent) => void): () => void;
     onPointerUp(callback: (event: SelenePointerEvent) => void): () => void;
@@ -187,6 +195,7 @@ export const createMockSeleneUiApi = (): SeleneUiApi => {
           (active instanceof HTMLElement && active.isContentEditable)
         );
       },
+      onScroll: () => () => undefined,
       onPointerDown: () => () => undefined,
       onPointerMove: () => () => undefined,
       onPointerUp: () => () => undefined,
