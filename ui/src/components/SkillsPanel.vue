@@ -62,7 +62,6 @@ const onWheel = (event: WheelEvent) => {
           :key="skill.id"
           class="skill"
           :style="{ '--minor': `${skill.minor / 100}%`, color: skillColor(skill) }"
-          :title="`${displayName(skill.name)}: ${skill.major}.${String(Math.floor(skill.minor / 100)).padStart(2, '0')}`"
         >
           {{ displayName(skill.name) }}
         </div>
