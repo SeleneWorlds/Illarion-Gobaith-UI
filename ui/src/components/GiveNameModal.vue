@@ -2,12 +2,13 @@
 import { computed, onMounted, ref, useTemplateRef } from 'vue';
 import { useUiAssetSrc } from '../composables/useClientAsset';
 
+const props = defineProps<{ value?: string }>();
 const emit = defineEmits<{
   confirm: [value: string];
   cancel: [];
 }>();
 const input = useTemplateRef<HTMLInputElement>('input');
-const text = ref('');
+const text = ref(props.value ?? '');
 const name = computed(() => text.value.trim());
 const valid = computed(() => name.value.length >= 3 && name.value.length <= 30);
 const frame = useUiAssetSrc('menu_short.png');

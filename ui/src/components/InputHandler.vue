@@ -41,7 +41,7 @@ const magic = useMagicStore();
 const tooltip = useTooltip();
 const menu = useMenu();
 const adminRequest = useAdminRequestStore();
-const namingTarget = ref<{ coordinate: Coordinate; entityId?: number; middleClick?: boolean }>();
+const namingTarget = ref<{ coordinate: Coordinate; entityId?: number; middleClick?: boolean; givenName?: string }>();
 const confirmName = (detail: string) => {
   const target = namingTarget.value;
   namingTarget.value = undefined;
@@ -608,7 +608,12 @@ onMounted(() => {
             return;
           }
           if (action === 'giveName') {
-            namingTarget.value = { coordinate: pending.coordinate, entityId: pending.entityId };
+            const givenName = actions.find((item) => item.id === action)?.givenName;
+            namingTarget.value = {
+              coordinate: pending.coordinate,
+              entityId: pending.entityId,
+              givenName: typeof givenName === 'string' ? givenName : '',
+            };
             return;
           }
           if (action === 'lookAt' || action === 'lookAtClose') {
@@ -686,7 +691,12 @@ onUnmounted(() => {
 
 <template>
   <slot />
-  <GiveNameModal v-if="namingTarget" @confirm="confirmName" @cancel="namingTarget = undefined" />
+  <GiveNameModal
+    v-if="namingTarget"
+    :value="namingTarget.givenName"
+    @confirm="confirmName"
+    @cancel="namingTarget = undefined"
+  />
   <span
     ref="worldTooltipAnchor"
     class="world-tooltip-anchor"

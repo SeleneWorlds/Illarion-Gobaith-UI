@@ -4,6 +4,7 @@ export interface WorldContextAction {
   id: string;
   label: string;
   target?: AdminRequestTarget;
+  givenName?: string;
 }
 
 defineProps<{ actions: WorldContextAction[] }>();
