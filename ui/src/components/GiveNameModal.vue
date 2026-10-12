@@ -151,6 +151,10 @@ onMounted(() => input.value?.select());
   bottom: 60px;
   width: 64px;
   height: 64px;
+  transition: opacity 400ms linear;
+  @starting-style {
+    opacity: 0;
+  }
 }
 .confirm img {
   inset: 0;

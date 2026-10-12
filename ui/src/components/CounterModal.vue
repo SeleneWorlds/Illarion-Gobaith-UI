@@ -46,7 +46,8 @@ onMounted(() => input.value?.select());
     aria-modal="true"
     aria-labelledby="counter-editor-title"
     @click.stop
-    @keydown.stop
+    @keydown="onKeydown"
+    @keyup.stop
   >
     <img class="frame" :src="frame" alt="" />
     <form @submit.prevent="confirm">
@@ -60,7 +61,6 @@ onMounted(() => input.value?.select());
         maxlength="3"
         autocomplete="off"
         @input="onInput"
-        @keydown="onKeydown"
         @keyup.stop
       />
       <button class="confirm" type="submit" :disabled="!valid" title="Set number" aria-label="Set number">
@@ -86,10 +86,12 @@ onMounted(() => input.value?.select());
   z-index: 30;
   top: 50%;
   left: 50%;
-  width: 460px;
-  height: 270px;
-  color: #3b2917;
-  font-family: Georgia, serif;
+  width: 400px;
+  color: #000;
+  font:
+    24px/30px BlackChancery,
+    Georgia,
+    serif;
   text-shadow: none;
   transform: translate(-50%, -50%);
   pointer-events: auto;
@@ -97,47 +99,39 @@ onMounted(() => input.value?.select());
 .frame {
   position: absolute;
   inset: 0;
-  width: 100%;
+  width: 460px;
   height: 100%;
   pointer-events: none;
   user-select: none;
 }
 .editor form {
-  position: absolute;
-  inset: 0;
+  position: relative;
+  padding: 60px 0 190px;
 }
 .editor label {
-  position: absolute;
-  top: 54px;
-  right: 60px;
-  left: 60px;
-  color: #4a321c;
-  font-size: 18px;
+  display: block;
+  width: 340px;
+  margin-left: 60px;
+  color: #000;
 }
 .editor input {
   position: absolute;
-  top: 123px;
-  right: 60px;
+  bottom: 145px;
   left: 60px;
   width: 340px;
-  padding: 4px 2px;
+  height: 30px;
+  padding: 0;
   border: 0;
   outline: 0;
   background: transparent;
-  color: #6c2019;
-  font:
-    20px Georgia,
-    serif;
-  caret-color: #6c2019;
+  color: #03c;
+  font: inherit;
+  caret-color: #03c;
   pointer-events: auto;
 }
 .editor button {
   position: absolute;
-  bottom: 24px;
-  width: 42px;
-  height: 42px;
   padding: 0;
-  overflow: hidden;
   border: 0;
   outline: 0;
   background: transparent;
@@ -154,11 +148,18 @@ onMounted(() => input.value?.select());
 }
 .confirm {
   left: 120px;
+  bottom: 60px;
+  width: 64px;
+  height: 64px;
+  transition: opacity 400ms linear;
+  @starting-style {
+    opacity: 0;
+  }
 }
 .confirm img {
-  inset: 5px;
-  width: 32px;
-  height: 32px;
+  inset: 0;
+  width: 100%;
+  height: 100%;
 }
 .confirm:disabled {
   opacity: 0;
@@ -166,14 +167,14 @@ onMounted(() => input.value?.select());
   pointer-events: none;
 }
 .cancel {
-  left: 267px;
+  left: 266px;
+  bottom: -160px;
+  width: 80px;
+  height: 190px;
 }
 .cancel img {
-  top: 2px;
-  left: 1px;
-  width: 40px;
-  height: 95px;
-  object-fit: cover;
-  object-position: top;
+  inset: 0;
+  width: 100%;
+  height: 100%;
 }
 </style>
