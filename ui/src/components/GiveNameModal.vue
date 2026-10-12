@@ -86,10 +86,12 @@ onMounted(() => input.value?.select());
   z-index: 30;
   top: 50%;
   left: 50%;
-  width: 460px;
-  height: 270px;
+  width: 400px;
   color: #000;
-  font-family: Georgia, serif;
+  font:
+    24px/30px BlackChancery,
+    Georgia,
+    serif;
   text-shadow: none;
   transform: translate(-50%, -50%);
   pointer-events: auto;
@@ -97,47 +99,39 @@ onMounted(() => input.value?.select());
 .frame {
   position: absolute;
   inset: 0;
-  width: 100%;
+  width: 460px;
   height: 100%;
   pointer-events: none;
   user-select: none;
 }
 .editor form {
-  position: absolute;
-  inset: 0;
+  position: relative;
+  padding: 60px 0 190px;
 }
 .editor label {
-  position: absolute;
-  top: 54px;
-  right: 60px;
-  left: 60px;
+  display: block;
+  width: 340px;
+  margin-left: 60px;
   color: #000;
-  font-size: 16px;
 }
 .editor input {
   position: absolute;
-  top: 123px;
-  right: 60px;
+  bottom: 145px;
   left: 60px;
   width: 340px;
-  padding: 4px 2px;
+  height: 30px;
+  padding: 0;
   border: 0;
   outline: 0;
   background: transparent;
   color: #03c;
-  font:
-    18px Georgia,
-    serif;
+  font: inherit;
   caret-color: #03c;
   pointer-events: auto;
 }
 .editor button {
   position: absolute;
-  bottom: 24px;
-  width: 42px;
-  height: 42px;
   padding: 0;
-  overflow: hidden;
   border: 0;
   outline: 0;
   background: transparent;
@@ -154,11 +148,14 @@ onMounted(() => input.value?.select());
 }
 .confirm {
   left: 120px;
+  bottom: 60px;
+  width: 64px;
+  height: 64px;
 }
 .confirm img {
-  inset: 5px;
-  width: 32px;
-  height: 32px;
+  inset: 0;
+  width: 100%;
+  height: 100%;
 }
 .confirm:disabled {
   opacity: 0;
@@ -166,14 +163,14 @@ onMounted(() => input.value?.select());
   pointer-events: none;
 }
 .cancel {
-  left: 267px;
+  left: 266px;
+  bottom: -160px;
+  width: 80px;
+  height: 190px;
 }
 .cancel img {
-  top: 2px;
-  left: 1px;
-  width: 40px;
-  height: 95px;
-  object-fit: cover;
-  object-position: top;
+  inset: 0;
+  width: 100%;
+  height: 100%;
 }
 </style>
