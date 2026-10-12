@@ -149,7 +149,8 @@ onBeforeUnmount(() => {
   background: transparent;
   color: #000;
   font:
-    14px/normal Georgia,
+    24px/30px BlackChancery,
+    Georgia,
     serif;
   text-align: left;
   white-space: nowrap;
