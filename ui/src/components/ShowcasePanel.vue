@@ -1,11 +1,18 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, useTemplateRef } from 'vue';
+import { computed, inject, onBeforeUnmount, useTemplateRef } from 'vue';
 import { useUiAssetSrc } from '../composables/useClientAsset';
+import { inventoryDragKey } from '../inventoryDrag';
 import { useInventoryStore, type ShowcaseDefinition } from '../stores/inventory';
+import { useMagicStore } from '../stores/magic';
 import InventorySlot from './InventorySlot.vue';
 
 const props = defineProps<{ showcase: ShowcaseDefinition }>();
 const inventory = useInventoryStore();
+const magic = useMagicStore();
+const inventoryDrag = inject(inventoryDragKey);
+if (!inventoryDrag) {
+  throw new Error('Inventory drag API was not provided.');
+}
 const background = useUiAssetSrc('showcase_back.png');
 const viewId = computed(() => `showcase:${props.showcase.id}` as const);
 const slots = computed(() => Array.from({ length: props.showcase.slotCount }, (_, index) => index + 1));
@@ -26,6 +33,26 @@ const slotColumns = computed(() => {
 
   return columns;
 });
+
+const onMouseUp = (event: MouseEvent) => {
+  if (magic.active.value) {
+    return;
+  }
+  const slotId = slots.value.find((slotId) => !inventory.getItem(viewId.value, slotId));
+  if (slotId === undefined) {
+    return;
+  }
+  inventoryDrag.releaseOn({
+    clientX: event.clientX,
+    clientY: event.clientY,
+    acceptSlot(source, _item, count) {
+      inventory.moveSlotToSlot(source.viewId, source.slotId, viewId.value, slotId, count);
+    },
+    acceptCoordinate(source, count) {
+      inventory.moveCoordinateToSlot(source, viewId.value, slotId, count);
+    },
+  });
+};
 
 const animateScroll = (time: number) => {
   const element = slotsElement.value;
@@ -92,7 +119,7 @@ onBeforeUnmount(() => {
     @wheel.prevent.stop="onWheel"
   >
     <img class="background" :src="background" alt="" />
-    <div ref="slotsElement" class="slots">
+    <div ref="slotsElement" class="slots" @mouseup.left.prevent.stop="onMouseUp">
       <div
         v-for="(slotColumn, columnIndex) in slotColumns"
         :key="columnIndex"
