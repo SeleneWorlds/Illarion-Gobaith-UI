@@ -11,11 +11,13 @@ Network.handlePayload("illarion:turn_to", function(payload)
     if not direction then
         return
     end
-    autoWalk = nil
     GridMovement.setFacing(direction)
 end)
 
 local function keyboardMovementPressed()
+    if Input.isKeyPressed("L-Shift") or Input.isKeyPressed("R-Shift") then
+        return false
+    end
     return Input.isKeyPressed("Up") or Input.isKeyPressed("Down")
         or Input.isKeyPressed("Left") or Input.isKeyPressed("Right")
 end
@@ -65,45 +67,45 @@ Game.preTick:connect(function()
 end)
 
 Input.bindContinuousAction("keyboard", "Up", function()
-    autoWalk = nil
     local North = Grid.getDirectionByName("north")
     local isShiftPressed = Input.isKeyPressed("L-Shift") or Input.isKeyPressed("R-Shift")
     if isShiftPressed then
         GridMovement.setFacing(North)
     else
+        autoWalk = nil
         GridMovement.setMotion(North)
     end
 end)
 
 Input.bindContinuousAction("keyboard", "Down", function()
-    autoWalk = nil
     local South = Grid.getDirectionByName("south")
     local isShiftPressed = Input.isKeyPressed("L-Shift") or Input.isKeyPressed("R-Shift")
     if isShiftPressed then
         GridMovement.setFacing(South)
     else
+        autoWalk = nil
         GridMovement.setMotion(South)
     end
 end)
 
 Input.bindContinuousAction("keyboard", "Left", function()
-    autoWalk = nil
     local West = Grid.getDirectionByName("west")
     local isShiftPressed = Input.isKeyPressed("L-Shift") or Input.isKeyPressed("R-Shift")
     if isShiftPressed then
         GridMovement.setFacing(West)
     else
+        autoWalk = nil
         GridMovement.setMotion(West)
     end
 end)
 
 Input.bindContinuousAction("keyboard", "Right", function()
-    autoWalk = nil
     local East = Grid.getDirectionByName("east")
     local isShiftPressed = Input.isKeyPressed("L-Shift") or Input.isKeyPressed("R-Shift")
     if isShiftPressed then
         GridMovement.setFacing(East)
     else
+        autoWalk = nil
         GridMovement.setMotion(East)
     end
 end)
