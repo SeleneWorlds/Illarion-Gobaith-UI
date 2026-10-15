@@ -1,12 +1,12 @@
 import { useSelene } from '../selene';
 
-const descriptionMacroStorageKey = (key: string) => `illarion.descriptionMacro.${key}`;
+const macroStorageKey = (slot: number) => `illarion.chatMacro.${slot}`;
 
 export const useChatMacros = () => {
   const { storage } = useSelene();
 
-  const load = (key: string) => storage.load(descriptionMacroStorageKey(key));
-  const save = (key: string, message: string) => storage.save(descriptionMacroStorageKey(key), message);
+  const load = (slot: number) => storage.load(macroStorageKey(slot));
+  const save = (slot: number, message: string) => storage.save(macroStorageKey(slot), message);
 
   return { load, save };
 };

@@ -18,13 +18,14 @@ const chatMacros = useChatMacros();
 const chatBackgroundUrl = useUiAssetSrc('gui_chat.png');
 const chatBackground = computed(() => (chatBackgroundUrl.value ? `url(${chatBackgroundUrl.value})` : 'none'));
 const MAX_INPUT_LENGTH = 200;
-const DESCRIPTION_MACRO_KEYS = ['F2', 'F3', 'F4', 'F5', 'F6'] as const;
+const MACRO_DEFAULT_KEYS = ['F2', 'F3', 'F4', 'F5', 'F6'] as const;
 const history = useTemplateRef<HTMLElement>('history');
 const input = useTemplateRef<HTMLTextAreaElement>('input');
 const message = ref('');
 const selectedMode = ref<SpeechModeId>('normal');
 // Promise queue for sending and saving macros
 let macroAction = Promise.resolve();
+const releases: Array<() => void> = [];
 
 const resizeInput = async () => {
   await nextTick();
@@ -52,27 +53,17 @@ const send = () => {
 const selectLanguage = (language: string) => {
   selene.network.sendToServer('illarion:chat', { mode: 'normal', message: `!l ${language.toLowerCase()}` });
 };
-const useDescriptionMacro = (event: KeyboardEvent) => {
-  if (!DESCRIPTION_MACRO_KEYS.includes(event.key as (typeof DESCRIPTION_MACRO_KEYS)[number])) {
-    return false;
-  }
-  const key = event.shiftKey ? `Shift+${event.key}` : event.key;
-  if (key === undefined || event.repeat) {
-    return false;
-  }
-  event.preventDefault();
-  event.stopPropagation();
-  const save = event.ctrlKey;
+const useMacro = (slot: number, save: boolean) => {
   macroAction = macroAction
     .then(async () => {
       if (save) {
         if (!message.value) {
           return;
         }
-        await chatMacros.save(key, message.value);
+        await chatMacros.save(slot, message.value);
         message.value = '';
       } else {
-        const stored = await chatMacros.load(key);
+        const stored = await chatMacros.load(slot);
         if (stored === null) {
           return;
         }
@@ -80,20 +71,18 @@ const useDescriptionMacro = (event: KeyboardEvent) => {
       }
       await resizeInput();
     })
-    .catch((error) => console.warn(`Could not access description macro ${key}.`, error));
-  return true;
+    .catch((error) => console.warn(`Could not access chat macro ${slot}.`, error));
 };
 const onInputKeydown = (event: KeyboardEvent) => {
-  if (useDescriptionMacro(event)) {
-    return;
-  }
   if (selene.input.isPassthroughKey(event.key)) {
     return event.preventDefault();
   }
   event.stopPropagation();
-  if (event.key === 'Enter' && !event.shiftKey) {
+  if (event.key === 'Enter' && !event.shiftKey && !event.ctrlKey && !event.altKey && !event.metaKey) {
     event.preventDefault();
-    send();
+    if (!event.repeat) {
+      send();
+    }
   } else if (event.key === 'Escape') {
     event.preventDefault();
     input.value?.blur();
@@ -112,14 +101,14 @@ const onWindowKeydown = (event: KeyboardEvent) => {
   if (selene.input.hasEditableFocus()) {
     return;
   }
-  if (useDescriptionMacro(event)) {
-    return;
-  }
   if ((event.ctrlKey || event.metaKey) && !event.altKey && event.key.toLowerCase() === 'a') {
     event.preventDefault();
-    event.stopPropagation();
+    event.stopImmediatePropagation();
     input.value?.focus();
     input.value?.select();
+    return;
+  }
+  if (selene.input.isPassthroughKey(event.key)) {
     return;
   }
   const root = input.value?.getRootNode();
@@ -137,8 +126,10 @@ const onWindowKeydown = (event: KeyboardEvent) => {
   if (event.defaultPrevented || isEditable(activeElement) || isEditable(event.target as Element | null)) {
     return;
   }
-  if (event.key === 'Enter') {
-    send();
+  if (event.key === 'Enter' && !event.shiftKey && !event.ctrlKey && !event.altKey && !event.metaKey) {
+    if (!event.repeat) {
+      send();
+    }
   } else if (event.key === 'Backspace') {
     message.value = message.value.slice(0, -1);
   } else if (
@@ -175,13 +166,41 @@ const openTextMenu = async (event: MouseEvent) => {
   }
 };
 onMounted(() => {
+  for (let index = 0; index < 10; index++) {
+    const slot = index + 1;
+    const defaultBinding = index < 5 ? `Shift+${MACRO_DEFAULT_KEYS[index]}` : null;
+    for (const save of [false, true]) {
+      releases.push(
+        selene.input.registerBinding(
+          {
+            id: `chat.macro.${slot}.${save ? 'save' : 'load'}`,
+            label: `${save ? 'Save' : 'Load'} macro ${slot}`,
+            category: 'Macros',
+            allowInText: true,
+            defaultBinding: defaultBinding ? `${save ? 'Ctrl+' : ''}${defaultBinding}` : null,
+          },
+          () => {
+            const root = input.value?.getRootNode();
+            if (
+              selene.input.hasEditableFocus() &&
+              (!(root instanceof ShadowRoot || root instanceof Document) || root.activeElement !== input.value)
+            ) {
+              return false;
+            }
+            useMacro(slot, save);
+          },
+        ),
+      );
+    }
+  }
   window.addEventListener('keydown', onWindowKeydown, true);
-  selene.input.captureKeys('Enter', 'Backspace', ...DESCRIPTION_MACRO_KEYS);
-  selene.input.captureText();
-  selene.input.passThroughKeys('ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight');
+  releases.push(selene.input.captureKeys('Enter', 'Backspace'), selene.input.captureText());
   void resizeInput();
 });
 onBeforeUnmount(() => {
+  for (const release of releases) {
+    release();
+  }
   window.removeEventListener('keydown', onWindowKeydown, true);
 });
 </script>

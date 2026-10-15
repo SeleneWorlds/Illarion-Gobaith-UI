@@ -62,18 +62,17 @@ const onKeydown = (event: KeyboardEvent) => {
     }
     return;
   }
-  if (event.key !== 'F9' || event.repeat) {
-    return;
-  }
-  event.preventDefault();
-  event.stopPropagation();
-  if (visible.value) {
-    close();
-  } else {
-    open();
-  }
 };
-selene.input.captureKeys('F9');
+const releaseMapShortcut = selene.input.registerBinding(
+  { id: 'game.map', label: 'World map', category: 'Game', defaultBinding: 'F9', allowInText: true },
+  () => {
+    if (visible.value) {
+      close();
+    } else {
+      open();
+    }
+  },
+);
 watch(minimap.revision, () => {
   if (visible.value) {
     draw();
@@ -93,6 +92,7 @@ watch(visible, async (value) => {
   draw();
 });
 onUnmounted(() => {
+  releaseMapShortcut();
   window.removeEventListener('keydown', onKeydown);
 });
 </script>
