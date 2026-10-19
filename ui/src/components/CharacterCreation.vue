@@ -9,6 +9,7 @@ import GameModal from './GameModal.vue';
 import SeleneVisual from './SeleneVisual.vue';
 import { useI18n } from '../composables/useI18n';
 import { useSelene } from '../selene';
+import { ageDescription, heightDescription, buildDescription } from '../characterDescriptions';
 
 const rangeSchema = z.object({ min: z.number().int(), max: z.number().int() });
 const appearanceSchema = z.object({
@@ -166,6 +167,15 @@ const weightKg = computed({
   set: (value: number) => {
     form.weight = Math.round(value * 1000);
   },
+});
+const relativeDescriptions = computed(() => {
+  const race = selectedRace.value;
+  const label = (key: string | undefined) => (key ? (get(key) ?? '') : '');
+  return {
+    age: label(ageDescription(form.race, form.age)),
+    height: race ? label(heightDescription(form.height, race.attributes.height.min, race.attributes.height.max)) : '',
+    weight: label(buildDescription(form.height, form.weight, form.attributes.strength)),
+  };
 });
 const pointsRemaining = computed(() => {
   const total = attributeNames.reduce((sum, name) => sum + form.attributes[name], 0);
@@ -337,7 +347,9 @@ const submit = () => {
               />
             </label>
             <label v-if="selectedRace"
-              >Age
+              ><span class="identity-field-heading"
+                ><span>Age</span><small>{{ relativeDescriptions.age }}</small></span
+              >
               <input
                 class="moonlight-input"
                 v-model.number="form.age"
@@ -347,7 +359,9 @@ const submit = () => {
               />
             </label>
             <label v-if="selectedRace"
-              >Height (cm)
+              ><span class="identity-field-heading"
+                ><span>Height (cm)</span><small>{{ relativeDescriptions.height }}</small></span
+              >
               <input
                 class="moonlight-input"
                 v-model.number="heightCm"
@@ -357,7 +371,9 @@ const submit = () => {
               />
             </label>
             <label v-if="selectedRace"
-              >Weight (kg)
+              ><span class="identity-field-heading"
+                ><span>Weight (kg)</span><small>{{ relativeDescriptions.weight }}</small></span
+              >
               <input
                 class="moonlight-input"
                 v-model.number="weightKg"
@@ -544,6 +560,19 @@ select {
 .identity-panel input,
 .identity-panel select {
   width: 100%;
+}
+.identity-field-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+}
+.identity-field-heading small {
+  color: var(--moonlight-text-muted);
+  font-size: 11px;
+  font-weight: 400;
+  text-transform: none;
+  text-align: right;
 }
 .identity-panel label {
   grid-template-columns: minmax(0, 1fr);
