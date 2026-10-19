@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { CircleMinus, CirclePlus } from '@lucide/vue';
 import MoonlightButton from 'moonlight-ui/MoonlightButton.vue';
+import SelectInput from 'moonlight-ui/SelectInput.vue';
 import { computed, onScopeDispose, reactive, ref, watch } from 'vue';
 import { z } from 'zod';
 import { usePayload } from '../composables/usePayload';
@@ -108,6 +109,27 @@ const form = reactive({
 });
 
 const attributesEdited = ref(false);
+
+const raceSelection = computed({
+  get: () => String(form.race),
+  set: (value: string) => {
+    form.race = Number(value);
+  },
+});
+const packSelection = computed({
+  get: () => String(form.startPack),
+  set: (value: string) => {
+    form.startPack = Number(value);
+  },
+});
+const raceChoices = computed(() => options.value?.races.map((race) => String(race.id)) ?? []);
+const raceLabels = computed(() =>
+  Object.fromEntries(options.value?.races.map((race) => [String(race.id), race.name]) ?? []),
+);
+const packChoices = computed(() => options.value?.startPacks.map((pack) => String(pack.id)) ?? []);
+const packLabels = computed(() =>
+  Object.fromEntries(options.value?.startPacks.map((pack) => [String(pack.id), pack.name]) ?? []),
+);
 
 const selectedRace = computed(() => options.value?.races.find((race) => race.id === form.race));
 const characterPreview = computed(
@@ -274,16 +296,25 @@ const submit = () => {
             /></label>
             <label
               >Race
-              <select class="moonlight-input" v-model.number="form.race">
-                <option v-for="race in options.races" :key="race.id" :value="race.id">{{ race.name }}</option>
-              </select>
+              <SelectInput
+                v-model="raceSelection"
+                label="Race"
+                :options="raceChoices"
+                :option-labels="raceLabels"
+                appearance="form"
+                :disabled="submitting"
+              />
             </label>
             <label
               >Sex
-              <select class="moonlight-input" v-model="form.sex">
-                <option value="male">Male</option>
-                <option value="female">Female</option>
-              </select>
+              <SelectInput
+                v-model="form.sex"
+                label="Sex"
+                :options="['male', 'female']"
+                :option-labels="{ male: 'Male', female: 'Female' }"
+                appearance="form"
+                :disabled="submitting"
+              />
             </label>
             <label v-if="selectedRace"
               >Age
@@ -324,9 +355,14 @@ const submit = () => {
 
         <fieldset class="starter-pack-selector">
           <legend>Starter Pack</legend>
-          <select class="moonlight-input" v-model.number="form.startPack" aria-label="Starter Pack">
-            <option v-for="pack in options.startPacks" :key="pack.id" :value="pack.id">{{ pack.name }}</option>
-          </select>
+          <SelectInput
+            v-model="packSelection"
+            label="Starter Pack"
+            :options="packChoices"
+            :option-labels="packLabels"
+            appearance="form"
+            :disabled="submitting"
+          />
         </fieldset>
 
         <div class="attribute-panels">
