@@ -124,7 +124,12 @@ const packSelection = computed({
 });
 const raceChoices = computed(() => options.value?.races.map((race) => String(race.id)) ?? []);
 const raceLabels = computed(() =>
-  Object.fromEntries(options.value?.races.map((race) => [String(race.id), race.name]) ?? []),
+  Object.fromEntries(
+    options.value?.races.map((race) => [
+      String(race.id),
+      get(`characterCreation.race.${race.id}`) ?? race.name.replace(/^./, (first) => first.toUpperCase()),
+    ]) ?? [],
+  ),
 );
 const packChoices = computed(() => options.value?.startPacks.map((pack) => String(pack.id)) ?? []);
 const packLabels = computed(() =>
