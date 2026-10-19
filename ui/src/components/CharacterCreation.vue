@@ -9,7 +9,7 @@ import GameModal from './GameModal.vue';
 import SeleneVisual from './SeleneVisual.vue';
 import { useI18n } from '../composables/useI18n';
 import { useSelene } from '../selene';
-import { ageDescription, heightDescription, buildDescription } from '../characterDescriptions';
+import { adultAge, ageDescription, heightDescription, buildDescription } from '../characterDescriptions';
 
 const rangeSchema = z.object({ min: z.number().int(), max: z.number().int() });
 const appearanceSchema = z.object({
@@ -230,7 +230,7 @@ const resetForRace = () => {
   if (!race) {
     return;
   }
-  form.age = race.attributes.age.min;
+  form.age = adultAge(form.race, race.attributes.age.min, race.attributes.age.max);
   form.height = Math.round((race.attributes.height.min + race.attributes.height.max) / 2);
   heightCm.value = Math.round(form.height * 2.54);
   form.weight = Math.round((race.attributes.weight.min + race.attributes.weight.max) / 2000) * 1000;
@@ -429,7 +429,7 @@ const submit = () => {
             <div class="character-preview" role="img" :aria-label="`${selectedRace?.name ?? 'Character'}, ${form.sex}`">
               <SeleneVisual
                 :identifier="characterPreview"
-                animation="stationary/south"
+                animation="stationary/west"
                 :style="{ transform: `scale(${characterPreviewScale})` }"
                 without-offset
               />

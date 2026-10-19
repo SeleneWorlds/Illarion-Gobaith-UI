@@ -7,6 +7,10 @@ const ages: Record<number, (number | null)[]> = {
   5: [20, 60, null, 130, 250, 375, 500, 600],
 };
 const ageLabels = ['veryYoung', 'young', 'adult', 'adult', 'middleAged', 'elderly', 'old', 'veryOld'];
+export function adultAge(race: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, ages[race]?.[1] ?? min));
+}
+
 export function ageDescription(race: number, age: number): string | undefined {
   if (!Number.isFinite(age) || !ages[race]) {
     return undefined;
