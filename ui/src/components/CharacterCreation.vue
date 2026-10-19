@@ -12,6 +12,7 @@ import { useSelene } from '../selene';
 const rangeSchema = z.object({ min: z.number().int(), max: z.number().int() });
 const appearanceSchema = z.object({
   id: z.number().int(),
+  visual: z.string().optional(),
 });
 const attributesSchema = z.object({
   age: rangeSchema,
@@ -109,6 +110,9 @@ const form = reactive({
 const attributesEdited = ref(false);
 
 const selectedRace = computed(() => options.value?.races.find((race) => race.id === form.race));
+const characterPreview = computed(
+  () => selectedRace.value?.types.find((type) => type.id === (form.sex === 'female' ? 1 : 0))?.visual,
+);
 const selectedStartPack = computed(() => options.value?.startPacks.find((pack) => pack.id === form.startPack));
 const heightCm = computed({
   get: () => Math.round(form.height * 2.54),
@@ -255,54 +259,68 @@ const submit = () => {
     </div>
     <form v-else @submit.prevent="submit">
       <div class="columns">
-        <fieldset class="identity-panel">
-          <legend>Identity</legend>
-          <label
-            >Name
-            <input class="moonlight-input" v-model="form.name" required minlength="2" maxlength="50" autocomplete="off"
-          /></label>
-          <label
-            >Race
-            <select class="moonlight-input" v-model.number="form.race">
-              <option v-for="race in options.races" :key="race.id" :value="race.id">{{ race.name }}</option>
-            </select>
-          </label>
-          <label
-            >Sex
-            <select class="moonlight-input" v-model="form.sex">
-              <option value="male">Male</option>
-              <option value="female">Female</option>
-            </select>
-          </label>
-          <label v-if="selectedRace"
-            >Age
-            <input
-              class="moonlight-input"
-              v-model.number="form.age"
-              type="number"
-              :min="selectedRace.attributes.age.min"
-              :max="selectedRace.attributes.age.max"
-          /></label>
-          <label v-if="selectedRace"
-            >Height (cm)
-            <input
-              class="moonlight-input"
-              v-model.number="heightCm"
-              type="number"
-              :min="Math.round(selectedRace.attributes.height.min * 2.54)"
-              :max="Math.round(selectedRace.attributes.height.max * 2.54)"
-          /></label>
-          <label v-if="selectedRace"
-            >Weight (kg)
-            <input
-              class="moonlight-input"
-              v-model.number="weightKg"
-              type="number"
-              step="1"
-              :min="selectedRace.attributes.weight.min / 1000"
-              :max="selectedRace.attributes.weight.max / 1000"
-          /></label>
-        </fieldset>
+        <div class="identity-row">
+          <fieldset class="identity-panel">
+            <legend>Identity</legend>
+            <label
+              >Name
+              <input
+                class="moonlight-input"
+                v-model="form.name"
+                required
+                minlength="2"
+                maxlength="50"
+                autocomplete="off"
+            /></label>
+            <label
+              >Race
+              <select class="moonlight-input" v-model.number="form.race">
+                <option v-for="race in options.races" :key="race.id" :value="race.id">{{ race.name }}</option>
+              </select>
+            </label>
+            <label
+              >Sex
+              <select class="moonlight-input" v-model="form.sex">
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+              </select>
+            </label>
+            <label v-if="selectedRace"
+              >Age
+              <input
+                class="moonlight-input"
+                v-model.number="form.age"
+                type="number"
+                :min="selectedRace.attributes.age.min"
+                :max="selectedRace.attributes.age.max"
+            /></label>
+            <label v-if="selectedRace"
+              >Height (cm)
+              <input
+                class="moonlight-input"
+                v-model.number="heightCm"
+                type="number"
+                :min="Math.round(selectedRace.attributes.height.min * 2.54)"
+                :max="Math.round(selectedRace.attributes.height.max * 2.54)"
+            /></label>
+            <label v-if="selectedRace"
+              >Weight (kg)
+              <input
+                class="moonlight-input"
+                v-model.number="weightKg"
+                type="number"
+                step="1"
+                :min="selectedRace.attributes.weight.min / 1000"
+                :max="selectedRace.attributes.weight.max / 1000"
+            /></label>
+          </fieldset>
+          <fieldset class="preview-panel">
+            <legend>Preview</legend>
+            <div class="character-preview" role="img" :aria-label="`${selectedRace?.name ?? 'Character'}, ${form.sex}`">
+              <SeleneVisual :identifier="characterPreview" animation="stationary/south" without-offset />
+            </div>
+          </fieldset>
+        </div>
 
         <fieldset class="starter-pack-selector">
           <legend>Starter Pack</legend>
@@ -439,8 +457,22 @@ input,
 select {
   width: 132px;
 }
-.identity-panel {
+.identity-row {
   grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 150px;
+  gap: 18px;
+}
+.preview-panel {
+  display: grid;
+  place-items: center;
+}
+.character-preview {
+  position: relative;
+  width: 96px;
+  height: 112px;
+}
+.identity-panel {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   column-gap: 18px;
@@ -621,6 +653,10 @@ select {
   }
 }
 @media (max-width: 540px) {
+  .identity-row {
+    grid-template-columns: minmax(0, 1fr) 110px;
+    gap: 10px;
+  }
   .identity-panel {
     grid-template-columns: 1fr;
   }
