@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import MoonlightButton from 'moonlight-ui/MoonlightButton.vue';
 import { nextTick, onBeforeUnmount, onMounted, ref, shallowRef, useTemplateRef, watch } from 'vue';
 import { useSelene } from '../selene';
 import { useAdminRequestStore } from '../stores/adminRequest';
@@ -88,9 +89,9 @@ onBeforeUnmount(() => {
     @close="close"
   >
     <div v-show="!activeItem" ref="menuElement" class="menu-actions">
-      <button v-for="item in menuItems" :key="item.id" type="button" @click="selectItem(item)">
+      <MoonlightButton v-for="item in menuItems" :key="item.id" type="button" @click="selectItem(item)">
         {{ t(item.titleKey, item.title) }}
-      </button>
+      </MoonlightButton>
     </div>
     <KeepAlive>
       <component :is="activeItem.component" v-if="activeItem" :key="activeItem.id" @close="close" />

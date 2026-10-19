@@ -28,7 +28,7 @@ const changeLanguage = (event: Event) => {
 <template>
   <div class="settings-panel">
     <label for="client-locale">{{ t('settings.language', 'Language') }}</label>
-    <select id="client-locale" ref="select" :value="language" @change="changeLanguage">
+    <select class="moonlight-input" id="client-locale" ref="select" :value="language" @change="changeLanguage">
       <option value="en">{{ t('settings.english', 'English') }}</option>
       <option value="de">{{ t('settings.german', 'German') }}</option>
     </select>
@@ -41,24 +41,8 @@ const changeLanguage = (event: Event) => {
   display: grid;
   gap: 10px;
 }
-label {
-  color: #c7bdab;
-}
-select {
-  width: 100%;
-  padding: 8px 10px;
-  border: 1px solid rgb(185 162 120 / 40%);
-  border-radius: 5px;
-  background: #25211c;
-  color: #eee5d5;
-  font: inherit;
-}
-select:focus-visible {
-  outline: 2px solid #b9a278;
-  outline-offset: 2px;
-}
 .error {
   margin: 0;
-  color: #edb4a5;
+  color: var(--moonlight-danger);
 }
 </style>

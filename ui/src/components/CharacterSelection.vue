@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { Trash2 } from '@lucide/vue';
+import MoonlightButton from 'moonlight-ui/MoonlightButton.vue';
 import { nextTick, ref } from 'vue';
 import { z } from 'zod';
 import { onConnected } from '../composables/onConnected';
@@ -166,41 +168,43 @@ const selectCharacter = (character: CharacterSummary) => {
 
 <template>
   <GameModal v-show="deletingCharacter === null" title="Character selection" :dismissible="false">
-    <div v-if="characters === null" class="loading" role="status" aria-label="Loading characters">
-      <span class="spinner" aria-hidden="true" />
+    <div v-if="characters === null" class="moonlight-loading" role="status" aria-label="Loading characters">
+      <span class="moonlight-spinner" aria-hidden="true" />
     </div>
     <div v-else class="panel">
       <p v-if="characters.length === 0">You do not have any characters yet.</p>
       <div v-else class="characters">
         <div v-for="character in characters" :key="character.id" class="character-row">
-          <button
+          <MoonlightButton
             type="button"
             class="select-character"
             :disabled="selectingId !== null || deletingCharacter !== null"
             @click="selectCharacter(character)"
           >
             {{ character.name }}
-          </button>
-          <button
+          </MoonlightButton>
+          <MoonlightButton
             v-if="character.id !== 0"
             type="button"
-            class="delete-character danger"
+            variant="danger"
+            size="icon"
             :aria-label="`Delete ${character.name}`"
             :disabled="selectingId !== null || deletingCharacter !== null"
             @click="openDelete(character)"
           >
-            ×
-          </button>
+            <Trash2 :size="16" aria-hidden="true" />
+          </MoonlightButton>
         </div>
       </div>
-      <button
+      <MoonlightButton
         type="button"
         class="create"
+        variant="primary"
         :disabled="selectingId !== null || deletingCharacter !== null"
         @click="emit('create')"
       >
         Create Character
-      </button>
+      </MoonlightButton>
     </div>
   </GameModal>
   <GameModal v-if="deletingCharacter" title="Delete character" :dismissible="!deleting" @close="closeDelete">
@@ -211,6 +215,7 @@ const selectCharacter = (character: CharacterSummary) => {
       </p>
       <label for="delete-character-name">Type the character's exact name to confirm:</label>
       <input
+        class="moonlight-input"
         id="delete-character-name"
         ref="confirmationInput"
         v-model="confirmationName"
@@ -219,10 +224,14 @@ const selectCharacter = (character: CharacterSummary) => {
       />
       <p v-if="deletionError" role="alert">{{ deletionError }}</p>
       <div class="deletion-actions">
-        <button type="button" :disabled="deleting" @click="closeDelete">Cancel</button>
-        <button type="submit" class="danger" :disabled="deleting || confirmationName !== deletingCharacter.name">
+        <MoonlightButton type="button" :disabled="deleting" @click="closeDelete">Cancel</MoonlightButton>
+        <MoonlightButton
+          type="submit"
+          variant="danger"
+          :disabled="deleting || confirmationName !== deletingCharacter.name"
+        >
           {{ deleting ? 'Deleting…' : 'Delete character' }}
-        </button>
+        </MoonlightButton>
       </div>
     </form>
   </GameModal>
@@ -232,33 +241,6 @@ const selectCharacter = (character: CharacterSummary) => {
 .panel {
   display: flex;
   flex-direction: column;
-}
-
-.loading {
-  display: grid;
-  place-items: center;
-  padding: 24px;
-}
-
-.spinner {
-  width: 30px;
-  height: 30px;
-  border: 3px solid rgb(234 217 183 / 25%);
-  border-top-color: #ead9b7;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .spinner {
-    animation-duration: 1.8s;
-  }
 }
 
 .characters {
@@ -272,15 +254,6 @@ const selectCharacter = (character: CharacterSummary) => {
 }
 .select-character {
   flex: 1;
-}
-.delete-character {
-  font-size: 20px;
-  line-height: 1;
-}
-button.danger {
-  color: #ff8585;
-  border-color: #bd4848;
-  background: rgb(160 35 35 / 25%);
 }
 .deletion-actions {
   display: flex;

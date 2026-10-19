@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import MoonlightButton from 'moonlight-ui/MoonlightButton.vue';
 import { computed, onScopeDispose, reactive, ref, watch } from 'vue';
 import { z } from 'zod';
 import { usePayload } from '../composables/usePayload';
@@ -220,16 +221,19 @@ const submit = () => {
       <div class="columns">
         <fieldset>
           <legend>Identity</legend>
-          <label>Name <input v-model="form.name" required minlength="2" maxlength="50" autocomplete="off" /></label>
+          <label
+            >Name
+            <input class="moonlight-input" v-model="form.name" required minlength="2" maxlength="50" autocomplete="off"
+          /></label>
           <label
             >Race
-            <select v-model.number="form.race">
+            <select class="moonlight-input" v-model.number="form.race">
               <option v-for="race in options.races" :key="race.id" :value="race.id">{{ race.name }}</option>
             </select>
           </label>
           <label
             >Sex
-            <select v-model="form.sex">
+            <select class="moonlight-input" v-model="form.sex">
               <option value="male">Male</option>
               <option value="female">Female</option>
             </select>
@@ -237,6 +241,7 @@ const submit = () => {
           <label v-if="selectedRace"
             >Age
             <input
+              class="moonlight-input"
               v-model.number="form.age"
               type="number"
               :min="selectedRace.attributes.age.min"
@@ -245,6 +250,7 @@ const submit = () => {
           <label v-if="selectedRace"
             >Height (cm)
             <input
+              class="moonlight-input"
               v-model.number="heightCm"
               type="number"
               :min="Math.round(selectedRace.attributes.height.min * 2.54)"
@@ -253,6 +259,7 @@ const submit = () => {
           <label v-if="selectedRace"
             >Weight (kg)
             <input
+              class="moonlight-input"
               v-model.number="weightKg"
               type="number"
               step="1"
@@ -268,6 +275,7 @@ const submit = () => {
           <label v-for="name in attributeNames" :key="name" class="attribute">
             <span>{{ name }}</span>
             <input
+              class="moonlight-input"
               v-model.number="form.attributes[name]"
               type="number"
               :min="selectedRace.attributes[name].min"
@@ -278,7 +286,7 @@ const submit = () => {
 
         <fieldset>
           <legend>Starter Pack</legend>
-          <select v-model.number="form.startPack">
+          <select class="moonlight-input" v-model.number="form.startPack">
             <option v-for="pack in options.startPacks" :key="pack.id" :value="pack.id">{{ pack.name }}</option>
           </select>
           <ul v-if="selectedStartPack" class="starter-items">
@@ -290,9 +298,9 @@ const submit = () => {
       </div>
 
       <p v-if="error" class="error" role="alert">{{ error }}</p>
-      <button class="create" type="submit" :disabled="submitting || pointsRemaining !== 0">
+      <MoonlightButton class="create" variant="primary" type="submit" :disabled="submitting || pointsRemaining !== 0">
         {{ submitting ? 'Creating…' : 'Create Character' }}
-      </button>
+      </MoonlightButton>
     </form>
   </GameModal>
 </template>
@@ -307,6 +315,8 @@ const submit = () => {
 fieldset {
   min-width: 0;
   padding: 12px;
+  border: 1px solid var(--moonlight-border);
+  border-radius: 8px;
 }
 legend {
   padding: 0 6px;
@@ -340,14 +350,14 @@ select {
 }
 .invalid,
 .error {
-  color: #f2a59d;
+  color: var(--moonlight-danger);
 }
 .error {
   margin: 12px 0 0;
   text-align: center;
 }
 .loading {
-  color: #ead9b7;
+  color: var(--moonlight-text-muted);
 }
 @media (max-width: 860px) {
   .columns {

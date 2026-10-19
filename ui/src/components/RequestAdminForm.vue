@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import MoonlightButton from 'moonlight-ui/MoonlightButton.vue';
 import { onActivated, onMounted, ref, useTemplateRef } from 'vue';
 import { useAdminRequestStore } from '../stores/adminRequest';
 import { useSelene } from '../selene';
@@ -30,6 +31,7 @@ const submit = () => {
 <template>
   <form @submit.prevent="submit">
     <textarea
+      class="moonlight-input"
       ref="input"
       v-model="message"
       rows="3"
@@ -38,9 +40,9 @@ const submit = () => {
       autocomplete="off"
     />
     <div class="form-actions">
-      <button class="submit-button" type="submit" :disabled="!message.trim()">
+      <MoonlightButton variant="primary" type="submit" :disabled="!message.trim()">
         {{ t('request.submit', 'Submit') }}
-      </button>
+      </MoonlightButton>
     </div>
   </form>
 </template>
@@ -50,36 +52,14 @@ form {
   display: grid;
   gap: 10px;
 }
-label {
-  color: #c7bdab;
-}
 textarea {
-  min-width: 0;
-  width: 100%;
-  padding: 10px;
-  border: 1px solid rgb(185 162 120 / 40%);
-  border-radius: 5px;
-  background: rgb(0 0 0 / 25%);
-  color: #eee5d5;
-  font: inherit;
   resize: vertical;
   min-height: 78px;
   max-height: 180px;
-}
-textarea::placeholder {
-  color: #a49b8b;
 }
 .form-actions {
   display: flex;
   justify-content: flex-end;
   margin-top: 4px;
-}
-.submit-button {
-  border-color: rgb(185 162 120 / 60%);
-  background: rgb(185 162 120 / 25%);
-  color: #fff4df;
-}
-.submit-button:hover:not(:disabled) {
-  background: rgb(185 162 120 / 35%);
 }
 </style>

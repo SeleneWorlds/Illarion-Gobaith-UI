@@ -136,6 +136,8 @@ onBeforeUnmount(() => {
   </main>
 </template>
 
+<style src="moonlight-ui/styles/theme.css"></style>
+<style src="moonlight-ui/styles/primitives.css"></style>
 <style src="./styles.css"></style>
 
 <style scoped>

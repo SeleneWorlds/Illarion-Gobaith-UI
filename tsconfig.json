@@ -5,7 +5,12 @@
     "types": ["vite/client"],
     "strict": true,
     "noUnusedLocals": true,
-    "noUnusedParameters": true
+    "noUnusedParameters": true,
+    "paths": {
+      "moonlight-ui/*": ["../moonlight/moonlight-ui/ui/src/*"],
+      "moonlight-ui/styles/*": ["../moonlight/moonlight-ui/ui/styles/*"],
+      "vue": ["./node_modules/vue"]
+    }
   },
   "include": ["ui/**/*.ts", "ui/**/*.vue"]
 }
