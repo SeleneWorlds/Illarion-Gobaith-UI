@@ -168,6 +168,37 @@ const weightKg = computed({
     form.weight = Math.round(value * 1000);
   },
 });
+const identityErrors = computed(() => {
+  const race = selectedRace.value;
+  const errors: Partial<Record<'age' | 'height' | 'weight', string>> = {};
+  if (!race) {
+    return errors;
+  }
+  const fields = {
+    age: { value: form.age, min: race.attributes.age.min, max: race.attributes.age.max },
+    height: {
+      value: heightCm.value,
+      min: Math.round(race.attributes.height.min * 2.54),
+      max: Math.round(race.attributes.height.max * 2.54),
+    },
+    weight: { value: weightKg.value, min: race.attributes.weight.min / 1000, max: race.attributes.weight.max / 1000 },
+  };
+  for (const name of ['age', 'height', 'weight'] as const) {
+    const { value, min, max } = fields[name];
+    const reason =
+      typeof value !== 'number' || !Number.isFinite(value) || !Number.isInteger(value)
+        ? 'invalid'
+        : value < min
+          ? 'tooLow'
+          : value > max
+            ? 'tooHigh'
+            : undefined;
+    if (reason) {
+      errors[name] = get(`characterCreation.${name}.${reason}`) ?? 'Invalid value';
+    }
+  }
+  return errors;
+});
 const relativeDescriptions = computed(() => {
   const race = selectedRace.value;
   const label = (key: string | undefined) => (key ? (get(key) ?? '') : '');
@@ -348,7 +379,10 @@ const submit = () => {
             </label>
             <label v-if="selectedRace"
               ><span class="identity-field-heading"
-                ><span>Age</span><small>{{ relativeDescriptions.age }}</small></span
+                ><span>Age</span
+                ><small :class="{ invalid: identityErrors.age }" aria-live="polite">{{
+                  identityErrors.age || relativeDescriptions.age
+                }}</small></span
               >
               <input
                 class="moonlight-input"
@@ -360,7 +394,10 @@ const submit = () => {
             </label>
             <label v-if="selectedRace"
               ><span class="identity-field-heading"
-                ><span>Height (cm)</span><small>{{ relativeDescriptions.height }}</small></span
+                ><span>Height (cm)</span
+                ><small :class="{ invalid: identityErrors.height }" aria-live="polite">{{
+                  identityErrors.height || relativeDescriptions.height
+                }}</small></span
               >
               <input
                 class="moonlight-input"
@@ -372,7 +409,10 @@ const submit = () => {
             </label>
             <label v-if="selectedRace"
               ><span class="identity-field-heading"
-                ><span>Weight (kg)</span><small>{{ relativeDescriptions.weight }}</small></span
+                ><span>Weight (kg)</span
+                ><small :class="{ invalid: identityErrors.weight }" aria-live="polite">{{
+                  identityErrors.weight || relativeDescriptions.weight
+                }}</small></span
               >
               <input
                 class="moonlight-input"
@@ -573,6 +613,9 @@ select {
   font-weight: 400;
   text-transform: none;
   text-align: right;
+}
+.identity-field-heading small.invalid {
+  color: var(--moonlight-danger);
 }
 .identity-panel label {
   grid-template-columns: minmax(0, 1fr);
