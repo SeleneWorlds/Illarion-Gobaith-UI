@@ -140,6 +140,16 @@ const selectedRace = computed(() => options.value?.races.find((race) => race.id 
 const characterPreview = computed(
   () => selectedRace.value?.types.find((type) => type.id === (form.sex === 'female' ? 1 : 0))?.visual,
 );
+// Match CharacterVisual.GetScale in illarion-script-loader.
+const characterPreviewScale = computed(() => {
+  const range = selectedRace.value?.attributes.height;
+  const height = Number(form.height);
+  if (!range || !Number.isFinite(height) || height <= 0 || range.max <= range.min) {
+    return 1;
+  }
+  const relativeHeight = Math.max(0, Math.min(1, (height - range.min) / (range.max - range.min)));
+  return (80 + Math.floor(40 * relativeHeight)) / 100;
+});
 const selectedStartPack = computed(() => options.value?.startPacks.find((pack) => pack.id === form.startPack));
 const heightCm = computed({
   get: () => Math.round(form.height * 2.54),
@@ -353,7 +363,12 @@ const submit = () => {
           <fieldset class="preview-panel">
             <legend>Preview</legend>
             <div class="character-preview" role="img" :aria-label="`${selectedRace?.name ?? 'Character'}, ${form.sex}`">
-              <SeleneVisual :identifier="characterPreview" animation="stationary/south" without-offset />
+              <SeleneVisual
+                :identifier="characterPreview"
+                animation="stationary/south"
+                :style="{ transform: `scale(${characterPreviewScale})` }"
+                without-offset
+              />
             </div>
           </fieldset>
         </div>
