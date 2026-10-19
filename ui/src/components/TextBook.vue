@@ -139,7 +139,8 @@ onBeforeUnmount(() => {
   font:
     18px/1.4 Georgia,
     serif;
-  overflow-y: auto;
+  overflow: hidden;
+  min-height: 0;
   flex: 1;
   width: 100%;
 }
