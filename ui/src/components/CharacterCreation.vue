@@ -5,6 +5,8 @@ import { computed, onScopeDispose, reactive, ref, watch } from 'vue';
 import { z } from 'zod';
 import { usePayload } from '../composables/usePayload';
 import GameModal from './GameModal.vue';
+import SeleneVisual from './SeleneVisual.vue';
+import { useI18n } from '../composables/useI18n';
 import { useSelene } from '../selene';
 
 const rangeSchema = z.object({ min: z.number().int(), max: z.number().int() });
@@ -51,11 +53,19 @@ const optionsSchema = z.object({
         })
         .partial()
         .optional(),
+      skills: z
+        .preprocess(
+          (value) =>
+            value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === 0 ? [] : value,
+          z.array(z.object({ id: z.number().int(), name: z.string(), value: z.number() })),
+        )
+        .optional(),
       items: z.array(
         z.object({
           id: z.number().int(),
           name: z.string(),
           count: z.number().int().positive(),
+          visual: z.string().optional(),
         }),
       ),
     }),
@@ -79,6 +89,9 @@ const attributeNames: AttributeName[] = [
 ];
 const emit = defineEmits<{ cancel: []; created: [] }>();
 const selene = useSelene();
+const { get } = useI18n();
+const skillName = (name: string) =>
+  get(`skills.${name}`) ?? name.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/^./, (first) => first.toUpperCase());
 const options = ref<Options | null>(null);
 const submitting = ref(false);
 const error = ref('');
@@ -92,6 +105,8 @@ const form = reactive({
   startPack: 1,
   attributes: Object.fromEntries(attributeNames.map((name) => [name, 0])) as Record<AttributeName, number>,
 });
+
+const attributesEdited = ref(false);
 
 const selectedRace = computed(() => options.value?.races.find((race) => race.id === form.race));
 const selectedStartPack = computed(() => options.value?.startPacks.find((pack) => pack.id === form.startPack));
@@ -140,6 +155,7 @@ const applySuggestedAttributes = () => {
   if (!race) {
     return;
   }
+  attributesEdited.value = false;
   const suggestions = selectedStartPack.value?.attributes;
   let remaining = race.attributes.total;
   for (const name of attributeNames) {
@@ -168,7 +184,14 @@ const applySuggestedAttributes = () => {
 };
 
 watch(() => form.race, resetForRace);
-watch(() => form.startPack, applySuggestedAttributes);
+watch(
+  () => form.startPack,
+  () => {
+    if (!attributesEdited.value) {
+      applySuggestedAttributes();
+    }
+  },
+);
 
 const unsubscribeOptions = selene.network.onPayload('illarion:character_creation_options', (payload) => {
   const result = optionsSchema.safeParse(payload);
@@ -232,7 +255,7 @@ const submit = () => {
     </div>
     <form v-else @submit.prevent="submit">
       <div class="columns">
-        <fieldset>
+        <fieldset class="identity-panel">
           <legend>Identity</legend>
           <label
             >Name
@@ -281,57 +304,100 @@ const submit = () => {
           /></label>
         </fieldset>
 
-        <fieldset v-if="selectedRace" class="attributes-panel">
-          <legend class="attributes-heading">
-            <span>Attributes</span>
-            <span class="points-remaining" :class="{ invalid: pointsRemaining !== 0 }"
-              >{{ pointsRemaining }} points remaining</span
-            >
-          </legend>
-          <div v-for="name in attributeNames" :key="name" class="attribute">
-            <label :for="`attribute-${name}`">{{ name }}</label>
-            <span class="attribute-bar" aria-hidden="true">
-              <span class="attribute-fill" :style="{ width: `${attributeAllocation(name)}%` }" />
-            </span>
-            <input
-              :id="`attribute-${name}`"
-              class="attribute-value"
-              v-model.number="form.attributes[name]"
-              type="number"
-              :min="selectedRace.attributes[name].min"
-              :max="selectedRace.attributes[name].max"
-            />
-            <MoonlightButton
-              variant="ghost"
-              size="icon"
-              :aria-label="`Decrease ${name}`"
-              :disabled="submitting || form.attributes[name] <= selectedRace.attributes[name].min"
-              @click="form.attributes[name]--"
-              ><CircleMinus :size="16" aria-hidden="true"
-            /></MoonlightButton>
-            <MoonlightButton
-              variant="ghost"
-              size="icon"
-              :aria-label="`Increase ${name}`"
-              :disabled="
-                submitting || pointsRemaining <= 0 || form.attributes[name] >= selectedRace.attributes[name].max
-              "
-              @click="form.attributes[name]++"
-              ><CirclePlus :size="16" aria-hidden="true"
-            /></MoonlightButton>
-          </div>
-        </fieldset>
-
-        <fieldset>
+        <fieldset class="starter-pack-selector">
           <legend>Starter Pack</legend>
-          <select class="moonlight-input" v-model.number="form.startPack">
+          <select class="moonlight-input" v-model.number="form.startPack" aria-label="Starter Pack">
             <option v-for="pack in options.startPacks" :key="pack.id" :value="pack.id">{{ pack.name }}</option>
           </select>
-          <ul v-if="selectedStartPack" class="starter-items">
-            <li v-for="(item, index) in selectedStartPack.items" :key="`${item.id}-${index}`">
-              {{ item.name }}<span v-if="item.count > 1"> × {{ item.count }}</span>
-            </li>
-          </ul>
+        </fieldset>
+
+        <div class="attribute-panels">
+          <fieldset v-if="selectedRace" class="attributes-panel">
+            <legend class="attributes-heading">
+              <span>Attributes</span>
+              <span class="points-remaining" :class="{ invalid: pointsRemaining !== 0 }">
+                {{ pointsRemaining }} points remaining
+              </span>
+            </legend>
+            <div v-for="name in attributeNames" :key="name" class="attribute">
+              <label :for="`attribute-${name}`">{{ name }}</label>
+              <span class="attribute-bar" aria-hidden="true">
+                <span class="attribute-fill" :style="{ width: `${attributeAllocation(name)}%` }" />
+              </span>
+              <input
+                :id="`attribute-${name}`"
+                class="attribute-value"
+                v-model.number="form.attributes[name]"
+                @input="attributesEdited = true"
+                type="number"
+                :min="selectedRace.attributes[name].min"
+                :max="selectedRace.attributes[name].max"
+              />
+              <MoonlightButton
+                variant="ghost"
+                size="icon"
+                :aria-label="`Decrease ${name}`"
+                :disabled="submitting || form.attributes[name] <= selectedRace.attributes[name].min"
+                @click="
+                  form.attributes[name]--;
+                  attributesEdited = true;
+                "
+                ><CircleMinus :size="16" aria-hidden="true"
+              /></MoonlightButton>
+              <MoonlightButton
+                variant="ghost"
+                size="icon"
+                :aria-label="`Increase ${name}`"
+                :disabled="
+                  submitting || pointsRemaining <= 0 || form.attributes[name] >= selectedRace.attributes[name].max
+                "
+                @click="
+                  form.attributes[name]++;
+                  attributesEdited = true;
+                "
+                ><CirclePlus :size="16" aria-hidden="true"
+              /></MoonlightButton>
+            </div>
+            <MoonlightButton
+              v-if="attributesEdited && selectedStartPack"
+              class="recommended-attributes"
+              size="small"
+              :disabled="submitting"
+              @click="applySuggestedAttributes"
+              >Use recommended attributes for {{ selectedStartPack.name }}</MoonlightButton
+            >
+          </fieldset>
+          <fieldset v-if="selectedStartPack">
+            <legend>Skills</legend>
+            <ul v-if="selectedStartPack.skills?.length" class="starter-skills">
+              <li v-for="skill in selectedStartPack.skills" :key="skill.id">
+                <span>{{ skillName(skill.name) }}</span>
+                <strong>{{ skill.value }}</strong>
+              </li>
+            </ul>
+            <p v-else class="ml-muted">No starter skills.</p>
+          </fieldset>
+        </div>
+
+        <fieldset>
+          <legend>Equipment</legend>
+
+          <div v-if="selectedStartPack" class="starter-details">
+            <ul class="starter-items" aria-label="Starter equipment">
+              <li
+                v-for="(item, index) in selectedStartPack.items"
+                :key="`${item.id}-${index}`"
+                class="starter-item"
+                :title="item.name"
+              >
+                <span class="starter-visual" aria-hidden="true">
+                  <SeleneVisual :identifier="item.visual" :seed="String(item.id)" without-offset />
+                </span>
+                <span class="starter-item-name">{{ item.name }}</span>
+                <span v-if="item.count > 1" class="item-count">× {{ item.count }}</span>
+              </li>
+            </ul>
+          </div>
         </fieldset>
       </div>
 
@@ -358,6 +424,7 @@ fieldset {
 }
 legend {
   padding: 0 6px;
+  font-size: 13px;
   font-weight: 700;
 }
 label {
@@ -372,17 +439,52 @@ input,
 select {
   width: 132px;
 }
-.attributes-panel {
+.identity-panel {
   grid-column: 1 / -1;
-  order: 1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  column-gap: 18px;
+}
+.identity-panel input,
+.identity-panel select {
+  width: 100%;
+}
+.identity-panel label {
+  grid-template-columns: minmax(0, 1fr);
+}
+.starter-pack-selector {
+  grid-column: 1 / -1;
+}
+.starter-pack-selector select {
+  width: 100%;
+}
+.attribute-panels {
+  display: grid;
+  min-width: 0;
+  gap: 18px;
+}
+.attributes-panel {
+  min-width: 0;
+}
+.recommended-attributes {
+  width: 100%;
+  margin-top: 8px;
+  white-space: normal;
 }
 .attributes-heading {
-  width: 100%;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  font-size: 16px;
+  gap: 8px;
+  width: 100%;
+}
+.attributes-heading::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--moonlight-border);
+}
+.attributes-heading .points-remaining {
+  order: 1;
 }
 .points-remaining {
   padding: 2px 8px;
@@ -394,7 +496,7 @@ select {
 }
 .attribute {
   display: grid;
-  grid-template-columns: 136px minmax(0, 1fr) 38px 28px 28px;
+  grid-template-columns: 90px minmax(0, 1fr) 32px 28px 28px;
   align-items: center;
   gap: 8px;
   margin-block: 10px;
@@ -440,12 +542,63 @@ select {
     gap: 4px;
   }
 }
-.starter-items {
-  margin: 10px 0 0;
-  padding-left: 20px;
+.starter-details h3 {
+  margin: 16px 0 8px;
+  color: var(--moonlight-text-muted);
+  font-size: 12px;
+  font-weight: 600;
 }
-.starter-items li + li {
-  margin-top: 3px;
+.starter-items,
+.starter-skills {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.starter-items {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  gap: 8px;
+}
+.starter-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px;
+  border: 1px solid var(--moonlight-border);
+  border-radius: 6px;
+  background: var(--moonlight-background);
+}
+.starter-visual {
+  position: relative;
+  width: 64px;
+  height: 48px;
+}
+.starter-item-name {
+  font-size: 11px;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+.item-count {
+  position: absolute;
+  top: 4px;
+  right: 5px;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: var(--moonlight-surface-raised);
+  font-size: 10px;
+}
+.starter-skills li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--moonlight-border);
+}
+.starter-skills strong {
+  color: var(--moonlight-accent);
+  font-variant-numeric: tabular-nums;
 }
 .create {
   display: block;
@@ -464,6 +617,11 @@ select {
 }
 @media (max-width: 860px) {
   .columns {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 540px) {
+  .identity-panel {
     grid-template-columns: 1fr;
   }
 }
