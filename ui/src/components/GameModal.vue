@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ArrowLeft, X } from '@lucide/vue';
 import { useId } from 'vue';
 import MoonlightSurface from 'moonlight-ui/MoonlightSurface.vue';
 import MoonlightButton from 'moonlight-ui/MoonlightButton.vue';
@@ -29,21 +30,25 @@ const emit = defineEmits<{ back: []; close: [] }>();
       <header>
         <MoonlightButton
           v-if="showBack"
+          class="modal-icon-button"
           variant="ghost"
           size="icon"
           :aria-label="backLabel || t('menu.back', 'Back to menu')"
           @click="emit('back')"
-          >‹</MoonlightButton
         >
+          <ArrowLeft :size="18" aria-hidden="true" />
+        </MoonlightButton>
         <h2 :id="titleId" class="ml-grow">{{ title }}</h2>
         <MoonlightButton
           v-if="dismissible"
+          class="modal-icon-button"
           variant="ghost"
           size="icon"
           :aria-label="t('menu.close', 'Close menu')"
           @click="emit('close')"
-          >×</MoonlightButton
         >
+          <X :size="18" aria-hidden="true" />
+        </MoonlightButton>
       </header>
       <div class="ml-pad ml-scroll"><slot /></div>
       <footer v-if="$slots.footer"><slot name="footer" /></footer>
@@ -60,6 +65,11 @@ const emit = defineEmits<{ back: []; close: [] }>();
   place-items: center;
   background: rgb(0 0 0 / 15%);
   pointer-events: auto;
+}
+.modal-icon-button {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
 }
 .modal-panel {
   width: 350px;
