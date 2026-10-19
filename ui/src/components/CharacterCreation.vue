@@ -151,12 +151,16 @@ const characterPreviewScale = computed(() => {
   return (80 + Math.floor(40 * relativeHeight)) / 100;
 });
 const selectedStartPack = computed(() => options.value?.startPacks.find((pack) => pack.id === form.startPack));
-const heightCm = computed({
-  get: () => Math.round(form.height * 2.54),
-  set: (value: number) => {
-    form.height = Math.round(value / 2.54);
+// Keep the entered centimeters independent of the server's whole-inch value.
+// Converting back on every keystroke changes entries such as 100 into 99.
+const heightCm = ref<number | string>(Math.round(form.height * 2.54));
+watch(
+  heightCm,
+  (value) => {
+    form.height = typeof value === 'number' && Number.isFinite(value) ? Math.round(value / 2.54) : NaN;
   },
-});
+  { flush: 'sync' },
+);
 const weightKg = computed({
   get: () => form.weight / 1000,
   set: (value: number) => {
@@ -187,6 +191,7 @@ const resetForRace = () => {
   }
   form.age = race.attributes.age.min;
   form.height = Math.round((race.attributes.height.min + race.attributes.height.max) / 2);
+  heightCm.value = Math.round(form.height * 2.54);
   form.weight = Math.round((race.attributes.weight.min + race.attributes.weight.max) / 2000) * 1000;
   applySuggestedAttributes();
 };
@@ -339,7 +344,8 @@ const submit = () => {
                 type="number"
                 :min="selectedRace.attributes.age.min"
                 :max="selectedRace.attributes.age.max"
-            /></label>
+              />
+            </label>
             <label v-if="selectedRace"
               >Height (cm)
               <input
@@ -348,17 +354,19 @@ const submit = () => {
                 type="number"
                 :min="Math.round(selectedRace.attributes.height.min * 2.54)"
                 :max="Math.round(selectedRace.attributes.height.max * 2.54)"
-            /></label>
+              />
+            </label>
             <label v-if="selectedRace"
               >Weight (kg)
               <input
                 class="moonlight-input"
                 v-model.number="weightKg"
                 type="number"
-                step="1"
                 :min="selectedRace.attributes.weight.min / 1000"
                 :max="selectedRace.attributes.weight.max / 1000"
-            /></label>
+                step="1"
+              />
+            </label>
           </fieldset>
           <fieldset class="preview-panel">
             <legend>Preview</legend>
