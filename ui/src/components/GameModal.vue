@@ -46,6 +46,7 @@ const emit = defineEmits<{ back: []; close: [] }>();
         >
       </header>
       <div class="ml-pad ml-scroll"><slot /></div>
+      <footer v-if="$slots.footer"><slot name="footer" /></footer>
     </MoonlightSurface>
   </div>
 </template>

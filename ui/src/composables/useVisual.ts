@@ -14,6 +14,7 @@ export const useVisual = (
   identifier: MaybeRefOrGetter<string | undefined>,
   seed: MaybeRefOrGetter<string> = '',
   withoutOffset: MaybeRefOrGetter<boolean> = false,
+  animation: MaybeRefOrGetter<string | undefined> = undefined,
 ) => {
   const selene = useSelene();
 
@@ -44,6 +45,10 @@ export const useVisual = (
           flipY: frame.flipY ?? false,
         }
       : undefined;
+  const selectedAnimation = (definition: VisualDefinition) => {
+    const name = toValue(animation);
+    return (name ? definition.animations?.[name] : undefined) ?? Object.values(definition.animations ?? {})[0];
+  };
   const definitionFrames = (definition: VisualDefinition): VisualFrameDefinition[] => {
     if (definition.frames?.length) {
       return definition.frames.map((frame) => asFrame(frame, definition));
@@ -62,7 +67,7 @@ export const useVisual = (
     if (definition.texture) {
       return [definition];
     }
-    const animation = Object.values(definition.animations ?? {})[0];
+    const animation = selectedAnimation(definition);
     if (animation?.frames?.length) {
       return animation.frames.map((frame) => asFrame(frame, { ...definition, ...animation }));
     }
@@ -113,7 +118,7 @@ export const useVisual = (
         return;
       }
       frames = loadedFrames;
-      animationDuration = definition.duration ?? Object.values(definition.animations ?? {})[0]?.duration ?? 1;
+      animationDuration = definition.duration ?? selectedAnimation(definition)?.duration ?? 1;
       animationStarted = performance.now();
       animationFrame = 0;
       layers.value = frames[0] ?? [];
@@ -125,7 +130,7 @@ export const useVisual = (
     }
   };
   watch(
-    () => [toValue(identifier), toValue(seed), toValue(withoutOffset)],
+    () => [toValue(identifier), toValue(seed), toValue(withoutOffset), toValue(animation)],
     () => void load(),
     { immediate: true },
   );

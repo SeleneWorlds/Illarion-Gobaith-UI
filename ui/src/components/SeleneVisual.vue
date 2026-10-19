@@ -5,6 +5,7 @@ import { useVisual, type RenderLayer } from '../composables/useVisual';
 const props = withDefaults(
   defineProps<{
     identifier?: string;
+    animation?: string;
     seed?: string;
     withoutOffset?: boolean;
   }>(),
@@ -14,6 +15,7 @@ const layers = useVisual(
   () => props.identifier,
   () => props.seed,
   () => props.withoutOffset,
+  () => props.animation,
 );
 const layerStyle = computed(() => (layer: RenderLayer) => ({
   transform: `translate(calc(-50% + ${layer.offsetX}px), calc(-50% + ${layer.offsetY}px)) scale(${layer.flipX ? -1 : 1}, ${layer.flipY ? -1 : 1})`,

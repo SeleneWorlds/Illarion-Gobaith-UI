@@ -1,16 +1,20 @@
 <script setup lang="ts">
-import { Trash2 } from '@lucide/vue';
+import { Plus } from '@lucide/vue';
 import MoonlightButton from 'moonlight-ui/MoonlightButton.vue';
-import { nextTick, ref } from 'vue';
+import { computed, nextTick, ref } from 'vue';
 import { z } from 'zod';
 import { onConnected } from '../composables/onConnected';
 import GameModal from './GameModal.vue';
+import SeleneVisual from './SeleneVisual.vue';
+import CharacterActionsMenu from './CharacterActionsMenu.vue';
 import { usePayload } from '../composables/usePayload';
 import { useSelene } from '../selene';
 
 const characterSchema = z.object({
   id: z.number().int(),
   name: z.string().min(1),
+  visual: z.string().optional(),
+  subtitle: z.string().optional(),
 });
 // TODO not clean, but quick fix for empty arrays arriving as empty objects from Lua
 const characterListSchema = z.preprocess(
@@ -59,6 +63,8 @@ const headlessFollow = z
 const hasHeadlessFollow = launchParameters.follow !== undefined;
 let deeplinkRequested = false;
 const characters = ref<CharacterSummary[] | null>(null);
+const playableCharacters = computed(() => characters.value?.filter((character) => character.id !== 0) ?? []);
+const headlessCharacter = computed(() => characters.value?.find((character) => character.id === 0));
 const selectingId = ref<number | null>(null);
 const deletingCharacter = ref<CharacterSummary | null>(null);
 const confirmationName = ref('');
@@ -167,33 +173,39 @@ const selectCharacter = (character: CharacterSummary) => {
 </script>
 
 <template>
-  <GameModal v-show="deletingCharacter === null" title="Character selection" :dismissible="false">
+  <GameModal v-show="deletingCharacter === null" title="Select a character" :dismissible="false">
     <div v-if="characters === null" class="moonlight-loading" role="status" aria-label="Loading characters">
       <span class="moonlight-spinner" aria-hidden="true" />
     </div>
     <div v-else class="panel">
-      <p v-if="characters.length === 0">You do not have any characters yet.</p>
+      <p v-if="playableCharacters.length === 0">You do not have any characters yet.</p>
       <div v-else class="characters">
-        <div v-for="character in characters" :key="character.id" class="character-row">
+        <div v-for="character in playableCharacters" :key="character.id" class="character-row">
           <MoonlightButton
             type="button"
             class="select-character"
             :disabled="selectingId !== null || deletingCharacter !== null"
             @click="selectCharacter(character)"
           >
-            {{ character.name }}
+            <span class="character-visual" aria-hidden="true">
+              <SeleneVisual
+                :identifier="character.visual"
+                animation="stationary/south"
+                :seed="String(character.id)"
+                without-offset
+              />
+            </span>
+            <span class="character-description">
+              <span class="character-name">{{ character.name }}</span>
+              <small v-if="character.subtitle" class="character-subtitle">{{ character.subtitle }}</small>
+            </span>
           </MoonlightButton>
-          <MoonlightButton
-            v-if="character.id !== 0"
-            type="button"
-            variant="danger"
-            size="icon"
-            :aria-label="`Delete ${character.name}`"
+          <CharacterActionsMenu
+            class="character-menu"
+            :name="character.name"
             :disabled="selectingId !== null || deletingCharacter !== null"
-            @click="openDelete(character)"
-          >
-            <Trash2 :size="16" aria-hidden="true" />
-          </MoonlightButton>
+            @delete="openDelete(character)"
+          />
         </div>
       </div>
       <MoonlightButton
@@ -203,9 +215,20 @@ const selectCharacter = (character: CharacterSummary) => {
         :disabled="selectingId !== null || deletingCharacter !== null"
         @click="emit('create')"
       >
+        <Plus :size="16" aria-hidden="true" />
         Create Character
       </MoonlightButton>
     </div>
+    <template v-if="headlessCharacter" #footer>
+      <MoonlightButton
+        class="headless-login"
+        variant="ghost"
+        size="small"
+        :disabled="selectingId !== null || deletingCharacter !== null"
+        @click="selectCharacter(headlessCharacter)"
+        >Headless Login</MoonlightButton
+      >
+    </template>
   </GameModal>
   <GameModal v-if="deletingCharacter" title="Delete character" :dismissible="!deleting" @close="closeDelete">
     <form class="panel" @submit.prevent="deleteCharacter">
@@ -249,11 +272,40 @@ const selectCharacter = (character: CharacterSummary) => {
 }
 
 .character-row {
+  position: relative;
   display: flex;
-  gap: 8px;
+}
+.character-menu {
+  position: absolute;
+  top: 0;
+  right: 10px;
+  bottom: 0;
 }
 .select-character {
   flex: 1;
+  padding-right: 48px;
+  min-width: 0;
+  justify-content: flex-start;
+  gap: 12px;
+  text-align: left;
+}
+.character-visual {
+  position: relative;
+  flex: 0 0 40px;
+  height: 48px;
+}
+.character-description {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+.character-subtitle {
+  color: var(--moonlight-text-muted);
+  font-size: 11px;
+}
+.character-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .deletion-actions {
   display: flex;
@@ -267,5 +319,9 @@ input {
 
 .create {
   margin-top: 14px;
+}
+.headless-login {
+  margin-inline: auto;
+  font-size: 12px;
 }
 </style>

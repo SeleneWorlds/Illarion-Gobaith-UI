@@ -19,7 +19,8 @@ function preventBackgroundFocus(event: Event): void {
   if (!(target instanceof Element)) {
     return;
   }
-  if (target.closest('input, textarea, select') || (target instanceof HTMLElement && target.isContentEditable)) {
+  // Buttons must retain focus through mousedown so popup actions survive until click.
+  if (target.closest('button, input, textarea, select') || (target instanceof HTMLElement && target.isContentEditable)) {
     return;
   }
 
