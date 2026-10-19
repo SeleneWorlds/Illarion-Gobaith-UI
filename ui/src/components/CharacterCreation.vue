@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { CircleMinus, CirclePlus } from '@lucide/vue';
 import MoonlightButton from 'moonlight-ui/MoonlightButton.vue';
 import { computed, onScopeDispose, reactive, ref, watch } from 'vue';
 import { z } from 'zod';
@@ -110,6 +111,18 @@ const pointsRemaining = computed(() => {
   const total = attributeNames.reduce((sum, name) => sum + form.attributes[name], 0);
   return (selectedRace.value?.attributes.total ?? 0) - total;
 });
+
+const attributeAllocation = (name: AttributeName): number => {
+  const range = selectedRace.value?.attributes[name];
+  const value = Number(form.attributes[name]);
+  if (!range || !Number.isFinite(value)) {
+    return 0;
+  }
+  if (range.max === range.min) {
+    return 100;
+  }
+  return Math.max(0, Math.min(100, (value / range.max) * 100));
+};
 
 const resetForRace = () => {
   const race = selectedRace.value;
@@ -268,20 +281,45 @@ const submit = () => {
           /></label>
         </fieldset>
 
-        <fieldset v-if="selectedRace">
-          <legend>
-            Attributes <span :class="{ invalid: pointsRemaining !== 0 }">({{ pointsRemaining }} left)</span>
+        <fieldset v-if="selectedRace" class="attributes-panel">
+          <legend class="attributes-heading">
+            <span>Attributes</span>
+            <span class="points-remaining" :class="{ invalid: pointsRemaining !== 0 }"
+              >{{ pointsRemaining }} points remaining</span
+            >
           </legend>
-          <label v-for="name in attributeNames" :key="name" class="attribute">
-            <span>{{ name }}</span>
+          <div v-for="name in attributeNames" :key="name" class="attribute">
+            <label :for="`attribute-${name}`">{{ name }}</label>
+            <span class="attribute-bar" aria-hidden="true">
+              <span class="attribute-fill" :style="{ width: `${attributeAllocation(name)}%` }" />
+            </span>
             <input
-              class="moonlight-input"
+              :id="`attribute-${name}`"
+              class="attribute-value"
               v-model.number="form.attributes[name]"
               type="number"
               :min="selectedRace.attributes[name].min"
               :max="selectedRace.attributes[name].max"
             />
-          </label>
+            <MoonlightButton
+              variant="ghost"
+              size="icon"
+              :aria-label="`Decrease ${name}`"
+              :disabled="submitting || form.attributes[name] <= selectedRace.attributes[name].min"
+              @click="form.attributes[name]--"
+              ><CircleMinus :size="16" aria-hidden="true"
+            /></MoonlightButton>
+            <MoonlightButton
+              variant="ghost"
+              size="icon"
+              :aria-label="`Increase ${name}`"
+              :disabled="
+                submitting || pointsRemaining <= 0 || form.attributes[name] >= selectedRace.attributes[name].max
+              "
+              @click="form.attributes[name]++"
+              ><CirclePlus :size="16" aria-hidden="true"
+            /></MoonlightButton>
+          </div>
         </fieldset>
 
         <fieldset>
@@ -308,7 +346,7 @@ const submit = () => {
 <style scoped>
 .columns {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px;
   align-items: start;
 }
@@ -334,8 +372,73 @@ input,
 select {
   width: 132px;
 }
-.attribute input {
-  width: 58px;
+.attributes-panel {
+  grid-column: 1 / -1;
+  order: 1;
+}
+.attributes-heading {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 16px;
+}
+.points-remaining {
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: var(--moonlight-surface-raised);
+  color: var(--moonlight-text-muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+.attribute {
+  display: grid;
+  grid-template-columns: 136px minmax(0, 1fr) 38px 28px 28px;
+  align-items: center;
+  gap: 8px;
+  margin-block: 10px;
+}
+.attribute label {
+  display: block;
+  margin: 0;
+}
+.attribute-bar {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--moonlight-surface-raised);
+}
+.attribute-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--moonlight-accent);
+}
+.attribute-value {
+  width: 38px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--moonlight-text);
+  font: inherit;
+  text-align: center;
+  appearance: textfield;
+}
+.attribute-value::-webkit-inner-spin-button,
+.attribute-value::-webkit-outer-spin-button {
+  appearance: none;
+  margin: 0;
+}
+.attribute-value:focus-visible {
+  outline: 2px solid var(--moonlight-accent);
+  border-radius: 3px;
+}
+@media (max-width: 540px) {
+  .attribute {
+    grid-template-columns: 90px minmax(0, 1fr) 32px 28px 28px;
+    gap: 4px;
+  }
 }
 .starter-items {
   margin: 10px 0 0;
