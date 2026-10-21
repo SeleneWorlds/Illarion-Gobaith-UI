@@ -198,7 +198,6 @@ onBeforeUnmount(() => {
   <section
     v-if="isOpen"
     class="magic-book"
-    aria-label="Magic book"
     @pointerdown.stop
     @pointerup.stop
     @click.stop
@@ -211,7 +210,6 @@ onBeforeUnmount(() => {
         :key="rune"
         class="rune"
         type="button"
-        :aria-label="runeName(rune)"
         :aria-pressed="magic.selected.value.includes(rune)"
         @click="magic.toggleRune(rune)"
         @mouseenter="showRuneTooltip($event, rune)"
@@ -224,14 +222,13 @@ onBeforeUnmount(() => {
         <img v-if="magic.selected.value.includes(rune)" class="selected" :src="selection" alt="" />
       </button>
     </div>
-    <div class="spell" aria-label="Selected spell">
+    <div class="spell">
       <RuneImage v-for="rune in magic.selected.value" :key="rune" :type="runePrefix" :rune="rune" />
     </div>
     <button
       v-if="magic.selected.value.length > 0 && magic.bookmarks.value.includes(0)"
       class="store-spell"
       type="button"
-      aria-label="Write down this spell"
       @click="magic.store()"
       @mouseenter="showSimpleTooltip($event, 'Write down this spell')"
       @mouseleave="tooltip.hide"
@@ -242,7 +239,6 @@ onBeforeUnmount(() => {
       v-if="magic.selected.value.length > 0"
       class="clear-spell"
       type="button"
-      aria-label="Cancel spell"
       @click="magic.clearSelection()"
       @mouseenter="showSimpleTooltip($event, 'Cancel spell')"
       @mouseleave="tooltip.hide"
@@ -255,7 +251,6 @@ onBeforeUnmount(() => {
       class="bookmark"
       :class="`bookmark-${index}`"
       type="button"
-      :aria-label="`Stored spell ${index + 1}`"
       @click="magic.recall(index)"
       @contextmenu.prevent.stop="openSpellMenu($event, index)"
       @mouseenter="showBookmarkTooltip($event, index)"
@@ -268,7 +263,6 @@ onBeforeUnmount(() => {
     <button
       class="spell-hit-area"
       type="button"
-      aria-label="Current spell"
       @contextmenu.prevent.stop="openSpellMenu($event)"
       @mouseenter="showSelectedSpellTooltip"
       @mouseleave="tooltip.hide"

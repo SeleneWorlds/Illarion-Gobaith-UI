@@ -87,13 +87,11 @@ onBeforeUnmount(endDrag);
 </script>
 
 <template>
-  <section class="counter" aria-label="Counter and clock">
+  <section class="counter">
     <img :src="counterFrame" alt="" />
     <button
       class="value"
       type="button"
-      aria-label="Item counter"
-      title="Number of items to move (1–250); drag to adjust; click to edit"
       data-selene-interactive
       @mousedown="startDrag"
       @click="openModal"

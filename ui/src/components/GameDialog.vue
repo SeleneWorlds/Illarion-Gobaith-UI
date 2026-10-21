@@ -28,7 +28,6 @@ const titleId = useId();
         v-if="showBack"
         class="icon-button"
         type="button"
-        :aria-label="backLabel || t('menu.back', 'Back to menu')"
         @click="emit('back')"
       >
         ‹
@@ -38,7 +37,6 @@ const titleId = useId();
         v-if="showClose"
         class="icon-button"
         type="button"
-        :aria-label="t('menu.close', 'Close menu')"
         @click="emit('close')"
       >
         ×

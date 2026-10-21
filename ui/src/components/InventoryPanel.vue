@@ -14,7 +14,7 @@ const slots = [...equipmentSlots, ...beltSlots];
 </script>
 
 <template>
-  <section class="inventory" aria-label="Equipment and inventory slots">
+  <section class="inventory">
     <InventorySlot
       v-for="slot in slots"
       :key="`${slot.viewId}:${slot.slotId}`"

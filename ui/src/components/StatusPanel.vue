@@ -106,8 +106,6 @@ const temperatureOffset = computed(() => {
     class="status"
     type="button"
     data-selene-interactive
-    :aria-label="currentMode.ariaLabel"
-    :title="currentMode.tooltip"
     @click.stop="mode = currentMode.next"
   >
     <template v-if="mode === 'status'">

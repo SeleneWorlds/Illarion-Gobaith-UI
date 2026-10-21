@@ -426,7 +426,7 @@ const submit = () => {
           </fieldset>
           <fieldset class="preview-panel">
             <legend>Preview</legend>
-            <div class="character-preview" role="img" :aria-label="`${selectedRace?.name ?? 'Character'}, ${form.sex}`">
+            <div class="character-preview" role="img">
               <SeleneVisual
                 :identifier="characterPreview"
                 animation="stationary/west"
@@ -474,7 +474,6 @@ const submit = () => {
               <MoonlightButton
                 variant="ghost"
                 size="icon"
-                :aria-label="`Decrease ${name}`"
                 :disabled="submitting || form.attributes[name] <= selectedRace.attributes[name].min"
                 @click="
                   form.attributes[name]--;
@@ -485,7 +484,6 @@ const submit = () => {
               <MoonlightButton
                 variant="ghost"
                 size="icon"
-                :aria-label="`Increase ${name}`"
                 :disabled="
                   submitting || pointsRemaining <= 0 || form.attributes[name] >= selectedRace.attributes[name].max
                 "
@@ -521,12 +519,11 @@ const submit = () => {
           <legend>Equipment</legend>
 
           <div v-if="selectedStartPack" class="starter-details">
-            <ul class="starter-items" aria-label="Starter equipment">
+            <ul class="starter-items">
               <li
                 v-for="(item, index) in selectedStartPack.items"
                 :key="`${item.id}-${index}`"
                 class="starter-item"
-                :title="item.name"
               >
                 <span class="starter-visual" aria-hidden="true">
                   <SeleneVisual :identifier="item.visual" :seed="String(item.id)" without-offset />

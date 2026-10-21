@@ -104,7 +104,6 @@ onBeforeUnmount(() => {
     :class="{ measuring: !layout }"
     :style="menuStyle"
     data-selene-interactive
-    :aria-label="options.label"
     @click.stop
   >
     <img class="frame" :src="frameSrc" alt="" />

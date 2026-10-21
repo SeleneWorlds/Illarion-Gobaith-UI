@@ -49,10 +49,8 @@ const openMenu = async (event: MouseEvent) => {
     type="button"
     data-selene-interactive
     :data-mode="mode().id"
-    :aria-label="`Speech mode: ${mode().name}`"
     aria-haspopup="menu"
     :aria-expanded="menu.isOpen(SpeechOptionsMenu)"
-    :title="`${mode().name} — click to change speech mode; right-click for menu`"
     @click.left.stop="cycleMode"
     @contextmenu.prevent.stop="openMenu"
   >

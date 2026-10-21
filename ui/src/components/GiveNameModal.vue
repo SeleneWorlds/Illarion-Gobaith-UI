@@ -62,12 +62,10 @@ onMounted(() => input.value?.select());
         class="confirm"
         type="submit"
         :disabled="!valid"
-        title="Note down the name"
-        aria-label="Note down the name"
       >
         <img :src="storeIcon" alt="" />
       </button>
-      <button class="cancel" type="button" title="Close dialog" aria-label="Close dialog" @click="emit('cancel')">
+      <button class="cancel" type="button" @click="emit('cancel')">
         <img :src="closeIcon" alt="" />
       </button>
     </form>

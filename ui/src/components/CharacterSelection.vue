@@ -174,7 +174,7 @@ const selectCharacter = (character: CharacterSummary) => {
 
 <template>
   <GameModal v-show="deletingCharacter === null" title="Select a character" :dismissible="false">
-    <div v-if="characters === null" class="moonlight-loading" role="status" aria-label="Loading characters">
+    <div v-if="characters === null" class="moonlight-loading" role="status">
       <span class="moonlight-spinner" aria-hidden="true" />
     </div>
     <div v-else class="panel">

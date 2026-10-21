@@ -63,10 +63,10 @@ onMounted(() => input.value?.select());
         @input="onInput"
         @keyup.stop
       />
-      <button class="confirm" type="submit" :disabled="!valid" title="Set number" aria-label="Set number">
+      <button class="confirm" type="submit" :disabled="!valid">
         <img :src="storeIcon" alt="" />
       </button>
-      <button class="cancel" type="button" title="Cancel" aria-label="Cancel" @click="emit('cancel')">
+      <button class="cancel" type="button" @click="emit('cancel')">
         <img :src="closeIcon" alt="" />
       </button>
     </form>

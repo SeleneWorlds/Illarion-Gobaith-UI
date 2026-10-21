@@ -117,7 +117,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <section v-if="menuId !== undefined" class="menu-struct" aria-label="Selection menu" data-selene-interactive>
+  <section v-if="menuId !== undefined" class="menu-struct" data-selene-interactive>
     <img class="frame" :src="frameSrc" alt="" />
     <div class="slots">
       <button
@@ -126,7 +126,6 @@ onBeforeUnmount(() => {
         class="slot"
         :class="{ empty: !item }"
         type="button"
-        :aria-label="item ? `Select item ${item.id}` : undefined"
         :disabled="!item"
         @mouseenter="item && lookAt(index + 1, $event)"
         @mouseleave="leaveItem(index + 1)"
@@ -137,7 +136,7 @@ onBeforeUnmount(() => {
         <SeleneVisual v-if="item" :identifier="item.visual" :seed="String(item.id)" without-offset />
       </button>
     </div>
-    <button class="close" type="button" title="Close menu" aria-label="Close menu" @click="hide">
+    <button class="close" type="button" @click="hide">
       <img :src="closeIcon" alt="" />
     </button>
   </section>

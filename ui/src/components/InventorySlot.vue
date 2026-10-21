@@ -158,7 +158,6 @@ const onScrollSlot = (event: WheelEvent) => {
       data-inventory-slot-button
       :data-view-id="viewId"
       :data-slot-id="slotId"
-      :aria-label="`${viewId} slot ${slotId}`"
       :style="{ cursor: slotCursor }"
       @mousedown.left.prevent="onMouseDown"
       @mouseup.left.prevent.stop="onMouseUp"

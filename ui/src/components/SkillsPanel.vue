@@ -49,7 +49,6 @@ const onWheel = (event: WheelEvent) => {
   <section
     class="skills-panel"
     :class="{ active }"
-    :aria-label="get('skills.title') ?? 'Skills'"
     data-selene-interactive
     @contextmenu.prevent.stop="openTextMenu"
     @wheel.prevent.stop="onWheel"

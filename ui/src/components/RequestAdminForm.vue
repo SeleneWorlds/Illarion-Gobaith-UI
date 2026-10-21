@@ -35,7 +35,6 @@ const submit = () => {
       ref="input"
       v-model="message"
       rows="3"
-      :aria-label="t('request.help', 'What do you need help with?')"
       :placeholder="t('request.help', 'What do you need help with?')"
       autocomplete="off"
     />

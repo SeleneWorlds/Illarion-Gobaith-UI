@@ -209,7 +209,6 @@ onBeforeUnmount(() => {
   <section
     class="panel"
     :class="{ expanded: props.expanded, hidden: props.hidden }"
-    aria-label="Chat"
     data-selene-interactive
     @contextmenu.prevent.stop="openTextMenu"
     @wheel.prevent.stop="onWheel"
@@ -233,7 +232,6 @@ onBeforeUnmount(() => {
       :maxlength="MAX_INPUT_LENGTH"
       autocomplete="off"
       spellcheck="true"
-      aria-label="Chat message"
       @input="resizeInput"
       @keydown="onInputKeydown"
       @keyup="onInputKeyup"

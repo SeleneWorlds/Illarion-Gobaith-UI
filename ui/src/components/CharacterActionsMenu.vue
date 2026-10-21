@@ -52,7 +52,6 @@ onBeforeUnmount(() => eventRoot?.removeEventListener('mousedown', outside, true)
       ref="trigger"
       variant="ghost"
       size="icon"
-      :aria-label="`Actions for ${name}`"
       aria-haspopup="menu"
       :aria-expanded="open"
       :aria-controls="menuId"
@@ -67,7 +66,6 @@ onBeforeUnmount(() => eventRoot?.removeEventListener('mousedown', outside, true)
       variant="popup"
       class="actions-popup"
       role="menu"
-      :aria-label="`Actions for ${name}`"
     >
       <MoonlightButton
         ref="action"

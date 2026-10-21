@@ -51,7 +51,6 @@ const submit = () => {
       rows="5"
       maxlength="4000"
       :disabled="pending"
-      :aria-label="t('bug.description', 'Describe the bug and how to reproduce it.')"
       :placeholder="t('bug.description', 'Describe the bug and how to reproduce it.')"
       autocomplete="off"
     />

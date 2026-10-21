@@ -114,7 +114,6 @@ onBeforeUnmount(() => {
   <section
     class="showcase"
     :class="showcase.id === 0 ? 'showcase-right' : 'showcase-left'"
-    :aria-label="`Container ${showcase.id + 1}`"
     data-selene-interactive
     @wheel.prevent.stop="onWheel"
   >
@@ -136,7 +135,7 @@ onBeforeUnmount(() => {
         />
       </div>
     </div>
-    <button class="close" type="button" aria-label="Close container" @click="inventory.closeShowcase(showcase.id)" />
+    <button class="close" type="button" @click="inventory.closeShowcase(showcase.id)" />
   </section>
 </template>
 

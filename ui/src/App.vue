@@ -105,7 +105,7 @@ onBeforeUnmount(() => {
     @created="creatingCharacter = false"
   />
   <CharacterSelection v-else-if="!characterSelected" @create="creatingCharacter = true" @selected="selectCharacter" />
-  <main v-else class="hud" aria-label="Illarion game interface">
+  <main v-else class="hud">
     <TooltipContainer>
       <MenuContainer>
         <InputHandler>

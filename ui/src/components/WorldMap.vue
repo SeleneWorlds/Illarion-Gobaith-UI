@@ -98,13 +98,13 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <section v-if="visible" class="world-map" aria-label="World map" data-selene-interactive>
+  <section v-if="visible" class="world-map" data-selene-interactive>
     <img class="frame" :src="frame" alt="" />
     <div class="viewport">
       <canvas ref="canvas" class="surface" :width="WORLD_SIZE" :height="WORLD_SIZE" />
       <span class="crosshair" aria-hidden="true" />
     </div>
-    <button class="close" type="button" aria-label="Close world map" @click="close">
+    <button class="close" type="button" @click="close">
       <img :src="closeIcon" alt="" />
     </button>
   </section>

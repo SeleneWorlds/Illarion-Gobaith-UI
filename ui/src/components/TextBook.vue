@@ -49,7 +49,6 @@ onBeforeUnmount(() => {
     v-if="books.current.value"
     class="text-book"
     role="dialog"
-    :aria-label="t('book.title', 'Book')"
     data-selene-interactive
     @pointerdown.stop
     @pointerup.stop
@@ -62,7 +61,6 @@ onBeforeUnmount(() => {
       class="left-page"
       type="button"
       :disabled="books.current.value.page <= 1"
-      :aria-label="t('book.previous', 'Previous page')"
       @click="books.turn(-1)"
     >
       <SeleneVisual
@@ -74,14 +72,13 @@ onBeforeUnmount(() => {
     <button
       class="right-page"
       type="button"
-      :aria-label="t('book.next', 'Next page')"
       :disabled="!books.canNext.value || books.current.value.page >= 250"
       @click="books.turn(1)"
     >
       <span class="text">{{ books.current.value.text }}</span>
       <span class="page-number">{{ books.current.value.page }}</span>
     </button>
-    <button class="close" type="button" :aria-label="t('book.close', 'Close book')" @click="books.close">
+    <button class="close" type="button" @click="books.close">
       <img :src="closeIcon" alt="" />
     </button>
   </section>

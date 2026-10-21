@@ -33,7 +33,6 @@ const emit = defineEmits<{ back: []; close: [] }>();
           class="modal-icon-button"
           variant="ghost"
           size="icon"
-          :aria-label="backLabel || t('menu.back', 'Back to menu')"
           @click="emit('back')"
         >
           <ArrowLeft :size="18" aria-hidden="true" />
@@ -44,7 +43,6 @@ const emit = defineEmits<{ back: []; close: [] }>();
           class="modal-icon-button"
           variant="ghost"
           size="icon"
-          :aria-label="t('menu.close', 'Close menu')"
           @click="emit('close')"
         >
           <X :size="18" aria-hidden="true" />
