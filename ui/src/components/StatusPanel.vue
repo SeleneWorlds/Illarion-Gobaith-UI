@@ -8,13 +8,9 @@ import { useVitalsStore } from '../stores/vitals';
 const { health, food, mana } = useVitalsStore();
 const modes = {
   status: {
-    tooltip: 'These gauges show your health, when you need to eat and your mana. Click to show the clock.',
-    ariaLabel: 'Character status; show clock',
     next: 'clock',
   },
   clock: {
-    tooltip: 'This clock shows the day and month, the time of day and the temperature. Click to show your status.',
-    ariaLabel: 'Game clock; show character status',
     next: 'status',
   },
 } as const;
