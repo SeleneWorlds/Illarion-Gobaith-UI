@@ -1,0 +1,8 @@
+{
+  "name": "illarion-client-core",
+  "description": "Shared Illarion client runtime, independent of the HUD.",
+  "entrypoints": [
+    "client/lua/init.lua"
+  ],
+  "dependencies": []
+}

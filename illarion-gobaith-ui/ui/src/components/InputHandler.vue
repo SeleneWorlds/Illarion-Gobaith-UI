@@ -1,0 +1,676 @@
+<script setup lang="ts">
+import { computed, nextTick, onMounted, onUnmounted, provide, reactive, ref, useTemplateRef, watchEffect } from 'vue';
+import { inputCursorKey } from '../cursor';
+import { useVisualCursor } from '../composables/useVisualCursor';
+import { type InventoryDragStartDetail, type InventoryItem, type InventorySlotDefinition } from '../inventory';
+import type { Coordinate, SelenePointerEvent, SeleneScrollEvent, WorldEntity } from '../selene';
+import { useSelene } from '../selene';
+import { useIllarionClient } from '../composables/useIllarionClient';
+import { inventoryDragKey, type InventoryDropTarget } from '../inventoryDrag';
+import { useMenu, useTooltip } from '../overlays';
+import { useInventoryStore } from '../stores/inventory';
+import { useMagicStore } from '../stores/magic';
+import { useAdminRequestStore } from '../stores/adminRequest';
+import SeleneVisual from './SeleneVisual.vue';
+import GiveNameModal from './GiveNameModal.vue';
+import WorldContextMenu from './WorldContextMenu.vue';
+
+interface InventoryPointer {
+  slot: InventorySlotDefinition;
+  item: InventoryItem;
+  downX: number;
+  downY: number;
+  dragged: boolean;
+}
+
+interface WorldPointer {
+  coordinate: Coordinate;
+  entity: Promise<WorldEntity | undefined>;
+  downX: number;
+  downY: number;
+  dragged: boolean;
+}
+
+interface PendingWorldLookAt {
+  coordinate: Coordinate;
+  entityId?: number | null;
+}
+
+const selene = useSelene();
+const { world } = useIllarionClient();
+const inventory = useInventoryStore();
+const magic = useMagicStore();
+const tooltip = useTooltip();
+const menu = useMenu();
+const adminRequest = useAdminRequestStore();
+const namingTarget = ref<{ coordinate: Coordinate; entityId?: number; middleClick?: boolean; givenName?: string }>();
+const confirmName = (detail: string) => {
+  const target = namingTarget.value;
+  namingTarget.value = undefined;
+  if (!target) {
+    return;
+  }
+  world.performAction({ coordinate: target.coordinate, networkId: target.entityId }, 'giveName', detail);
+};
+const useCursorActive = ref(false);
+const combatCursorActive = ref(false);
+const standardCursor = useVisualCursor('illarion:cursor_standard');
+const activeCursor = useVisualCursor(() => {
+  if (magic.active.value) {
+    return 'illarion:cursor_magic';
+  }
+  if (useCursorActive.value) {
+    return 'illarion:cursor_use';
+  }
+  if (combatCursorActive.value) {
+    return 'illarion:cursor_combat';
+  }
+  return undefined;
+});
+const originalCursor = document.documentElement.style.cursor;
+const previewElement = useTemplateRef<HTMLElement>('previewElement');
+const worldTooltipAnchor = useTemplateRef<HTMLElement>('worldTooltipAnchor');
+const preview = reactive({
+  visual: undefined as string | undefined,
+  seed: undefined as string | undefined,
+  count: undefined as number | undefined,
+  left: 0,
+  top: 0,
+});
+const worldTooltipPosition = reactive({ left: 0, top: 0 });
+let inventoryPointer: InventoryPointer | undefined;
+let worldPointer: WorldPointer | undefined;
+let pendingUseCoordinate: Coordinate | undefined;
+let pendingWorldLookAt: PendingWorldLookAt | undefined;
+let pendingEntityTooltip: { networkId: number; tooltip: unknown } | undefined;
+let suppressedClick: { x: number; y: number; button: number } | undefined;
+let contextRequestId = 0;
+const inputUnsubscribers: Array<() => void> = [];
+const networkUnsubscribers: Array<() => void> = [];
+
+const inputCursor = computed(() => activeCursor.value ?? standardCursor.value);
+provide(inputCursorKey, inputCursor);
+
+watchEffect(() => {
+  document.documentElement.style.cursor = inputCursor.value ?? originalCursor;
+});
+
+const updateCursorModifiers = (event: KeyboardEvent) => {
+  if (event.key === 'Control') {
+    combatCursorActive.value = event.type === 'keydown';
+  } else if (event.key === 'Shift') {
+    useCursorActive.value = event.type === 'keydown';
+  }
+};
+const resetCursorModifiers = () => {
+  combatCursorActive.value = false;
+  useCursorActive.value = false;
+};
+
+const isInWorldViewport = (clientX: number, clientY: number) => {
+  const container = worldTooltipAnchor.value?.offsetParent;
+  if (!(container instanceof HTMLElement)) {
+    return false;
+  }
+  const rect = container.getBoundingClientRect();
+  const x = ((clientX - rect.left) * container.offsetWidth) / rect.width;
+  const y = ((clientY - rect.top) * container.offsetHeight) / rect.height;
+  return x >= 0 && x < 839 && y >= 0 && y < 419;
+};
+
+const isNextToControlledCharacter = (coordinate: Coordinate) => {
+  const controlled = selene.world.getControlledEntity()?.coordinate;
+  if (!controlled || controlled.z !== coordinate.z) {
+    return false;
+  }
+  const dx = controlled.x - coordinate.x;
+  const dy = controlled.y - coordinate.y;
+  return Math.floor(Math.hypot(dx, dy)) <= 1;
+};
+
+const getWorldItemCount = (entity: WorldEntity) => {
+  const component = entity.getComponent('illarion:item_count');
+  if (!component || typeof component !== 'object') {
+    return undefined;
+  }
+  const overrides = (component as Record<string, unknown>).overrides;
+  if (!overrides || typeof overrides !== 'object') {
+    return undefined;
+  }
+  const text = (overrides as Record<string, unknown>).text;
+  if (text === '') {
+    return 1;
+  }
+  if (typeof text !== 'string' || !/^\d+$/.test(text)) {
+    return undefined;
+  }
+  const count = Number.parseInt(text, 10);
+  return count > 0 ? count : undefined;
+};
+
+const updatePreviewPosition = (clientX: number, clientY: number) => {
+  const container = previewElement.value?.offsetParent;
+  if (!(container instanceof HTMLElement)) {
+    return;
+  }
+  const rect = container.getBoundingClientRect();
+  const scale = rect.width / container.offsetWidth;
+  preview.left = (clientX - rect.left) / scale;
+  preview.top = (clientY - rect.top) / scale;
+};
+
+const updateWorldTooltipPosition = (clientX: number, clientY: number) => {
+  const container = worldTooltipAnchor.value?.offsetParent;
+  if (!(container instanceof HTMLElement)) {
+    return;
+  }
+  const rect = container.getBoundingClientRect();
+  const scale = rect.width / container.offsetWidth;
+  worldTooltipPosition.left = (clientX - rect.left) / scale;
+  worldTooltipPosition.top = (clientY - rect.top) / scale;
+};
+
+const anchorWorldTooltipToEntity = (networkId: number) => {
+  const anchor = selene.world.projectEntity(networkId);
+  if (!anchor) {
+    return false;
+  }
+  worldTooltipPosition.left = anchor.x;
+  worldTooltipPosition.top = anchor.y;
+  return true;
+};
+
+const showWorldTooltip = (value: unknown) => {
+  const anchor = worldTooltipAnchor.value;
+  if (!anchor || !value || typeof value !== 'object') {
+    return;
+  }
+  const payload = value as Record<string, unknown>;
+  const title = typeof payload.name === 'string' ? payload.name : '';
+  const description = typeof payload.description === 'string' ? payload.description : undefined;
+  if (!title && !description) {
+    return;
+  }
+  void tooltip.show({ anchor, title, description });
+};
+
+const resolvePendingEntityTooltip = () => {
+  if (
+    pendingWorldLookAt?.entityId !== undefined &&
+    pendingWorldLookAt.entityId !== null &&
+    pendingEntityTooltip?.networkId === pendingWorldLookAt.entityId
+  ) {
+    showWorldTooltip(pendingEntityTooltip.tooltip);
+    pendingEntityTooltip = undefined;
+  }
+};
+
+const startInventoryDrag = ({ viewId, slotId, clientX, clientY }: InventoryDragStartDetail) => {
+  suppressedClick = undefined;
+  const slot = { viewId, slotId };
+  const item = inventory.getItem(slot.viewId, slot.slotId);
+  if (!item) {
+    return;
+  }
+  inventoryPointer = { slot, item, downX: clientX, downY: clientY, dragged: false };
+};
+
+const finishUse = (event: KeyboardEvent) => {
+  if (event.key === 'Shift') {
+    if (pendingUseCoordinate) {
+      if (inventory.selectedUseSlots.value.length > 0) {
+        inventory.finishUse(pendingUseCoordinate);
+      } else {
+        world.useAt(pendingUseCoordinate, inventory.counter.value);
+      }
+      pendingUseCoordinate = undefined;
+    }
+    if (inventory.selectedUseSlots.value.length > 0) {
+      inventory.finishUse();
+    }
+  }
+};
+
+const onMouseMove = (event: MouseEvent) => {
+  if (!inventoryPointer && !worldPointer) {
+    return;
+  }
+  if (inventoryPointer) {
+    const wasDragged = inventoryPointer.dragged;
+    inventoryPointer.dragged ||=
+      Math.abs(event.clientX - inventoryPointer.downX) + Math.abs(event.clientY - inventoryPointer.downY) > 3;
+    if (!wasDragged && inventoryPointer.dragged) {
+      preview.visual = inventoryPointer.item.visual;
+      preview.seed = `${inventoryPointer.slot.viewId}:${inventoryPointer.slot.slotId}`;
+      preview.count = Math.min(inventory.counter.value, inventoryPointer.item.count);
+      void nextTick(() => updatePreviewPosition(event.clientX, event.clientY));
+    }
+  }
+  if (worldPointer) {
+    worldPointer.dragged ||=
+      Math.abs(event.clientX - worldPointer.downX) + Math.abs(event.clientY - worldPointer.downY) > 3;
+    if (worldPointer.dragged) {
+      pendingWorldLookAt = undefined;
+      pendingEntityTooltip = undefined;
+      tooltip.hide();
+    }
+  }
+  updatePreviewPosition(event.clientX, event.clientY);
+};
+
+const preventMiddleClickScroll = (event: MouseEvent) => {
+  if (
+    event.button === 1 &&
+    isInWorldViewport(event.clientX, event.clientY) &&
+    !(event.target instanceof Element && event.target.closest('[data-selene-interactive]'))
+  ) {
+    event.preventDefault();
+  }
+};
+
+const onClick = (event: MouseEvent) => {
+  const suppressed = suppressedClick;
+  suppressedClick = undefined;
+  if (
+    suppressed &&
+    event.button === suppressed.button &&
+    event.clientX === suppressed.x &&
+    event.clientY === suppressed.y
+  ) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+  }
+};
+
+const onPointerDown = ({ button, shiftKey, clientX, clientY, coordinate }: SelenePointerEvent) => {
+  if (magic.active.value) {
+    if (button === 0 && isInWorldViewport(clientX, clientY)) {
+      void selene.world.getEntitiesAt(coordinate).then((entities) => {
+        const target = [...entities]
+          .reverse()
+          .find((entity) => entity.tags.includes('illarion:character') || entity.tags.includes('illarion:item'));
+        if (!magic.active.value) {
+          return;
+        }
+        if (target?.tags.includes('illarion:character')) {
+          magic.targetEntity('character', target.networkId);
+        } else if (target?.tags.includes('illarion:item')) {
+          magic.targetEntity('item', target.networkId);
+        } else {
+          magic.targetField(coordinate);
+        }
+      });
+    }
+    return;
+  }
+  if (button === 0 && shiftKey && isInWorldViewport(clientX, clientY)) {
+    pendingUseCoordinate = coordinate;
+    return;
+  }
+  if (button === 0 && !shiftKey && isInWorldViewport(clientX, clientY)) {
+    tooltip.hide();
+    pendingEntityTooltip = undefined;
+    pendingWorldLookAt = { coordinate };
+    updateWorldTooltipPosition(clientX, clientY);
+    const entities = selene.world.getEntitiesAt(coordinate);
+    const entity = entities.then(selectWorldTarget);
+    worldPointer = { coordinate, entity, downX: clientX, downY: clientY, dragged: false };
+    const source = worldPointer;
+    void Promise.all([entity, entities])
+      .then(([draggedEntity, result]) => {
+        const entities = result;
+        const reversedEntities = [...entities].reverse();
+        const lookAtEntity = reversedEntities.find((entity) => entity.tags.includes('illarion:supports_look_at'));
+        if (pendingWorldLookAt && pendingWorldLookAt.coordinate === coordinate) {
+          pendingWorldLookAt.entityId = lookAtEntity?.networkId ?? null;
+          resolvePendingEntityTooltip();
+        }
+        if (worldPointer !== source) {
+          return;
+        }
+        if (!draggedEntity?.visual || !draggedEntity.draggable || !isNextToControlledCharacter(coordinate)) {
+          return;
+        }
+        preview.visual = draggedEntity.visual;
+        preview.seed = String(draggedEntity.networkId);
+        const itemCount = draggedEntity.tags.includes('illarion:item') ? getWorldItemCount(draggedEntity) : undefined;
+        preview.count = itemCount !== undefined ? Math.min(inventory.counter.value, itemCount) : undefined;
+        preview.left = clientX;
+        preview.top = clientY;
+        void nextTick(() => updatePreviewPosition(clientX, clientY));
+      })
+      .catch(() => undefined);
+  }
+};
+
+const selectWorldTarget = (entities: WorldEntity[]) => {
+  const reversed = [...entities].reverse();
+  return (
+    reversed.find((entity) => entity.tags.includes('illarion:character')) ??
+    reversed.find((entity) => entity.tags.includes('illarion:item'))
+  );
+};
+
+const isWorldItemSourceAvailable = async (coordinate: Coordinate) => {
+  const entities = await selene.world.getEntitiesAt(coordinate);
+  return !entities.some((entity) => entity.tags.includes('illarion:character'));
+};
+
+const requestWorldContextMenu = async (clientX: number, clientY: number, coordinate: Coordinate) => {
+  if (!isInWorldViewport(clientX, clientY)) {
+    return;
+  }
+  tooltip.hide();
+  const requestId = ++contextRequestId;
+  const entities = await selene.world.getEntitiesAt(coordinate).catch(() => []);
+  const target = selectWorldTarget(entities);
+  const actions = await world.getActions({ coordinate, networkId: target?.networkId });
+  if (requestId !== contextRequestId || !actions.length) {
+    return;
+  }
+  void menu
+    .open<string>(
+      WorldContextMenu,
+      { actions },
+      {
+        label: 'World actions',
+        position: { x: clientX, y: clientY },
+      },
+    )
+    .then((action) => {
+      if (!action || requestId !== contextRequestId) {
+        return;
+      }
+      if (action === 'goTo') {
+        walkTo(coordinate);
+        return;
+      }
+      if (action === 'report') {
+        const target = actions.find((item) => item.id === action)?.target;
+        if (target && typeof target.name === 'string' && Number.isSafeInteger(target.characterId)) {
+          adminRequest.open({ name: target.name, characterId: target.characterId });
+        }
+        return;
+      }
+      if (action === 'giveName') {
+        const givenName = actions.find((item) => item.id === action)?.givenName;
+        namingTarget.value = {
+          coordinate,
+          entityId: target?.networkId,
+          givenName: typeof givenName === 'string' ? givenName : '',
+        };
+        return;
+      }
+      if (action === 'lookAt' || action === 'lookAtClose') {
+        tooltip.hide();
+        pendingEntityTooltip = undefined;
+        pendingWorldLookAt = {
+          coordinate,
+          entityId: target?.networkId ?? null,
+        };
+        updateWorldTooltipPosition(clientX, clientY);
+      }
+      world.performAction({ coordinate, networkId: target?.networkId }, action);
+    });
+};
+
+const walkTo = (coordinate: Coordinate) => {
+  tooltip.hide();
+  pendingWorldLookAt = undefined;
+  pendingEntityTooltip = undefined;
+  world.walkTo(coordinate);
+};
+
+const middleClick = async (coordinate: Coordinate) => {
+  // Use the same authoritative container availability as the context menu.
+  const requestId = ++contextRequestId;
+  const entities = await selene.world.getEntitiesAt(coordinate).catch(() => []);
+  const target = selectWorldTarget(entities);
+  const actions = await world.getActions({ coordinate, networkId: target?.networkId });
+  if (requestId !== contextRequestId) {
+    return;
+  }
+  if (isNextToControlledCharacter(coordinate) && actions.some((action) => action.id === 'open')) {
+    world.openContainer(coordinate);
+  } else {
+    walkTo(coordinate);
+  }
+};
+
+const onWorldScroll = ({ amountY, clientX, clientY, coordinate }: SeleneScrollEvent) => {
+  if (magic.active.value || !amountY || !isInWorldViewport(clientX, clientY)) {
+    return;
+  }
+  world.turnTo(coordinate, Math.sign(amountY));
+};
+
+const resetPointers = () => {
+  inventoryPointer = undefined;
+  worldPointer = undefined;
+  preview.visual = undefined;
+  preview.seed = undefined;
+  preview.count = undefined;
+};
+
+const releaseOn = (target: InventoryDropTarget) => {
+  if (inventoryPointer) {
+    const { slot: source, item, dragged } = inventoryPointer;
+    if (dragged) {
+      suppressedClick = { x: target.clientX, y: target.clientY, button: 0 };
+      target.acceptSlot(source, item, inventory.counter.value);
+    }
+  } else if (worldPointer?.dragged && target.acceptCoordinate) {
+    const source = worldPointer;
+    const count = inventory.counter.value;
+    void source.entity
+      .then(async (entity) => {
+        if (
+          entity?.tags.includes('illarion:item') &&
+          entity.draggable &&
+          isNextToControlledCharacter(source.coordinate) &&
+          (await isWorldItemSourceAvailable(source.coordinate))
+        ) {
+          target.acceptCoordinate?.(source.coordinate, count);
+        }
+      })
+      .catch(() => undefined);
+  }
+  resetPointers();
+};
+
+provide(inventoryDragKey, { start: startInventoryDrag, releaseOn });
+
+const onPointerUp = ({ button, shiftKey, clientX, clientY, coordinate }: SelenePointerEvent) => {
+  if (magic.active.value) {
+    return;
+  }
+  if (button === 1) {
+    resetPointers();
+    if (isInWorldViewport(clientX, clientY)) {
+      if (shiftKey) {
+        world.turnTo(coordinate);
+      } else {
+        void middleClick(coordinate);
+      }
+    }
+    return;
+  }
+  if (button === 2) {
+    resetPointers();
+    void requestWorldContextMenu(clientX, clientY, coordinate);
+    return;
+  }
+  if (inventoryPointer) {
+    const { slot: source, dragged } = inventoryPointer;
+    if (dragged) {
+      suppressedClick = { x: clientX, y: clientY, button };
+      if (isInWorldViewport(clientX, clientY)) {
+        inventory.moveSlotToCoordinate(source.viewId, source.slotId, coordinate, inventory.counter.value);
+      }
+    }
+  } else if (worldPointer?.dragged) {
+    const source = worldPointer;
+    if (isInWorldViewport(clientX, clientY)) {
+      void source.entity
+        .then(async (entity) => {
+          if (entity?.tags.includes('illarion:character')) {
+            suppressedClick = { x: clientX, y: clientY, button };
+            world.pushCharacter(entity.networkId, coordinate);
+          } else if (
+            entity?.draggable &&
+            isNextToControlledCharacter(source.coordinate) &&
+            (await isWorldItemSourceAvailable(source.coordinate))
+          ) {
+            suppressedClick = { x: clientX, y: clientY, button };
+            inventory.moveCoordinateToCoordinate(source.coordinate, coordinate, inventory.counter.value);
+          }
+        })
+        .catch(() => undefined);
+    }
+  }
+  resetPointers();
+};
+
+onMounted(() => {
+  window.addEventListener('keydown', updateCursorModifiers, true);
+  window.addEventListener('keyup', updateCursorModifiers, true);
+  window.addEventListener('blur', resetCursorModifiers);
+  window.addEventListener('mousemove', onMouseMove, true);
+  window.addEventListener('click', onClick, true);
+  window.addEventListener('mousedown', preventMiddleClickScroll, true);
+  window.addEventListener('keyup', finishUse, true);
+  inputUnsubscribers.push(selene.input.onScroll(onWorldScroll));
+  inputUnsubscribers.push(selene.input.onPointerDown(onPointerDown));
+  inputUnsubscribers.push(selene.input.onPointerUp(onPointerUp));
+  inputUnsubscribers.push(selene.input.captureKeys('Control'));
+  networkUnsubscribers.push(
+    selene.network.onPayload('illarion:look_at', (payload) => {
+      const pending = pendingWorldLookAt;
+      if (
+        !pending ||
+        payload.x !== pending.coordinate.x ||
+        payload.y !== pending.coordinate.y ||
+        payload.z !== pending.coordinate.z
+      ) {
+        return;
+      }
+      showWorldTooltip(payload.tooltip);
+    }),
+  );
+  networkUnsubscribers.push(
+    selene.network.onPayload('illarion:look_at_entity', (payload) => {
+      if (typeof payload.networkId !== 'number') {
+        return;
+      }
+      if (!pendingWorldLookAt) {
+        if (anchorWorldTooltipToEntity(payload.networkId)) {
+          showWorldTooltip(payload.tooltip);
+        }
+        return;
+      }
+      pendingEntityTooltip = { networkId: payload.networkId, tooltip: payload.tooltip };
+      resolvePendingEntityTooltip();
+    }),
+  );
+  networkUnsubscribers.push(
+    selene.network.onPayload('illarion:perform_menu_action', (payload) => {
+      const coordinate =
+        typeof payload.x === 'number' && typeof payload.y === 'number' && typeof payload.z === 'number'
+          ? { x: payload.x, y: payload.y, z: payload.z }
+          : undefined;
+      if (payload.action === 'lookAt') {
+        if (typeof payload.networkId === 'number') {
+          world.lookAt({ networkId: payload.networkId }, typeof payload.mode === 'number' ? payload.mode : 0);
+        } else if (coordinate) {
+          world.lookAt(coordinate);
+        }
+      } else if (coordinate) {
+        if (payload.action === 'open') {
+          world.openContainer(coordinate);
+        } else if (payload.action === 'use') {
+          world.useAt(coordinate, inventory.counter.value);
+        } else if (payload.action === 'useWith') {
+          if (inventory.selectedUseSlots.value.length > 0) {
+            inventory.finishUse(coordinate);
+          } else {
+            world.useAt(coordinate, inventory.counter.value);
+          }
+        }
+      }
+    }),
+  );
+});
+onUnmounted(() => {
+  contextRequestId += 1;
+  document.documentElement.style.cursor = originalCursor;
+  window.removeEventListener('keydown', updateCursorModifiers, true);
+  window.removeEventListener('keyup', updateCursorModifiers, true);
+  window.removeEventListener('blur', resetCursorModifiers);
+  window.removeEventListener('mousemove', onMouseMove, true);
+  window.removeEventListener('click', onClick, true);
+  window.removeEventListener('mousedown', preventMiddleClickScroll, true);
+  window.removeEventListener('keyup', finishUse, true);
+  inputUnsubscribers.splice(0).forEach((unsubscribe) => unsubscribe());
+  networkUnsubscribers.splice(0).forEach((unsubscribe) => unsubscribe());
+});
+</script>
+
+<template>
+  <slot />
+  <GiveNameModal
+    v-if="namingTarget"
+    :value="namingTarget.givenName"
+    @confirm="confirmName"
+    @cancel="namingTarget = undefined"
+  />
+  <span
+    ref="worldTooltipAnchor"
+    class="world-tooltip-anchor"
+    :style="{ left: `${worldTooltipPosition.left}px`, top: `${worldTooltipPosition.top}px` }"
+  />
+  <span
+    v-if="preview.visual && preview.seed"
+    ref="previewElement"
+    class="drag-preview-overlay"
+    :style="{ left: `${preview.left}px`, top: `${preview.top}px` }"
+  >
+    <SeleneVisual :identifier="preview.visual" :seed="preview.seed" without-offset />
+    <span v-if="preview.count !== undefined && preview.count > 1" class="drag-preview-count">{{ preview.count }}</span>
+  </span>
+</template>
+
+<style scoped>
+.world-tooltip-anchor {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+}
+.drag-preview-overlay {
+  position: absolute;
+  z-index: 10;
+  display: block;
+  width: 78px;
+  height: 39px;
+  transform: translate(-50%, -50%);
+  opacity: 0.85;
+  user-select: none;
+  pointer-events: none;
+}
+.drag-preview-count {
+  position: absolute;
+  z-index: 1;
+  right: 17px;
+  bottom: 7px;
+  color: white;
+  font:
+    bold 12px Arial,
+    sans-serif;
+  line-height: 1;
+  text-shadow:
+    -1px -1px #000,
+    1px -1px #000,
+    -1px 1px #000,
+    1px 1px #000;
+}
+</style>

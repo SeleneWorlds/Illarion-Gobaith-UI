@@ -9,8 +9,10 @@
     "paths": {
       "moonlight-ui/*": ["../moonlight/moonlight-ui/ui/src/*"],
       "moonlight-ui/styles/*": ["../moonlight/moonlight-ui/ui/styles/*"],
-      "vue": ["./node_modules/vue"]
+      "vue": ["./node_modules/vue"],
+      "illarion-client-core": ["./illarion-client-core/ui/src/index.ts"],
+      "illarion-client-core/*": ["./illarion-client-core/ui/src/*"]
     }
   },
-  "include": ["ui/**/*.ts", "ui/**/*.vue"]
+  "include": ["illarion-gobaith-ui/ui/**/*.ts", "illarion-gobaith-ui/ui/**/*.vue", "illarion-client-core/ui/**/*.ts"]
 }

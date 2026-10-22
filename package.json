@@ -1,16 +1,17 @@
 {
-  "name": "illarion-gobaith-ui",
+  "name": "illarion-client-workspace",
   "private": true,
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --host 0.0.0.0",
-    "build": "vue-tsc --noEmit && vite build",
-    "build:watch": "vite build --watch",
+    "dev": "vite --config illarion-gobaith-ui/vite.config.ts --host 0.0.0.0",
+    "build": "vue-tsc --noEmit && vite build --config illarion-gobaith-ui/vite.config.ts",
+    "build:watch": "vite build --config illarion-gobaith-ui/vite.config.ts --watch",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint .",
-    "typecheck": "vue-tsc --noEmit"
+    "typecheck": "vue-tsc --noEmit",
+    "test": "node tests/run.mjs"
   },
   "dependencies": {
     "@lucide/vue": "^1.57.0",
@@ -18,7 +19,8 @@
     "selene": "github:SeleneWorlds/Selene#e86fd56ce84ad864598dd3a9609d7455c02f20d1&path:/sdk/selene",
     "selene-vue": "github:SeleneWorlds/Selene#e86fd56ce84ad864598dd3a9609d7455c02f20d1&path:/sdk/selene-vue",
     "vue": "^3.5.13",
-    "zod": "^4.6.5"
+    "zod": "^4.6.5",
+    "illarion-client-core": "workspace:*"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.2.4",

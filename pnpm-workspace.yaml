@@ -1,3 +1,6 @@
+packages:
+  - illarion-gobaith-ui
+  - illarion-client-core
 allowBuilds:
   esbuild: true
   selene: true
