@@ -175,7 +175,14 @@ const onScrollSlot = (event: WheelEvent) => {
         data-selene-interactive
         :style="{ top: `${band.top}px`, left: `${band.left}px`, width: `${band.width}px`, height: `${band.height}px` }"
       />
-      <SeleneVisual v-if="item" class="item" :identifier="item.visual" :seed="`${viewId}:${slotId}`" without-offset />
+      <SeleneVisual
+        v-if="item"
+        class="item"
+        grid-sized
+        :identifier="item.visual"
+        :seed="`${viewId}:${slotId}`"
+        without-offset
+      />
       <span v-if="item && item.count > 1" class="count">{{ item.count }}</span>
     </button>
     <SeleneVisual v-if="isUsing || isMagicTarget" class="using" identifier="illarion:use_cursor" without-offset />
@@ -207,7 +214,7 @@ const onScrollSlot = (event: WheelEvent) => {
   inset: 0;
   content: '';
   clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
-  background: v-bind(slotBackground) no-repeat;
+  background: v-bind(slotBackground) center / 100% 100% no-repeat;
   pointer-events: none;
 }
 .button:has(.hit:hover)::before {

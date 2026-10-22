@@ -1,6 +1,7 @@
 <script setup lang="ts">
+import { createHudLayout, hudLayoutKey } from './layout';
 import { createIllarionClient } from 'illarion-client-core';
-import { computed, onBeforeUnmount, onMounted, provide, ref, useTemplateRef } from 'vue';
+import { computed, onBeforeUnmount, onMounted, provide, reactive, ref, useTemplateRef } from 'vue';
 import { adminRequestStoreKey, createAdminRequestStore } from './stores/adminRequest';
 import BloodFog from './components/BloodFog.vue';
 import ChatPanel from './components/ChatPanel.vue';
@@ -34,6 +35,16 @@ import { useLogger } from './composables/useLogger';
 import { illarionClientKey } from './composables/useIllarionClient';
 
 const selene = useSelene();
+const grid = selene.world.getRenderGrid();
+const layout = reactive(createHudLayout(grid.tileWidth, grid.tileHeight));
+provide(hudLayoutKey, layout);
+const applyViewport = () =>
+  selene.world.setViewport(
+    0,
+    0,
+    editorEnabled.value ? layout.width : layout.viewportWidth,
+    editorEnabled.value ? layout.height : layout.viewportHeight,
+  );
 const client = createIllarionClient(selene);
 provide(illarionClientKey, client);
 const { books, vitals, skills } = client;
@@ -70,6 +81,7 @@ const selectCharacter = (characterId: number) => {
   void magic.initialize(characterId);
 };
 
+let releaseRenderGrid: (() => void) | undefined;
 let releaseF8: (() => void) | undefined;
 let releaseEditorState: (() => void) | undefined;
 const toggleSkills = () => {
@@ -80,6 +92,14 @@ const toggleSkills = () => {
   chatExpanded.value = false;
 };
 onMounted(() => {
+  const updateLayout = () => {
+    const grid = selene.world.getRenderGrid();
+    Object.assign(layout, createHudLayout(grid.tileWidth, grid.tileHeight));
+    selene.world.setOffscreenRendering(layout.width, layout.height);
+    applyViewport();
+  };
+  releaseRenderGrid = selene.world.onRenderGridChanged(updateLayout);
+  updateLayout();
   releaseF8 = selene.input.registerBinding(
     { id: 'game.skills', label: 'Skills', category: 'Game', defaultBinding: 'F8', allowInText: true },
     toggleSkills,
@@ -87,11 +107,12 @@ onMounted(() => {
   releaseEditorState = selene.network.onPayload('moonlight-editor:editor-state', (payload) => {
     editorEnabled.value = payload.enabled === true;
     minimap.setActive(!editorEnabled.value);
-    selene.world.setViewport?.(0, 0, editorEnabled.value ? 1024 : 839, editorEnabled.value ? 768 : 419);
+    applyViewport();
     selene.ui.setBundleVisible('illarion-gobaith-ui', !editorEnabled.value);
   });
 });
 onBeforeUnmount(() => {
+  releaseRenderGrid?.();
   client.dispose();
   selene.ui.setBundleVisible('illarion-gobaith-ui', true);
   releaseEditorState?.();
@@ -106,7 +127,7 @@ onBeforeUnmount(() => {
     @created="creatingCharacter = false"
   />
   <CharacterSelection v-else-if="!characterSelected" @create="creatingCharacter = true" @selected="selectCharacter" />
-  <main v-else class="hud">
+  <main v-else class="hud" :style="{ '--hud-scale': layout.scale }">
     <TooltipContainer>
       <MenuContainer>
         <InputHandler>

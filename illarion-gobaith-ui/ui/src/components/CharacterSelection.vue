@@ -189,6 +189,7 @@ const selectCharacter = (character: CharacterSummary) => {
           >
             <span class="character-visual" aria-hidden="true">
               <SeleneVisual
+                grid-sized
                 :identifier="character.visual"
                 animation="stationary/south"
                 :seed="String(character.id)"

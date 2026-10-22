@@ -428,6 +428,7 @@ const submit = () => {
             <legend>Preview</legend>
             <div class="character-preview" role="img">
               <SeleneVisual
+                grid-sized
                 :identifier="characterPreview"
                 animation="stationary/west"
                 :style="{ transform: `scale(${characterPreviewScale})` }"
@@ -526,7 +527,7 @@ const submit = () => {
                 class="starter-item"
               >
                 <span class="starter-visual" aria-hidden="true">
-                  <SeleneVisual :identifier="item.visual" :seed="String(item.id)" without-offset />
+                  <SeleneVisual grid-sized :identifier="item.visual" :seed="String(item.id)" without-offset />
                 </span>
                 <span class="starter-item-name">{{ item.name }}</span>
                 <span v-if="item.count > 1" class="item-count">× {{ item.count }}</span>

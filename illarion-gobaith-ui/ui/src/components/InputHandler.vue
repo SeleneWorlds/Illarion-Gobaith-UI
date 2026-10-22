@@ -4,6 +4,7 @@ import { inputCursorKey } from '../cursor';
 import { useVisualCursor } from '../composables/useVisualCursor';
 import { type InventoryDragStartDetail, type InventoryItem, type InventorySlotDefinition } from '../inventory';
 import type { Coordinate, SelenePointerEvent, SeleneScrollEvent, WorldEntity } from '../selene';
+import { useHudLayout } from '../layout';
 import { useSelene } from '../selene';
 import { useIllarionClient } from '../composables/useIllarionClient';
 import { inventoryDragKey, type InventoryDropTarget } from '../inventoryDrag';
@@ -37,6 +38,7 @@ interface PendingWorldLookAt {
 }
 
 const selene = useSelene();
+const layout = useHudLayout();
 const { world } = useIllarionClient();
 const inventory = useInventoryStore();
 const magic = useMagicStore();
@@ -175,8 +177,8 @@ const anchorWorldTooltipToEntity = (networkId: number) => {
   if (!anchor) {
     return false;
   }
-  worldTooltipPosition.left = anchor.x;
-  worldTooltipPosition.top = anchor.y;
+  worldTooltipPosition.left = layout.toHud(anchor).x;
+  worldTooltipPosition.top = layout.toHud(anchor).y;
   return true;
 };
 
@@ -634,7 +636,7 @@ onUnmounted(() => {
     class="drag-preview-overlay"
     :style="{ left: `${preview.left}px`, top: `${preview.top}px` }"
   >
-    <SeleneVisual :identifier="preview.visual" :seed="preview.seed" without-offset />
+    <SeleneVisual grid-sized :identifier="preview.visual" :seed="preview.seed" without-offset />
     <span v-if="preview.count !== undefined && preview.count > 1" class="drag-preview-count">{{ preview.count }}</span>
   </span>
 </template>

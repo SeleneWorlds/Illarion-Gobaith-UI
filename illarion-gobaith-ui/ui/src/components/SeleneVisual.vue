@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useHudLayout } from '../layout';
 import { computed } from 'vue';
 import { useVisual, type RenderLayer } from '../composables/useVisual';
 
@@ -8,9 +9,12 @@ const props = withDefaults(
     animation?: string;
     seed?: string;
     withoutOffset?: boolean;
+    gridSized?: boolean;
   }>(),
   { seed: '', withoutOffset: false },
 );
+const layout = useHudLayout();
+const visualScale = computed(() => (props.gridSized ? 1 / layout.scale : 1));
 const layers = useVisual(
   () => props.identifier,
   () => props.seed,
@@ -18,7 +22,7 @@ const layers = useVisual(
   () => props.animation,
 );
 const layerStyle = computed(() => (layer: RenderLayer) => ({
-  transform: `translate(calc(-50% + ${layer.offsetX}px), calc(-50% + ${layer.offsetY}px)) scale(${layer.flipX ? -1 : 1}, ${layer.flipY ? -1 : 1})`,
+  transform: `translate(calc(-50% + ${layer.offsetX * visualScale.value}px), calc(-50% + ${layer.offsetY * visualScale.value}px)) scale(${(layer.flipX ? -1 : 1) * visualScale.value}, ${(layer.flipY ? -1 : 1) * visualScale.value})`,
 }));
 </script>
 

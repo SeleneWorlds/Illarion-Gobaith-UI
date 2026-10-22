@@ -1,4 +1,5 @@
 import { test } from 'node:test';
+import { createHudLayout } from '../illarion-gobaith-ui/ui/src/layout';
 import assert from 'node:assert/strict';
 import { createIllarionClient } from '../illarion-client-core/ui/src/index';
 import type { ClientNetworkPayload, SeleneUiApi } from '../illarion-client-core/ui/src/selene';
@@ -110,4 +111,22 @@ test('concurrent action requests are correlated and subscriptions are released w
   const before = sent.length;
   client.world.walkTo({ x: 0, y: 0, z: 0 });
   assert.equal(sent.length, before);
+});
+
+test('HUD layout preserves default geometry and scales high resolution packs uniformly', () => {
+  const original = createHudLayout();
+  assert.equal(original.scale, 1);
+  assert.deepEqual(
+    [original.width, original.height, original.viewportWidth, original.viewportHeight],
+    [1024, 768, 839, 419],
+  );
+  const large = createHudLayout(128, 64);
+  assert.equal(large.scale, 64 / 37);
+  assert.deepEqual([large.width, large.height, large.viewportWidth, large.viewportHeight], [1771, 1328, 1451, 725]);
+  const point = large.toHud({ x: 400 * large.scale, y: 200 * large.scale });
+  assert.ok(Math.abs(point.x - 400) < 1e-9);
+  assert.ok(Math.abs(point.y - 200) < 1e-9);
+  // The texture's inverse scale cancels the HUD scale, preserving native item dimensions.
+  assert.equal((128 / large.scale) * large.scale, 128);
+  assert.throws(() => createHudLayout(0, 0));
 });

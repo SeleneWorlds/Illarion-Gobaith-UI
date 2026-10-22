@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from 'vue';
+import { useHudLayout } from '../layout';
 import { useSelene } from '../selene';
 import { useChatStore } from '../stores/chat';
 
 const selene = useSelene();
+const layout = useHudLayout();
 const chat = useChatStore();
 const layer = ref<HTMLElement>();
 const positions = ref<Record<number, { x: number; y: number; pointer: string; opacity: number }>>({});
@@ -14,7 +16,8 @@ function update(now: number) {
   const placed: Array<{ x: number; y: number; width: number; height: number }> = [];
   const next: typeof positions.value = {};
   for (const bubble of chat.bubbles.value) {
-    const point = selene.world.projectEntity(bubble.author);
+    const projected = selene.world.projectEntity(bubble.author);
+    const point = projected && layout.toHud(projected);
     const element = layer.value?.querySelector<HTMLElement>(`[data-bubble="${bubble.id}"]`);
     if (!point || !element || point.x < 0 || point.x > 839 || point.y < 0 || point.y > 419) {
       continue;
