@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, provide, reactive, ref, useTemplateRef, watchEffect } from 'vue';
-import { inputCursorKey } from '../cursor';
 import { useVisualCursor } from '../composables/useVisualCursor';
 import { type InventoryDragStartDetail, type InventoryItem, type InventorySlotDefinition } from '../inventory';
 import type { Coordinate, SelenePointerEvent, SeleneScrollEvent, WorldEntity } from '../selene';
@@ -91,7 +90,6 @@ const inputUnsubscribers: Array<() => void> = [];
 const networkUnsubscribers: Array<() => void> = [];
 
 const inputCursor = computed(() => activeCursor.value ?? standardCursor.value);
-provide(inputCursorKey, inputCursor);
 
 watchEffect(() => {
   document.documentElement.style.cursor = inputCursor.value ?? originalCursor;

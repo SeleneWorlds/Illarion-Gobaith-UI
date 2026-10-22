@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, inject, useTemplateRef, watch } from 'vue';
 import { useClientAssetStyle } from '../composables/useClientAsset';
-import { inputCursorKey } from '../cursor';
 import { sameInventorySlot, type InventoryViewId } from '../inventory';
 import { inventoryDragKey } from '../inventoryDrag';
 import { useMenu, useTooltip } from '../overlays';
@@ -16,7 +15,6 @@ const props = withDefaults(defineProps<{ viewId: InventoryViewId; slotId: number
 
 const slotBackground = useClientAssetStyle('client/textures/illarion/ui/inv_slot-0.png');
 const hoverBackground = useClientAssetStyle('client/textures/illarion/ui/inv_slot-7.png');
-const slotCursor = inject(inputCursorKey);
 
 const inventory = useInventoryStore();
 const magic = useMagicStore();
@@ -158,7 +156,6 @@ const onScrollSlot = (event: WheelEvent) => {
       data-inventory-slot-button
       :data-view-id="viewId"
       :data-slot-id="slotId"
-      :style="{ cursor: slotCursor }"
       @mousedown.left.prevent="onMouseDown"
       @mouseup.left.prevent.stop="onMouseUp"
       @mousedown.middle.prevent.stop
@@ -206,7 +203,7 @@ const onScrollSlot = (event: WheelEvent) => {
   overflow: visible;
   border: 0;
   background: transparent;
-  cursor: grab;
+  cursor: inherit;
   pointer-events: none;
 }
 .button::before {
@@ -219,9 +216,6 @@ const onScrollSlot = (event: WheelEvent) => {
 }
 .button:has(.hit:hover)::before {
   background-image: v-bind(hoverBackground);
-}
-.button:active {
-  cursor: grabbing;
 }
 .button:focus-visible {
   outline: none;
