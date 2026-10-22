@@ -37,6 +37,9 @@ import { illarionClientKey } from './composables/useIllarionClient';
 const selene = useSelene();
 const grid = selene.world.getRenderGrid();
 const layout = reactive(createHudLayout(grid.tileWidth, grid.tileHeight));
+const uiSurface = useTemplateRef<HTMLElement>('uiSurface');
+const hudDisplayScale = ref(1);
+let releaseSurfaceResize: ResizeObserver | undefined;
 provide(hudLayoutKey, layout);
 const applyViewport = () =>
   selene.world.setViewport(
@@ -92,6 +95,11 @@ const toggleSkills = () => {
   chatExpanded.value = false;
 };
 onMounted(() => {
+  const surface = uiSurface.value!;
+  releaseSurfaceResize = new ResizeObserver(([entry]) => {
+    hudDisplayScale.value = Math.min(entry.contentRect.width / 1024, entry.contentRect.height / 768);
+  });
+  releaseSurfaceResize.observe(surface);
   const updateLayout = () => {
     const grid = selene.world.getRenderGrid();
     Object.assign(layout, createHudLayout(grid.tileWidth, grid.tileHeight));
@@ -112,6 +120,7 @@ onMounted(() => {
   });
 });
 onBeforeUnmount(() => {
+  releaseSurfaceResize?.disconnect();
   releaseRenderGrid?.();
   client.dispose();
   selene.ui.setBundleVisible('illarion-gobaith-ui', true);
@@ -121,41 +130,43 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <CharacterCreation
-    v-if="!characterSelected && creatingCharacter"
-    @cancel="creatingCharacter = false"
-    @created="creatingCharacter = false"
-  />
-  <CharacterSelection v-else-if="!characterSelected" @create="creatingCharacter = true" @selected="selectCharacter" />
-  <main v-else class="hud" :style="{ '--hud-scale': layout.scale }">
-    <TooltipContainer>
-      <MenuContainer>
-        <InputHandler>
-          <BloodFog />
-          <ChatBubbles />
-          <img class="bottom-frame" :src="bottomFrame" alt="" />
-          <img class="top-frame" :src="topFrame" alt="" />
-          <MinimapPanel v-if="!editorEnabled" @open-world-map="openWorldMap" />
-          <WorldMap ref="worldMap" />
-          <ChatPanel
-            :expanded="chatExpanded || skillsOpen"
-            :hidden="skillsOpen"
-            @open-skills="openSkills"
-            @set-expanded="chatExpanded = $event"
-          />
-          <SkillsPanel :active="skillsOpen" @close="skillsOpen = false" />
-          <MagicBook />
-          <TextBook />
-          <CounterPanel />
-          <StatusPanel />
-          <InventoryPanel />
-          <ShowcasePanel v-for="showcase in showcases" :key="showcase.id" :showcase="showcase" />
-          <MenuStructMenu />
-          <EscapeMenu v-if="!editorEnabled" />
-        </InputHandler>
-      </MenuContainer>
-    </TooltipContainer>
-  </main>
+  <div ref="uiSurface" class="ui-surface">
+    <CharacterCreation
+      v-if="!characterSelected && creatingCharacter"
+      @cancel="creatingCharacter = false"
+      @created="creatingCharacter = false"
+    />
+    <CharacterSelection v-else-if="!characterSelected" @create="creatingCharacter = true" @selected="selectCharacter" />
+    <main v-else class="hud" :style="{ '--hud-scale': hudDisplayScale }">
+      <TooltipContainer>
+        <MenuContainer>
+          <InputHandler>
+            <BloodFog />
+            <ChatBubbles />
+            <img class="bottom-frame" :src="bottomFrame" alt="" />
+            <img class="top-frame" :src="topFrame" alt="" />
+            <MinimapPanel v-if="!editorEnabled" @open-world-map="openWorldMap" />
+            <WorldMap ref="worldMap" />
+            <ChatPanel
+              :expanded="chatExpanded || skillsOpen"
+              :hidden="skillsOpen"
+              @open-skills="openSkills"
+              @set-expanded="chatExpanded = $event"
+            />
+            <SkillsPanel :active="skillsOpen" @close="skillsOpen = false" />
+            <MagicBook />
+            <TextBook />
+            <CounterPanel />
+            <StatusPanel />
+            <InventoryPanel />
+            <ShowcasePanel v-for="showcase in showcases" :key="showcase.id" :showcase="showcase" />
+            <MenuStructMenu />
+            <EscapeMenu v-if="!editorEnabled" />
+          </InputHandler>
+        </MenuContainer>
+      </TooltipContainer>
+    </main>
+  </div>
 </template>
 
 <style src="moonlight-ui/styles/theme.css"></style>
@@ -163,6 +174,11 @@ onBeforeUnmount(() => {
 <style src="./styles.css"></style>
 
 <style scoped>
+.ui-surface {
+  position: absolute;
+  inset: 0;
+}
+
 .hud {
   --hud-scale: 1;
   position: absolute;
