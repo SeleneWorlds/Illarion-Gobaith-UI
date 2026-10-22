@@ -1,8 +1,5 @@
 <script setup lang="ts">
 import { useId } from 'vue';
-import { useI18n } from '../composables/useI18n';
-
-const { t } = useI18n();
 
 withDefaults(
   defineProps<{ title: string; showBack?: boolean; showClose?: boolean; wide?: boolean; backLabel?: string }>(),

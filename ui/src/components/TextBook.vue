@@ -3,13 +3,11 @@ import { computed, onBeforeUnmount, onMounted, watch } from 'vue';
 import { usePopupEscape } from '../composables/usePopupEscape';
 import { useBookStore } from '../stores/books';
 import { useClientAssetSrc, useUiAssetSrc } from '../composables/useClientAsset';
-import { useI18n } from '../composables/useI18n';
 import { useSelene } from '../selene';
 import SeleneVisual from './SeleneVisual.vue';
 
 const books = useBookStore();
 const selene = useSelene();
-const { t } = useI18n();
 const background = useUiAssetSrc('menu_book.png');
 const closeIcon = useClientAssetSrc('client/textures/illarion/ui/menu_close.png');
 usePopupEscape(computed(() => Boolean(books.current.value)), books.close);

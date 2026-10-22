@@ -3,8 +3,6 @@ import { ArrowLeft, X } from '@lucide/vue';
 import { useId } from 'vue';
 import MoonlightSurface from 'moonlight-ui/MoonlightSurface.vue';
 import MoonlightButton from 'moonlight-ui/MoonlightButton.vue';
-import { useI18n } from '../composables/useI18n';
-const { t } = useI18n();
 const titleId = useId();
 
 withDefaults(
