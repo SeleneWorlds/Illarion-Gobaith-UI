@@ -7,24 +7,8 @@ export default defineConfig({
   resolve: {
     alias: [
       {
-        find: /^selene\/mock$/,
-        replacement: fileURLToPath(new URL('../../../sdk/selene/src/mock.ts', import.meta.url)),
-      },
-      {
-        find: /^selene$/,
-        replacement: fileURLToPath(new URL('../../../sdk/selene/src/index.ts', import.meta.url)),
-      },
-      {
         find: 'illarion-client-core',
         replacement: fileURLToPath(new URL('../illarion-client-core/ui/src', import.meta.url)),
-      },
-      {
-        find: 'moonlight-ui/styles',
-        replacement: fileURLToPath(new URL('../../moonlight/moonlight-ui/ui/styles', import.meta.url)),
-      },
-      {
-        find: 'moonlight-ui',
-        replacement: fileURLToPath(new URL('../../moonlight/moonlight-ui/ui/src', import.meta.url)),
       },
     ],
     dedupe: ['vue'],

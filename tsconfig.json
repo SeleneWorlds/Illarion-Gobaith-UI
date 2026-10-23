@@ -7,10 +7,6 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "paths": {
-      "selene": ["../../sdk/selene/src/index.ts"],
-      "selene/mock": ["../../sdk/selene/src/mock.ts"],
-      "moonlight-ui/*": ["../moonlight/moonlight-ui/ui/src/*"],
-      "moonlight-ui/styles/*": ["../moonlight/moonlight-ui/ui/styles/*"],
       "vue": ["./node_modules/vue"],
       "illarion-client-core": ["./illarion-client-core/ui/src/index.ts"],
       "illarion-client-core/*": ["./illarion-client-core/ui/src/*"]
