@@ -182,7 +182,13 @@ const onScrollSlot = (event: WheelEvent) => {
       />
       <span v-if="item && item.count > 1" class="count">{{ item.count }}</span>
     </button>
-    <SeleneVisual v-if="isUsing || isMagicTarget" class="using" identifier="illarion:use_cursor" without-offset />
+    <SeleneVisual
+      v-if="isUsing || isMagicTarget"
+      class="using"
+      identifier="illarion:use_cursor"
+      grid-sized
+      without-offset
+    />
   </div>
 </template>
 
