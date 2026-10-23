@@ -1,4 +1,4 @@
-import { inject, readonly, ref, type InjectionKey, type Ref } from 'vue';
+import { computed, inject, readonly, ref, type InjectionKey, type Ref } from 'vue';
 import { z } from 'zod';
 import type { LogMessage } from '../composables/useLogger';
 import { usePayload } from '../composables/usePayload';
@@ -53,10 +53,12 @@ export const chatStoreKey: InjectionKey<ChatStore> = Symbol('chat-store');
 export const createChatStore = (log: (message: LogMessage) => void): ChatStore => {
   const messages = ref<ChatMessage[]>([]);
   const bubbles = ref<ChatBubble[]>([]);
+  const typingBubbles = ref<ChatBubble[]>([]);
   let nextMessageId = 0;
   let nextBubbleId = 0;
   onConnected(() => {
     bubbles.value = [];
+    typingBubbles.value = [];
   });
 
   const addMessage = (text: string, kind: string, author = '', shouldLog = false) => {
@@ -70,6 +72,25 @@ export const createChatStore = (log: (message: LogMessage) => void): ChatStore =
       messages.value.splice(0, excess);
     }
   };
+
+  usePayload('illarion:typing', z.object({ author: z.number().int().safe(), typing: z.boolean() }), (payload) => {
+    const existing = typingBubbles.value.find((bubble) => bubble.author === payload.author);
+    if (!payload.typing) {
+      typingBubbles.value = typingBubbles.value.filter((bubble) => bubble.author !== payload.author);
+    } else if (existing) {
+      existing.expiresAt = performance.now() + 6000;
+    } else {
+      const now = performance.now();
+      typingBubbles.value.push({
+        id: nextBubbleId++,
+        author: payload.author,
+        text: '...',
+        kind: 'typing',
+        createdAt: now,
+        expiresAt: now + 6000,
+      });
+    }
+  });
 
   usePayload('illarion:inform', informPayloadSchema, (payload) => {
     addMessage(payload.Message, 'inform');
@@ -97,8 +118,14 @@ export const createChatStore = (log: (message: LogMessage) => void): ChatStore =
 
   return {
     messages: readonly(messages),
-    bubbles: readonly(bubbles),
+    bubbles: computed(() => {
+      const speakers = new Set(bubbles.value.map((bubble) => bubble.author));
+      return [...bubbles.value, ...typingBubbles.value.filter((bubble) => !speakers.has(bubble.author))];
+    }),
     expireBubbles(now) {
+      if (typingBubbles.value.some((bubble) => bubble.expiresAt <= now)) {
+        typingBubbles.value = typingBubbles.value.filter((bubble) => bubble.expiresAt > now);
+      }
       if (bubbles.value.some((bubble) => bubble.expiresAt + 200 <= now)) {
         bubbles.value = bubbles.value.filter((bubble) => bubble.expiresAt + 200 > now);
       }

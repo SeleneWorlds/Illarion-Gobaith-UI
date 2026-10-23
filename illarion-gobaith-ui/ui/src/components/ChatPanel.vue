@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, useTemplateRef } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, useTemplateRef } from 'vue';
 import { useSelene } from '../selene';
 import { speechModeById, type SpeechModeId } from '../chatModes';
 import { useChatMacros } from '../composables/useChatMacros';
@@ -27,6 +27,31 @@ const selectedMode = ref<SpeechModeId>('normal');
 let macroAction = Promise.resolve();
 const releases: Array<() => void> = [];
 
+let typing = false;
+let lastTypingUpdate = 0;
+let typingTimeout: ReturnType<typeof setTimeout> | undefined;
+const stopTyping = () => {
+  clearTimeout(typingTimeout);
+  if (typing) {
+    selene.network.sendToServer('illarion:typing', { typing: false });
+    typing = false;
+  }
+};
+watch(message, (text) => {
+  if (!text.trim()) {
+    stopTyping();
+    return;
+  }
+  const now = performance.now();
+  if (!typing || now - lastTypingUpdate >= 2000) {
+    selene.network.sendToServer('illarion:typing', { typing: true });
+    typing = true;
+    lastTypingUpdate = now;
+  }
+  clearTimeout(typingTimeout);
+  typingTimeout = setTimeout(stopTyping, 4000);
+});
+
 const resizeInput = async () => {
   await nextTick();
   if (!input.value || !history.value) {
@@ -41,6 +66,7 @@ const send = () => {
   if (!text) {
     return;
   }
+  stopTyping();
   const currentMode = speechModeById(selectedMode.value);
   const prefix = 'prefix' in currentMode ? currentMode.prefix : '';
   selene.network.sendToServer('illarion:chat', {
@@ -198,6 +224,7 @@ onMounted(() => {
   void resizeInput();
 });
 onBeforeUnmount(() => {
+  stopTyping();
   for (const release of releases) {
     release();
   }

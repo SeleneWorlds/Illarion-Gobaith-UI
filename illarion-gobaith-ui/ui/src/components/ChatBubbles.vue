@@ -8,7 +8,7 @@ const selene = useSelene();
 const layout = useHudLayout();
 const chat = useChatStore();
 const layer = ref<HTMLElement>();
-const positions = ref<Record<number, { x: number; y: number; pointer: string; opacity: number }>>({});
+const positions = ref<Record<number, { x: number; y: number; background: string; opacity: number }>>({});
 let frame = 0;
 
 function update(now: number) {
@@ -45,19 +45,36 @@ function update(now: number) {
     const best = candidates.reduce((best, candidate) => (overlap(candidate) < overlap(best) ? candidate : best));
     placed.push({ ...best, width, height });
     const vertical = point.y < best.y || point.y > best.y + height;
+    // Overlap subpaths inside one fill so the join has no seam or doubled opacity.
     const baseX = vertical
       ? Math.max(best.x + 10, Math.min(point.x, best.x + width - 10))
       : point.x < best.x
-        ? best.x
-        : best.x + width;
+        ? best.x + 1
+        : best.x + width - 1;
     const baseY = vertical
       ? point.y < best.y
-        ? best.y
-        : best.y + height
+        ? best.y + 1
+        : best.y + height - 1
       : Math.max(best.y + 5, Math.min(point.y, best.y + height - 5));
+    const a = { x: baseX - (vertical ? 5 : 0), y: baseY - (vertical ? 0 : 5) };
+    const b = { x: baseX + (vertical ? 5 : 0), y: baseY + (vertical ? 0 : 5) };
+    // Both closed subpaths must wind clockwise for a nonzero-fill union.
+    const clockwise = (b.x - a.x) * (point.y - a.y) - (b.y - a.y) * (point.x - a.x) >= 0;
+    const [start, end] = clockwise ? [a, b] : [b, a];
+    const { x, y } = best;
+    const right = x + width;
+    const bottom = y + height;
+    const radius = Math.min(8, width / 2, height / 2);
+    const background = [
+      `M ${x + radius} ${y} H ${right - radius} Q ${right} ${y} ${right} ${y + radius}`,
+      `V ${bottom - radius} Q ${right} ${bottom} ${right - radius} ${bottom}`,
+      `H ${x + radius} Q ${x} ${bottom} ${x} ${bottom - radius}`,
+      `V ${y + radius} Q ${x} ${y} ${x + radius} ${y} Z`,
+      `M ${start.x} ${start.y} L ${end.x} ${end.y} L ${point.x} ${point.y} Z`,
+    ].join(' ');
     next[bubble.id] = {
       ...best,
-      pointer: `${baseX - (vertical ? 5 : 0)},${baseY - (vertical ? 0 : 5)} ${baseX + (vertical ? 5 : 0)},${baseY + (vertical ? 0 : 5)} ${point.x},${point.y}`,
+      background,
       opacity: Math.max(0, Math.min(1, (now - bubble.createdAt) / 200, (bubble.expiresAt + 200 - now) / 200)),
     };
   }
@@ -79,7 +96,7 @@ onBeforeUnmount(() => cancelAnimationFrame(frame));
         viewBox="0 0 839 419"
         :style="{ opacity: positions[bubble.id].opacity }"
       >
-        <polygon :points="positions[bubble.id].pointer" />
+        <path :d="positions[bubble.id].background" fill-rule="nonzero" />
       </svg>
       <div
         :data-bubble="bubble.id"
@@ -91,7 +108,12 @@ onBeforeUnmount(() => cancelAnimationFrame(frame));
           opacity: positions[bubble.id]?.opacity ?? 0,
         }"
       >
-        {{ bubble.text }}
+        <template v-if="bubble.kind === 'typing'">
+          <span v-for="dot in 3" :key="dot" class="typing-dot" :style="{ animationDelay: `${(dot - 1) * 150}ms` }"
+            >.</span
+          >
+        </template>
+        <template v-else>{{ bubble.text }}</template>
       </div>
     </template>
   </div>
@@ -115,13 +137,31 @@ onBeforeUnmount(() => cancelAnimationFrame(frame));
   overflow: hidden;
   padding: 5px 10px;
   border-radius: 8px;
-  background: rgb(0 0 0 / 50%);
   color: white;
   text-align: center;
   font-size: 14px;
   line-height: 18px;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+.bubble.typing {
+  padding: 2px 9px;
+}
+.typing-dot {
+  display: inline-block;
+  animation: typing-pulse 1s infinite;
+}
+@keyframes typing-pulse {
+  0%,
+  60%,
+  100% {
+    opacity: 0.35;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
 }
 .pointers {
   position: absolute;
