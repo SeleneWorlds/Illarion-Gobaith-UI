@@ -38,7 +38,11 @@ const hitBands = Array.from({ length: 20 }, (_, index) => {
   const height = Math.min(2, 39 - top);
   const distanceFromCenter = Math.abs(19.5 - (top + height / 2));
   const left = Math.floor(distanceFromCenter * 2);
-  return { top, left, width: 78 - left * 2, height };
+  // Extend each strip inward so fractional HUD scaling cannot leave hit-test seams.
+  // The overlapping rectangles preserve the same stepped diamond outline.
+  const hitTop = Math.min(top, 19);
+  const hitBottom = Math.max(top + height, 20);
+  return { top: hitTop, left, width: 78 - left * 2, height: hitBottom - hitTop };
 });
 
 const lookAt = () => {
@@ -166,8 +170,8 @@ const onScrollSlot = (event: WheelEvent) => {
       @wheel.prevent="onScrollSlot"
     >
       <span
-        v-for="band in hitBands"
-        :key="band.top"
+        v-for="(band, index) in hitBands"
+        :key="index"
         class="hit"
         data-selene-interactive
         :style="{ top: `${band.top}px`, left: `${band.left}px`, width: `${band.width}px`, height: `${band.height}px` }"
